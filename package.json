@@ -1,9 +1,10 @@
 {
   "name": "dnd_dashboard",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/main/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron-vite dev"
   },
   "keywords": [],
   "author": "",
@@ -11,7 +12,8 @@
   "description": "",
   "dependencies": {
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "react-rnd": "^10.5.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",

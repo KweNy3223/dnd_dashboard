@@ -1,0 +1,275 @@
+body {
+  background-color: #202427;
+  color: #feffff;
+  margin: 0;
+  font-family: sans-serif;
+  overflow: hidden; /* Скрываем ползунки на уровне всего окна браузера */
+}
+
+.div {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.main{
+    flex: 1;
+    min-height: 100vh;
+    width: 100vw;
+    position: relative;
+    overflow: hidden; /* Скрываем ползунки на уровне рабочей зоны */
+}
+
+.head{
+    background-color: #424649;
+    padding: 15px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.headertitle{
+    margin: 0;
+}
+
+/* Твой основной класс (я добавил только одну строчку в конец) */
+.modulebtn {
+    border: none;
+    background-color: #5865F2;
+    color: #feffff;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s; /* Делает смену цвета и анимацию плавной */
+}
+
+/* Когда мышка наведена на кнопку (чуть темнее) */
+.modulebtn:hover {
+    background-color: #4752C4; 
+}
+
+/* Когда кнопка зажата (еще темнее + эффект вдавливания) */
+.modulebtn:active {
+    background-color: #3C45A5;
+    transform: scale(0.96); /* Кнопка визуально чуть-чуть уменьшается, имитируя физическое нажатие */
+}
+
+.module-card {
+  background-color: #2b2f33;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 8px;
+  border: 1px solid #5865F2;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  min-width: 450px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 60px;
+    right: 20px;
+    background-color: #2b2f33;
+    border: 1px solid #424649;
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+    z-index: 100;
+}
+
+.dropdown-menu button {
+    background: transparent;
+    color: #feffff;
+    border: none;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-radius: 4px;
+    text-align: left; /* Выравниваем текст по левому краю */
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.dropdown-menu button:hover {
+    background-color: #5865F2; /* При наведении красим в синий */
+}
+
+/* --- СТИЛИ ТРЕКЕРА ИНИЦИАТИВЫ --- */
+
+/* Шапка трекера: расталкиваем заголовок и кнопку по краям */
+.tracker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  cursor: grab; /* Курсор в виде раскрытой ладони */
+  user-select: none; /* Запрещаем выделять текст мышкой */
+  -webkit-user-select: none;
+}
+
+/* Когда ты зажимаешь левую кнопку мыши на шапке, ладонь сжимается */
+.tracker-header:active {
+  cursor: grabbing; 
+}
+
+/* Настраиваем сам текст заголовка */
+.tracker-header h3 {
+  margin: 0;
+  color: #feffff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Кнопка с плюсиком */
+.tracker-header button {
+  background-color: transparent;
+  color: #a3a3a3;
+  border: 1px solid #424649;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: 0.2s;
+}
+
+.tracker-header button:hover {
+  background-color: #5865F2; /* Фирменный синий при наведении */
+  color: #feffff;
+  border-color: #5865F2;
+}
+
+/* Делаем сетку из 4 колонок. 
+   2fr - Имя (в 2 раза шире), 1fr - Инициатива, 1fr - ХП, 2fr - Состояния */
+.tracker-row, .tracker-labels {
+  display: grid;
+ grid-template-columns: 2fr 1fr 1fr 2fr 30px;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Стили для строки с надписями */
+.tracker-labels {
+  margin-bottom: 8px;
+  padding: 0 12px;
+  color: #a3a3a3;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Стили для самой строки с инпутами */
+.tracker-row {
+  background-color: #2b2d31; /* Темный фон самой строки */
+  border-radius: 6px;
+  margin-bottom: 4px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+}
+
+/* Убираем у инпутов фон и обводку */
+.tracker-row input {
+  background-color: transparent;
+  border: 1px solid transparent; /* Невидимая рамка, чтобы ничего не дергалось при клике */
+  color: #ffffff;
+  padding: 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  width: 100%; /* Заставляем инпут заполнить всю свою ячейку в сетке */
+  box-sizing: border-box; /* Чтобы padding не ломал ширину */
+}
+
+/* При наведении делаем легкую подсветку */
+.tracker-row input:hover {
+  background-color: #1e1f22;
+}
+
+/* При клике (фокусе) показываем аккуратную рамку */
+.tracker-row input:focus {
+  outline: none;
+  background-color: #1e1f22;
+  border-color: #5865F2;
+}
+
+/* Кнопка сортировки */
+.sort-btn {
+  background-color: #4f545c; /* Строгий серый цвет */
+  color: #ffffff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.sort-btn:hover {
+  background-color: #5865F2; /* Подсветка при наведении */
+}
+
+/* Кнопка удаления строки */
+.delete-btn {
+  background: transparent;
+  border: none;
+  color: #72767d;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: color 0.2s;
+  padding: 0;
+}
+
+.delete-btn:hover {
+  color: #ed4245; /* Классический красный цвет ошибки/удаления */
+}
+
+.minimized {
+  height: auto !important; /* Насильно сжимаем окно до размеров шапки */
+  min-height: 0 !important; /* Отключаем минимальную высоту, если она была */
+  padding-bottom: 0 !important; /* Убираем лишнее пустое место снизу */
+}
+
+/* --- ДЕЛАЕМ ПОЛЗУНОК НЕВИДИМЫМ --- */
+.module-card::-webkit-scrollbar {
+  display: none; /* Прячем ползунок в Chrome, Safari и новых Edge */
+}
+
+.module-card {
+  /* ... твои старые стили фона и отступов ... */
+  
+  overflow-y: auto; /* Оставляем возможность крутить колесиком мыши */
+  overflow-x: hidden; /* Жестко запрещаем нижнюю прокрутку */
+  
+  -ms-overflow-style: none;  /* Прячем ползунок в старом Edge */
+  scrollbar-width: none;  /* Прячем ползунок в Firefox */
+}
+
+.tracker-header, .tracker-labels, .tracker-footer {
+  flex-shrink: 0;
+}
+
+.tracker-list {
+  flex-grow: 1; /* Список занимает всё свободное место в окне */
+  overflow-y: auto; /* Разрешаем списку прокручиваться */
+  overflow-x: hidden;
+  
+  /* Прячем визуальные ползунки, но оставляем прокрутку колесиком */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.tracker-list::-webkit-scrollbar {
+  display: none;
+}
