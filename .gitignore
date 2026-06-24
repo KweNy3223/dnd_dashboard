@@ -1,0 +1,10 @@
+node_modules
+dist
+.DS_Store
+.env
+out
+node_modules/
+dist/
+out/
+*.exe
+DnD Dashboard/
