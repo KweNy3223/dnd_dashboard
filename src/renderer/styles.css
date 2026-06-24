@@ -7,7 +7,7 @@
   --bg-module: #2b2d31;     /* Фон карточек (модулей) */
   --bg-header: #111214;     /* Верхняя панель */
   --bg-hover: #3f4147;      /* Фон при наведении на кнопки/строки */
-  --bg-input: #1e1f22;      /* Фон полей ввода */
+  --bg-input: #2b2d31;      /* <-- ИЗМЕНЕНО: Фон плашек теперь светлее фона приложения */
 
   /* Текст */
   --text-primary: #dbdee1;  /* Основной текст */
@@ -22,7 +22,27 @@
   --accent-gold: #cfa832;          /* Золотой (для активного хода) */
 
   /* Рамки */
-  --border-color: #1e1f22;  /* Цвет тонких разделителей */
+  --border-color: #3f4147;  /* <-- ИЗМЕНЕНО: Границы теперь видно! */
+}
+
+/* =========================================
+   1.2. СВЕТЛЯ ТЕМА (ПЕРЕОПРЕДЕЛЕНИЕ ЦВЕТОВ)
+   ========================================= */
+[data-theme="light"] {
+  --bg-app: #f2f3f5;       /* Светло-серый фон приложения */
+  --bg-module: #ffffff;    /* Белые карточки */
+  --bg-header: #e3e5e8;    /* Светлая шапка */
+  --bg-hover: #ebedef;     /* Легкое выделение при наведении */
+  --bg-input: #f8f9fa;     /* Почти белые поля ввода */
+
+  --text-primary: #313338; /* Темно-серый текст */
+  --text-title: #111214;   /* Почти черный для заголовков */
+  --text-muted: #5c5e66;   /* Серый текст */
+
+  --accent-primary: #5865f2; /* Ярко-синий для кнопок (отлично смотрится на белом) */
+  --accent-primary-hover: #4752c4;
+  
+  --border-color: #cfd3d7; /* Светлые границы */
 }
 
 /* =========================================
@@ -89,6 +109,7 @@ body, .app-container {
   justify-content: center;
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
+  text-decoration: none;
 }
 
 .nav-tab:hover {
@@ -100,9 +121,6 @@ body, .app-container {
   border-bottom: 3px solid var(--text-primary);
 }
 
-/* =========================================
-   3. ВЫПАДАЮЩИЕ МЕНЮ И ПЛАВАЮЩАЯ КНОПКА (FAB)
-   ========================================= */
 /* =========================================
    3. ВЫПАДАЮЩИЕ МЕНЮ И ПЛАВАЮЩАЯ КНОПКА (FAB)
    ========================================= */
@@ -448,4 +466,149 @@ body, .app-container {
   display: flex;
   flex-direction: column;
   min-height: 0; /* Обязательно для работы grid-template-rows */
+}
+
+/* === ТУМБЛЕР (Toggle Switch) ДЛЯ НАСТРОЕК === */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+}
+
+/* Прячем стандартный чекбокс */
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* Фон тумблера (когда ВЫКЛЮЧЕН) */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #3f3f46; /* Сделали фон чуть светлее, чтобы он выделялся */
+  transition: 0.3s;
+  border-radius: 24px;
+  border: 1px solid #52525b; /* Добавили видимую рамку */
+}
+
+/* Кружочек внутри тумблера */
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px; 
+  background-color: #e4e4e7; /* Сделали кружок почти белым для хорошего контраста */
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2); /* Добавили легкую тень кружку */
+}
+
+/* Состояние ВКЛЮЧЕНО */
+input:checked + .slider {
+  background-color: #3b82f6; /* Красивый синий акцент */
+  border-color: #3b82f6;
+}
+
+input:checked + .slider:before {
+  transform: translateX(20px); /* Двигаем кружочек вправо */
+  background-color: #fff;
+}
+
+/* =========================================
+   7. КАСТОМИЗАЦИЯ СТАНДАРТНЫХ ЭЛЕМЕНТОВ
+   ========================================= */
+
+/* Убираем белые стрелочки у полей ввода чисел (Chrome, Safari, Edge, Electron) */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Убираем стрелочки в Firefox (на всякий случай, для кроссбраузерности) */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield; 
+}
+
+/* Кнопка корзины с эффектом наведения */
+.trash-btn {
+  width: 46px;
+  height: 46px;
+  background-color: var(--bg-module);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  transition: all 0.2s ease-in-out; /* Плавная анимация всех изменений */
+}
+
+.trash-btn:hover {
+  background-color: #ef4444; /* Красный цвет */
+  color: white;
+  transform: scale(1.1); /* Увеличение на 10% */
+  border-color: #ef4444;
+}
+
+/* Стили для строк товаров в экономике */
+.price-row {
+  display: grid;
+  grid-template-columns: 3fr 1fr 1fr;
+  padding: 12px 15px;
+  background-color: var(--bg-input);
+  border: 1px solid transparent;
+  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.price-row:hover {
+  background-color: var(--bg-module);
+  border: 1px solid var(--accent-primary);
+  border-radius: 6px;
+  transform: translateX(4px); /* Легкий сдвиг вправо при наведении */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.price-row:last-child {
+  border-bottom: none;
+}
+
+/* 1. Прячем горизонтальный ползунок у вкладок, но оставляем возможность скролла */
+.scrollable-tabs {
+  overflow-x: auto;
+  -ms-overflow-style: none;  /* Для IE и Edge */
+  scrollbar-width: none;  /* Для Firefox */
+}
+
+.scrollable-tabs::-webkit-scrollbar {
+  display: none; /* Для Chrome, Safari и Opera */
+}
+
+/* 2. Делаем красивый темный ползунок для всего приложения (вертикальный скролл) */
+::-webkit-scrollbar {
+  width: 8px; /* Толщина вертикального ползунка */
+  height: 8px; /* Толщина горизонтального ползунка (если где-то еще появится) */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* Прозрачный фон дорожки */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color); /* Цвет самого ползунка */
+  border-radius: 4px; /* Закругленные края */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted); /* Чуть светлеет при наведении */
 }

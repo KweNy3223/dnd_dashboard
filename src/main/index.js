@@ -8,19 +8,22 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      webSecurity: false // Важно для локальных ресурсов
+      webSecurity: false, // Важно для локальных ресурсов
+      autoHideMenuBar: true
     }
   });
 
-  // Определяем путь к файлу
-  // В упакованном виде ресурсы лежат в process.resourcesPath
-  const indexPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'out', 'renderer', 'index.html')
-    : path.join(__dirname, '../../out/renderer/index.html');
-
-  console.log("Loading file from:", indexPath); // Это поможет нам увидеть путь в консоли
-  win.loadFile(indexPath);
   
+
+  if (app.isPackaged) {
+    // Если это собранный .exe файл - грузим из папки
+    win.loadFile(path.join(process.resourcesPath, 'out', 'renderer', 'index.html'));
+  } else {
+    // В режиме разработки подключаемся к "прямому эфиру" Vite
+    // Vite обычно крутится на порту 5173 (или берет порт из настроек)
+    const devServerUrl = process.env['ELECTRON_RENDERER_URL'] || 'http://localhost:5173';
+    win.loadURL(devServerUrl);
+  }
 }
 
 app.whenReady().then(createWindow);

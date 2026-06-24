@@ -33,9 +33,11 @@
     }
   },
   "dependencies": {
+    "lucide-react": "^1.17.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-rnd": "^10.5.3"
+    "react-rnd": "^10.5.3",
+    "react-router-dom": "^7.18.0"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
