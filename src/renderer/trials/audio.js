@@ -563,19 +563,23 @@ class AudioEngine {
     if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
+    if (this._lastNeedleTime && t - this._lastNeedleTime < 0.25) return;
+    this._lastNeedleTime = t;
+
+    // Мягкий механический щелчок клапана шприца (глухой латунный клац)
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(1600, t);
-    osc.frequency.exponentialRampToValueAtTime(2400, t + 0.05);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320, t);
+    osc.frequency.exponentialRampToValueAtTime(110, t + 0.07);
 
-    gain.gain.setValueAtTime(0.3, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    gain.gain.setValueAtTime(0.22, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
 
     osc.connect(gain);
     gain.connect(this.masterGain);
     osc.start(t);
-    osc.stop(t + 0.06);
+    osc.stop(t + 0.08);
   }
 
   // 5.11. Шипение химической реакции нейтрализатора (Chemical Fizz)
@@ -585,27 +589,41 @@ class AudioEngine {
     if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
-    if (this._lastFizzTime && t - this._lastFizzTime < 0.15) return;
+    if (this._lastFizzTime && t - this._lastFizzTime < 0.18) return;
     this._lastFizzTime = t;
 
-    const dur = 0.18;
+    // 1. Приятный мягкий бульк алхимической сыворотки в котле
+    const osc = this.ctx.createOscillator();
+    const oscGain = this.ctx.createGain();
+    osc.type = 'sine';
+    const bFreq = 260 + Math.random() * 120;
+    osc.frequency.setValueAtTime(bFreq, t);
+    osc.frequency.exponentialRampToValueAtTime(bFreq + 140, t + 0.07);
+    oscGain.gain.setValueAtTime(0.12, t);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    osc.connect(oscGain);
+    oscGain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.08);
+
+    // 2. Тёплое мягкое шипение химической реакции (бархатистый звук)
+    const dur = 0.14;
     const noise = this.ctx.createBufferSource();
     noise.buffer = this.createNoiseBuffer(dur);
-    if (!noise.buffer) return;
+    if (noise.buffer) {
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1400, t);
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(3400 + Math.random() * 600, t);
-    filter.Q.setValueAtTime(3, t);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
 
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.15, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.masterGain);
-    noise.start(t);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      noise.start(t);
+    }
   }
 
   // 6. Срабатывание взведённой пружины ловушки (тяжёлый железный ЛЯЗГ)
@@ -646,23 +664,39 @@ class AudioEngine {
     });
   }
 
-  // 7. Стравливание клапана / шипение газа
-  playSteamHiss(duration = 0.35) {
+  // 7. Стравливание клапана / шипение пара
+  playSteamHiss(duration = 0.32) {
     if (this.muted) return;
     this.ensureContext();
     if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
+
+    // Глухой басовый толчок сброса давления
+    const thud = this.ctx.createOscillator();
+    const thudG = this.ctx.createGain();
+    thud.type = 'triangle';
+    thud.frequency.setValueAtTime(95, t);
+    thud.frequency.exponentialRampToValueAtTime(40, t + 0.1);
+    thudG.gain.setValueAtTime(0.22, t);
+    thudG.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    thud.connect(thudG);
+    thudG.connect(this.masterGain);
+    thud.start(t);
+    thud.stop(t + 0.1);
+
+    // Бархатистый напор стравливаемого пара (без резкого писка)
     const noise = this.ctx.createBufferSource();
     noise.buffer = this.createNoiseBuffer(duration);
     if (!noise.buffer) return;
 
     const filter = this.ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.setValueAtTime(2600, t);
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1100, t);
+    filter.Q.setValueAtTime(1.5, t);
 
     const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.28, t);
+    gain.gain.setValueAtTime(0.20, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
     noise.connect(filter);

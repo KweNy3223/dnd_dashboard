@@ -225,14 +225,14 @@ export class TrapGame {
     // 4. Газ: двустороннее рабочее окно давления (safeZoneMin ... safeZoneMax)
     // Чем выше DC, тем уже рабочий коридор и тем быстрее растет давление!
     const dcDiff = this.dc - 15;
-    const windowHalfWidth = Math.max(7, Math.min(15, 11 - dcDiff * 0.45 + (this.bonus * 0.3)));
+    const windowHalfWidth = Math.max(5.5, Math.min(13, 9.5 - dcDiff * 0.45 + (this.bonus * 0.25)));
     const centerPressure = 36;
     this.gas.safeZoneMin = Math.round(centerPressure - windowHalfWidth);
     this.gas.safeZoneMax = Math.round(centerPressure + windowHalfWidth);
     this.gas.dangerZoneMin = 75;
-    this.gas.riseRate = Math.max(14, 22 + dcDiff * 2.2 - (this.bonus * 0.5));
+    this.gas.riseRate = Math.max(16, 24 + dcDiff * 2.5 - (this.bonus * 0.5));
     this.gas.neutralizeSpeed = Math.max(16, 20 - dcDiff * 0.2 + (this.bonus * 0.4));
-    this.gas.reactionHeat = Math.max(8, 11 + dcDiff * 0.3);
+    this.gas.reactionHeat = Math.max(9, 13 + dcDiff * 0.4);
   }
 
   reset() {
@@ -468,6 +468,8 @@ export class TrapGame {
       } else {
         this.checkSearAlignmentClick();
       }
+    } else if (this.trapType === 'gas') {
+      audio.playNeedleInsert();
     }
   }
 
@@ -683,9 +685,9 @@ export class TrapGame {
   ventGasPressure() {
     if (this.gas.ventCooldown > 0) return;
 
-    let dropAmount = 24 + Math.random() * 4;
+    let dropAmount = 22 + Math.random() * 4;
     if (this.gas.ventHeat > 1.6) {
-      dropAmount = 16;
+      dropAmount = 15;
       this.gas.ventCooldown = 0.55;
       this.statusMessage = '⚠️ Клапан перегрет! Стравливание замедлено';
       this.statusTimer = 1.0;
@@ -696,7 +698,7 @@ export class TrapGame {
     }
 
     this.gas.ventHeat += 0.55;
-    audio.playSteamHiss(0.35);
+    audio.playSteamHiss(0.32);
 
     this.gas.pressure = Math.max(8, this.gas.pressure - dropAmount);
     this.spawnSteam(this.logicalWidth / 2 + 75, this.logicalHeight * 0.45, 26);
@@ -733,7 +735,6 @@ export class TrapGame {
         const neutRate = this.gas.neutralizeSpeed || 20;
         this.gas.neutralizeProgress = Math.min(100, this.gas.neutralizeProgress + neutRate * dt);
         audio.playChemicalFizz();
-        audio.playNeedleInsert();
 
         if (this.gas.neutralizeProgress >= 100) {
           this.triggerVictory();
@@ -1549,11 +1550,12 @@ export class TrapGame {
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    const startA = -Math.PI * 0.75;
-    const totalA = Math.PI * 1.5;
-    const safeMinF = (this.gas.safeZoneMin || 25) / 100;
-    const safeMaxF = (this.gas.safeZoneMax || 45) / 100;
-    const dangerF = (this.gas.dangerZoneMin || 75) / 100;
+    // ГЕОМЕТРИЯ ЦИФЕРБЛАТА: 0% слева внизу (135°), 50% строго вверху (270°), 100% справа внизу (45°)
+    const startA = Math.PI * 0.75; // 135 градусов (начало дуги)
+    const totalA = Math.PI * 1.5;  // 270 градусов (размах шкалы по часовой стрелке)
+    const safeMinF = Math.max(0, Math.min(1, (this.gas.safeZoneMin || 26) / 100));
+    const safeMaxF = Math.max(0, Math.min(1, (this.gas.safeZoneMax || 46) / 100));
+    const dangerF = Math.max(0, Math.min(1, (this.gas.dangerZoneMin || 75) / 100));
 
     // 1. Синий сектор (0% ... safeMin): НЕДОБОР ДАВЛЕНИЯ
     ctx.beginPath();
@@ -1569,50 +1571,66 @@ export class TrapGame {
     ctx.lineWidth = 8;
     ctx.stroke();
 
-    // 3. Жёлтый сектор: ОПАСНОСТЬ ГИДРОУДАРА
+    // 3. Жёлтый сектор (safeMax ... dangerMin): ОПАСНОСТЬ ГИДРОУДАРА
     ctx.beginPath();
     ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * safeMaxF, startA + totalA * dangerF);
     ctx.strokeStyle = '#f59e0b';
     ctx.lineWidth = 7;
     ctx.stroke();
 
-    // 4. Красный сектор: ВЗРЫВ КОТЛА
+    // 4. Красный сектор (dangerMin ... 100%): ВЗРЫВ КОТЛА
     ctx.beginPath();
     ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * dangerF, startA + totalA);
     ctx.strokeStyle = '#ef4444';
     ctx.lineWidth = 7;
     ctx.stroke();
 
+    // Насечки шкалы (0%, 25%, 50%, 75%, 100%)
+    [0, 0.25, 0.5, 0.75, 1.0].forEach(f => {
+      const a = startA + totalA * f;
+      const cosA = Math.cos(a);
+      const sinA = Math.sin(a);
+      ctx.beginPath();
+      ctx.moveTo(gaugeX + cosA * (gr - 12), gaugeY + sinA * (gr - 12));
+      ctx.lineTo(gaugeX + cosA * (gr - 2), gaugeY + sinA * (gr - 2));
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
     // Подписи секторов на циферблате
-    ctx.font = 'bold 8px "Segoe UI", sans-serif';
+    ctx.font = 'bold 8.5px "Segoe UI", sans-serif';
     ctx.fillStyle = '#38bdf8';
-    ctx.textAlign = 'left';
-    ctx.fillText('НИЗКО', gaugeX - gr + 5, gaugeY + 28);
+    ctx.textAlign = 'center';
+    ctx.fillText('НИЗКО', gaugeX - 26, gaugeY + 34);
 
     ctx.fillStyle = '#4ade80';
     ctx.textAlign = 'center';
-    ctx.fillText('ВПРЫСК', gaugeX, gaugeY - gr + 16);
+    ctx.fillText('ВПРЫСК', gaugeX, gaugeY - 22);
 
     ctx.fillStyle = '#ef4444';
-    ctx.textAlign = 'right';
-    ctx.fillText('ВЗРЫВ', gaugeX + gr - 5, gaugeY + 28);
+    ctx.textAlign = 'center';
+    ctx.fillText('ВЗРЫВ', gaugeX + 26, gaugeY + 34);
 
-    // Стрелка манометра (с реалистичной вибрацией)
-    const jitter = (Math.random() - 0.5) * (this.gas.pressure > 60 ? 0.04 : 0.02);
-    const gAngle = startA + (this.gas.pressure / 100) * totalA + jitter;
+    // Стрелка манометра (100% точное соответствие секторам циферблата!)
+    const normP = Math.max(0, Math.min(100, this.gas.pressure));
+    const jitter = (Math.random() - 0.5) * (normP > 60 ? 0.025 : 0.012);
+    const needleA = startA + (normP / 100) * totalA + jitter;
 
     ctx.save();
     ctx.translate(gaugeX, gaugeY);
-    ctx.rotate(gAngle);
+    ctx.rotate(needleA);
 
+    const needleL = gr - 8;
     ctx.beginPath();
-    ctx.moveTo(-3, 0);
-    ctx.lineTo(0, -(gr - 8));
-    ctx.lineTo(3, 0);
+    ctx.moveTo(-5, 0); // Противовес
+    ctx.lineTo(0, -3.5);
+    ctx.lineTo(needleL, 0); // Острие стрелки указывает строго по needleA
+    ctx.lineTo(0, 3.5);
     ctx.closePath();
-    const inZone = this.gas.pressure >= this.gas.safeZoneMin && this.gas.pressure <= this.gas.safeZoneMax;
-    const isUnder = this.gas.pressure < this.gas.safeZoneMin;
-    const isOver = this.gas.pressure >= this.gas.dangerZoneMin;
+    const inZone = normP >= this.gas.safeZoneMin && normP <= this.gas.safeZoneMax;
+    const isUnder = normP < this.gas.safeZoneMin;
+    const isOver = normP >= this.gas.dangerZoneMin;
     ctx.fillStyle = inZone ? '#22c55e' : (isUnder ? '#38bdf8' : (isOver ? '#ef4444' : '#f59e0b'));
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
@@ -1630,7 +1648,7 @@ export class TrapGame {
     ctx.font = 'bold 10px "Segoe UI", sans-serif';
     ctx.fillStyle = inZone ? '#4ade80' : (isUnder ? '#38bdf8' : '#f87171');
     ctx.textAlign = 'center';
-    ctx.fillText(`ДАВЛЕНИЕ: ${Math.round(this.gas.pressure)}%`, gaugeX, gaugeY + gr + 16);
+    ctx.fillText(`ДАВЛЕНИЕ: ${Math.round(normP)}%`, gaugeX, gaugeY + gr + 16);
 
     // 3. ПНЕВМО-ШПРИЦ НЕЙТРАЛИЗАТОРА (СЛЕВА ВРЕЗАН В КОТЕЛ)
     const syringeX = cx - boilerW / 2;
