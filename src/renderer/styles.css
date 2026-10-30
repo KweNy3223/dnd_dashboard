@@ -1783,7 +1783,7 @@ canvas.game-canvas:active {
 
 .npc-awareness-card {
   width: 100%;
-  max-width: 460px;
+  max-width: 480px;
   background: var(--bg-app);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -1791,6 +1791,23 @@ canvas.game-canvas:active {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.npc-awareness-card.suspicious {
+  border-color: #f59e0b;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25);
+}
+
+.npc-awareness-card.alert {
+  border-color: #ef4444;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.45);
+  animation: pulse-danger 0.5s infinite alternate;
+}
+
+@keyframes pulse-danger {
+  from { box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+  to { box-shadow: 0 0 18px rgba(239, 68, 68, 0.65); }
 }
 
 .awareness-header {

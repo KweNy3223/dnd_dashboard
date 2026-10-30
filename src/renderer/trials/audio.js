@@ -335,56 +335,198 @@ class AudioEngine {
 
   // --- КАРМАННАЯ КРАЖА И СТЕЛС ---
 
-  // 8. Звон монет в кожаном кошеле
-  playCoinJingle() {
+  // 8. Настоящий мягкий звон монет в кожаном кошеле (тёплые металлические частоты, без писка)
+  playCoinJingle(volume = 0.08) {
     if (this.muted) return;
     this.ensureContext();
     if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
-    // Настоящий звон золота: гармонические пары высоких чистых тонов
-    const coinFrequencies = [
-      [3100, 4800],
-      [2700, 4200],
-      [3500, 5100]
-    ];
-    const pair = coinFrequencies[Math.floor(Math.random() * coinFrequencies.length)];
+    if (this._lastCoinTime && t - this._lastCoinTime < 0.14) return; // дебаунс против спама звука
+    this._lastCoinTime = t;
 
-    pair.forEach((freq, idx) => {
+    // Мягкий щелчок соударения монет (шумовой транзиент)
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(0.025);
+    if (noise.buffer) {
+      const nFilter = this.ctx.createBiquadFilter();
+      nFilter.type = 'bandpass';
+      nFilter.frequency.setValueAtTime(2200, t);
+      nFilter.Q.setValueAtTime(2.5, t);
+      const nGain = this.ctx.createGain();
+      nGain.gain.setValueAtTime(0.04 * (volume / 0.08), t);
+      nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+      noise.connect(nFilter);
+      nFilter.connect(nGain);
+      nGain.connect(this.masterGain);
+      noise.start(t);
+    }
+
+    // Тёплые гармоники золотых/бронзовых монет (1400 - 2400 Гц с быстрым затуханием в коже)
+    const tones = [
+      { freq: 1380 + (Math.random() - 0.5) * 80, decay: 0.12, gain: 0.05 * (volume / 0.08) },
+      { freq: 1980 + (Math.random() - 0.5) * 90, decay: 0.08, gain: 0.035 * (volume / 0.08) },
+      { freq: 2450 + (Math.random() - 0.5) * 110, decay: 0.05, gain: 0.02 * (volume / 0.08) }
+    ];
+
+    tones.forEach((tone) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, t + idx * 0.02);
+      osc.frequency.setValueAtTime(tone.freq, t);
 
-      gain.gain.setValueAtTime(0.2, t + idx * 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + idx * 0.02 + 0.22);
+      // Срезаем ультра-высокие частоты, делая звук бархатистым и глухим
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(3200, t);
 
-      osc.connect(gain);
+      gain.gain.setValueAtTime(tone.gain, t);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + tone.decay);
+
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(this.masterGain);
-      osc.start(t + idx * 0.02);
-      osc.stop(t + idx * 0.02 + 0.22);
+
+      osc.start(t);
+      osc.stop(t + tone.decay + 0.02);
     });
   }
 
-  // 9. Тревожный глухой удар сердца (при росте подозрения)
+  // 8.1. Мягкий шорох ткани и скольжение кожи (при вытягивании кошеля)
+  playClothRustle(volume = 0.045) {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    if (this._lastClothTime && t - this._lastClothTime < 0.16) return;
+    this._lastClothTime = t;
+
+    const dur = 0.14;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(dur);
+    if (!noise.buffer) return;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(680 + Math.random() * 120, t);
+    filter.Q.setValueAtTime(1.2, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(volume, t + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    noise.start(t);
+  }
+
+  // 8.2. Настороженность жертвы (микро-предупреждение: шорох поворота тела)
+  playTargetSuspicious() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    this.playClothRustle(0.06);
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.exponentialRampToValueAtTime(210, t + 0.22);
+
+    gain.gain.setValueAtTime(0.025, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.26);
+  }
+
+  // 8.3. Тревожный разворот жертвы (глухой кинематографический акцент опасности)
+  playTargetAlert() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, t);
+    osc.frequency.exponentialRampToValueAtTime(70, t + 0.22);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(420, t);
+
+    gain.gain.setValueAtTime(0.09, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(t);
+    osc.stop(t + 0.26);
+  }
+
+  // 8.4. Успешный ловкий срыв кошеля в руку
+  playPurseSnatch() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    this.playCoinJingle(0.12);
+    this.playClothRustle(0.07);
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(240, t);
+    osc.frequency.exponentialRampToValueAtTime(480, t + 0.16);
+    gain.gain.setValueAtTime(0.05, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  }
+
+  // 9. Тревожный глухой удар сердца (при высоком риске)
   playHeartbeat() {
     if (this.muted) return;
     this.ensureContext();
     if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
-    // Двойной глухой стук сердца: тук-тук
+    // Глухой саб-басовый стук сердца в ушах
     [0, 0.12].forEach((delay, i) => {
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(i === 0 ? 58 : 48, t + delay);
-      osc.frequency.exponentialRampToValueAtTime(35, t + delay + 0.1);
+      osc.frequency.setValueAtTime(i === 0 ? 52 : 42, t + delay);
+      osc.frequency.exponentialRampToValueAtTime(32, t + delay + 0.1);
 
-      gain.gain.setValueAtTime(0.5, t + delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.12);
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(140, t + delay);
 
-      osc.connect(gain);
+      gain.gain.setValueAtTime(0.35, t + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + delay + 0.11);
+
+      osc.connect(filter);
+      filter.connect(gain);
       gain.connect(this.masterGain);
       osc.start(t + delay);
       osc.stop(t + delay + 0.12);
