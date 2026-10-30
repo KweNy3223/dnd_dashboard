@@ -1052,6 +1052,155 @@ class AudioEngine {
     osc.stop(t + duration);
   }
 
+  // 12.1. Кристаллический перелив Астральной Призмы
+  playPrismRefract() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const notes = [880, 1318.5, 1760]; // A5, E6, A6 (чистый кристальный перезвон)
+    notes.forEach((freq, i) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t + i * 0.04);
+
+      gain.gain.setValueAtTime(0.001, t + i * 0.04);
+      gain.gain.linearRampToValueAtTime(0.12, t + i * 0.04 + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.04 + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t + i * 0.04);
+      osc.stop(t + i * 0.04 + 0.36);
+    });
+  }
+
+  // 12.2. Фазовый свист пространственного портала
+  playPortalWarp() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(260, t);
+    osc.frequency.exponentialRampToValueAtTime(820, t + 0.14);
+    osc.frequency.exponentialRampToValueAtTime(320, t + 0.32);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, t);
+    filter.Q.setValueAtTime(6, t);
+
+    gain.gain.setValueAtTime(0.01, t);
+    gain.gain.linearRampToValueAtTime(0.22, t + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.36);
+  }
+
+  // 12.3. Зловещее некротическое шипение Глифа Энтропии
+  playEntropyHiss() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const dur = 0.22;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(dur);
+    if (!noise.buffer) return;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1400, t);
+    filter.Q.setValueAtTime(3, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+    // Подмешиваем саб-гул 60Гц
+    const sub = this.ctx.createOscillator();
+    const subGain = this.ctx.createGain();
+    sub.type = 'sawtooth';
+    sub.frequency.setValueAtTime(58, t);
+    subGain.gain.setValueAtTime(0.15, t);
+    subGain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    sub.connect(subGain);
+    subGain.connect(this.masterGain);
+
+    noise.start(t);
+    sub.start(t);
+    sub.stop(t + dur);
+  }
+
+  // 12.4. Мощный гармонический аккорд Руны Резонанса
+  playResonanceSurge() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const notes = [440, 660, 880]; // чистая квинта + октава
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.16 / (idx + 1), t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.46);
+    });
+  }
+
+  // 12.5. Магический откат (Arcane Backlash / взрыв эфира)
+  playBacklash() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(110, t);
+    osc.frequency.exponentialRampToValueAtTime(42, t + 0.35);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(600, t);
+
+    gain.gain.setValueAtTime(0.45, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.42);
+  }
+
   // 13. Бросок кости d20 (стук кости по сукну стола)
   playDiceRoll() {
     if (this.muted) return;
