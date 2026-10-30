@@ -35,6 +35,8 @@ export class AlchemyGame {
     this.sparks = [];
 
     // Привязанные события
+    this.boundKeyDown = this.onKeyDown.bind(this);
+    this.boundKeyUp = this.onKeyUp.bind(this);
     this.boundResize = this.setupCanvas.bind(this);
   }
 
@@ -145,15 +147,16 @@ export class AlchemyGame {
 
   bindEvents() {
     window.addEventListener('resize', this.boundResize);
+    window.addEventListener('keydown', this.boundKeyDown);
+    window.addEventListener('keyup', this.boundKeyUp);
 
     const startBellows = (e) => {
       e.preventDefault();
-      this.isBellowsPumping = true;
-      audio.playBellowsPuff();
+      this.startPumping();
     };
     const stopBellows = (e) => {
       e.preventDefault();
-      this.isBellowsPumping = false;
+      this.stopPumping();
     };
 
     if (this.btnBellows) {
@@ -163,21 +166,39 @@ export class AlchemyGame {
       this.btnBellows.addEventListener('touchstart', startBellows, { passive: false });
       this.btnBellows.addEventListener('touchend', stopBellows);
     }
+  }
 
-    // Клавиша Пробел для поддува
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && !this.isBellowsPumping && !this.isBrewed && !this.isRuined) {
-        this.isBellowsPumping = true;
-        audio.playBellowsPuff();
-        e.preventDefault();
+  startPumping() {
+    if (this.isBrewed || this.isRuined) return;
+    if (!this.isBellowsPumping) {
+      this.isBellowsPumping = true;
+      if (this.btnBellows) {
+        this.btnBellows.classList.add('active');
       }
-    });
-    window.addEventListener('keyup', (e) => {
-      if (e.code === 'Space') {
-        this.isBellowsPumping = false;
-        e.preventDefault();
-      }
-    });
+      audio.playBellowsPuff();
+    }
+  }
+
+  stopPumping() {
+    this.isBellowsPumping = false;
+    if (this.btnBellows) {
+      this.btnBellows.classList.remove('active');
+    }
+  }
+
+  onKeyDown(e) {
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+    if (e.code === 'Space') {
+      this.startPumping();
+      e.preventDefault();
+    }
+  }
+
+  onKeyUp(e) {
+    if (e.code === 'Space') {
+      this.stopPumping();
+      e.preventDefault();
+    }
   }
 
   destroy() {
@@ -186,6 +207,8 @@ export class AlchemyGame {
       this.animationFrameId = null;
     }
     window.removeEventListener('resize', this.boundResize);
+    window.removeEventListener('keydown', this.boundKeyDown);
+    window.removeEventListener('keyup', this.boundKeyUp);
   }
 
   // --- ГЕНЕРАЦИЯ РЕЦЕПТА И РЕАГЕНТОВ ---

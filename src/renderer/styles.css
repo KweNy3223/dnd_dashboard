@@ -2095,3 +2095,199 @@ canvas.game-canvas:active {
 .reagent-icon {
   font-size: 16px;
 }
+
+.reagent-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* =====================================================================
+   УНИВЕРСАЛЬНЫЕ КНОПКИ И ЭЛЕМЕНТЫ МИНИ-ИГР (.btn, .fantasy-btn)
+   ===================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.fantasy-btn.primary {
+  background-color: #3f4147;
+  color: #ffffff;
+  border: 1px solid #4e5058;
+}
+
+.fantasy-btn.primary:hover {
+  background-color: #55575e;
+  border-color: #6d6f78;
+  color: #ffffff;
+}
+
+.fantasy-btn.primary:active,
+.fantasy-btn.primary.active {
+  background-color: #2b2d31;
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.fantasy-btn.secondary {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.fantasy-btn.secondary:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-title);
+  border-color: #55575e;
+}
+
+.fantasy-btn.secondary:active {
+  background-color: var(--bg-module);
+}
+
+/* Активное состояние кнопки (зафиксированный стопорный клин, активный нажим и т.п.) */
+.fantasy-btn.secondary.active,
+.fantasy-btn.primary.active {
+  background-color: rgba(34, 197, 94, 0.16) !important;
+  border-color: #22c55e !important;
+  color: #4ade80 !important;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.25);
+}
+
+.fantasy-btn:disabled,
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.turn-btn {
+  font-size: 12px !important;
+  padding: 8px 10px !important;
+}
+
+/* Детали HUD и карточек сессии */
+.hud-tension-box {
+  display: flex;
+  align-items: center;
+}
+
+.attempts-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.attempts-hearts {
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+.timer-digits {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-icon {
+  font-size: 14px;
+}
+
+.session-status {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.clue-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.intuition-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.intuition-text {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.recipe-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.step-action {
+  font-weight: 600;
+  color: var(--text-title);
+  font-size: 12px;
+}
+
+.step-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.step-range {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.lockpick-stage,
+.trap-stage,
+.runes-stage,
+.pickpocket-stage,
+.alchemy-stage {
+  width: 100%;
+}
+
+.trap-controls-row,
+.pickpocket-controls-row,
+.bellows-control-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.result-card {
+  animation: modal-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modal-pop {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@media (max-width: 900px) {
+  .trap-layout,
+  .runes-layout,
+  .alchemy-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.scroll-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}

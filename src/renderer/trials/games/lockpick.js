@@ -195,6 +195,13 @@ export class LockpickGame {
   setTurning(val) {
     if (this.pickBroke) return;
     this.isTurning = val;
+    if (this.touchTurnBtn) {
+      if (val) {
+        this.touchTurnBtn.classList.add('active');
+      } else {
+        this.touchTurnBtn.classList.remove('active');
+      }
+    }
     if (val) {
       audio.ensureContext();
       this.calculateMaxRotation();

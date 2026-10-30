@@ -41,6 +41,8 @@ export class PickpocketGame {
     this.boundPointerDown = this.onPointerDown.bind(this);
     this.boundPointerMove = this.onPointerMove.bind(this);
     this.boundPointerUp = this.onPointerUp.bind(this);
+    this.boundKeyDown = this.onKeyDown.bind(this);
+    this.boundKeyUp = this.onKeyUp.bind(this);
     this.boundResize = this.setupCanvas.bind(this);
   }
 
@@ -107,12 +109,16 @@ export class PickpocketGame {
 
         <div class="lock-controls-guide" style="margin-top: 14px;">
           <div class="guide-pill">
-            <span class="guide-key">Удерживать ЛКМ / Кнопку</span>
+            <span class="guide-key">ПРОБЕЛ / Удерживать кнопку</span>
             <span>Осторожно тянуть предмет</span>
           </div>
           <div class="guide-pill">
             <span class="guide-key">Отпустить</span>
             <span>Замереть и спрятать руку</span>
+          </div>
+          <div class="guide-pill">
+            <span class="guide-key">Индикатор внимания</span>
+            <span>🍺 = Тянуть, 👂/👁️ = Замереть!</span>
           </div>
         </div>
       </div>
@@ -150,24 +156,58 @@ export class PickpocketGame {
     this.canvas.addEventListener('pointerdown', this.boundPointerDown);
     window.addEventListener('pointermove', this.boundPointerMove);
     window.addEventListener('pointerup', this.boundPointerUp);
+    window.addEventListener('keydown', this.boundKeyDown);
+    window.addEventListener('keyup', this.boundKeyUp);
     window.addEventListener('resize', this.boundResize);
 
-    const startStealing = (e) => {
+    const start = (e) => {
       e.preventDefault();
-      this.pointerDown = true;
-      this.isExtracting = true;
-      audio.ensureContext();
+      this.startStealing();
     };
-    const stopStealing = (e) => {
+    const stop = (e) => {
       e.preventDefault();
-      this.pointerDown = false;
-      this.isExtracting = false;
+      this.stopStealing();
     };
 
     if (this.btnTouchSteal) {
-      this.btnTouchSteal.addEventListener('pointerdown', startStealing);
-      this.btnTouchSteal.addEventListener('pointerup', stopStealing);
-      this.btnTouchSteal.addEventListener('pointerleave', stopStealing);
+      this.btnTouchSteal.addEventListener('pointerdown', start);
+      this.btnTouchSteal.addEventListener('pointerup', stop);
+      this.btnTouchSteal.addEventListener('pointerleave', stop);
+    }
+  }
+
+  startStealing() {
+    if (this.isCaught || this.isStolen) return;
+    this.pointerDown = true;
+    this.isExtracting = true;
+    if (this.btnTouchSteal) {
+      this.btnTouchSteal.classList.add('active');
+    }
+    audio.ensureContext();
+  }
+
+  stopStealing() {
+    this.pointerDown = false;
+    this.isExtracting = false;
+    if (this.btnTouchSteal) {
+      this.btnTouchSteal.classList.remove('active');
+    }
+  }
+
+  onKeyDown(e) {
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+    if (e.code === 'Space') {
+      if (!this.isExtracting) {
+        this.startStealing();
+      }
+      e.preventDefault();
+    }
+  }
+
+  onKeyUp(e) {
+    if (e.code === 'Space') {
+      this.stopStealing();
+      e.preventDefault();
     }
   }
 
@@ -181,6 +221,8 @@ export class PickpocketGame {
     }
     window.removeEventListener('pointermove', this.boundPointerMove);
     window.removeEventListener('pointerup', this.boundPointerUp);
+    window.removeEventListener('keydown', this.boundKeyDown);
+    window.removeEventListener('keyup', this.boundKeyUp);
     window.removeEventListener('resize', this.boundResize);
   }
 
@@ -195,16 +237,17 @@ export class PickpocketGame {
     this.isStolen = false;
     this.pointerDown = false;
     this.particles = [];
+    if (this.btnTouchSteal) {
+      this.btnTouchSteal.classList.remove('active');
+    }
     this.updateHUD();
   }
 
   // --- ВЗАИМОДЕЙСТВИЕ ---
   onPointerDown(e) {
     if (this.isCaught || this.isStolen) return;
-    this.pointerDown = true;
-    this.isExtracting = true;
     this.lastPointerY = e.clientY;
-    audio.ensureContext();
+    this.startStealing();
   }
 
   onPointerMove(e) {
@@ -219,8 +262,7 @@ export class PickpocketGame {
   }
 
   onPointerUp() {
-    this.pointerDown = false;
-    this.isExtracting = false;
+    this.stopStealing();
   }
 
   // --- АНИМАЦИОННЫЙ ЦИКЛ ---

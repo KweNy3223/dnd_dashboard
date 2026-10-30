@@ -33,6 +33,7 @@ export class RunesGame {
     this.boundPointerDown = this.onPointerDown.bind(this);
     this.boundPointerMove = this.onPointerMove.bind(this);
     this.boundPointerUp = this.onPointerUp.bind(this);
+    this.boundKeyDown = this.onKeyDown.bind(this);
     this.boundResize = this.setupCanvas.bind(this);
   }
 
@@ -88,12 +89,16 @@ export class RunesGame {
 
         <div class="lock-controls-guide" style="margin-top: 14px;">
           <div class="guide-pill">
-            <span class="guide-key">Клик / Перетаскивание</span>
-            <span>Вращать кольцо пальцем или мыraw</span>
+            <span class="guide-key">1, 2, 3</span>
+            <span>Выбор кольца</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">Кнопки ↺ / ↻</span>
-            <span>Точный поворот на шаг</span>
+            <span class="guide-key">A / D или ← / →</span>
+            <span>Поворот выбранного кольца</span>
+          </div>
+          <div class="guide-pill">
+            <span class="guide-key">ЛКМ / Свайп</span>
+            <span>Плавное вращение мышью</span>
           </div>
         </div>
       </div>
@@ -126,6 +131,7 @@ export class RunesGame {
     this.canvas.addEventListener('pointerdown', this.boundPointerDown);
     window.addEventListener('pointermove', this.boundPointerMove);
     window.addEventListener('pointerup', this.boundPointerUp);
+    window.addEventListener('keydown', this.boundKeyDown);
     window.addEventListener('resize', this.boundResize);
 
     if (this.btnRotateCCW) {
@@ -133,6 +139,37 @@ export class RunesGame {
     }
     if (this.btnRotateCW) {
       this.btnRotateCW.addEventListener('click', () => this.rotateSelectedRing(45));
+    }
+  }
+
+  selectRing(idx) {
+    if (idx >= 0 && idx < this.rings.length) {
+      this.selectedRingIndex = idx;
+      this.updateRingSelectionUI();
+      audio.playTumblerClick(1.2);
+    }
+  }
+
+  onKeyDown(e) {
+    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target?.tagName)) return;
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+      this.rotateSelectedRing(-45);
+      e.preventDefault();
+    } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+      this.rotateSelectedRing(45);
+      e.preventDefault();
+    } else if (e.code === 'Digit1') {
+      this.selectRing(0);
+      e.preventDefault();
+    } else if (e.code === 'Digit2') {
+      this.selectRing(1);
+      e.preventDefault();
+    } else if (e.code === 'Digit3') {
+      this.selectRing(2);
+      e.preventDefault();
+    } else if (e.code === 'Digit4') {
+      this.selectRing(3);
+      e.preventDefault();
     }
   }
 
@@ -146,6 +183,7 @@ export class RunesGame {
     }
     window.removeEventListener('pointermove', this.boundPointerMove);
     window.removeEventListener('pointerup', this.boundPointerUp);
+    window.removeEventListener('keydown', this.boundKeyDown);
     window.removeEventListener('resize', this.boundResize);
   }
 
