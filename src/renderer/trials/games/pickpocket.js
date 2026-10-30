@@ -1,12 +1,46 @@
 /**
  * Модуль мини-игры: Карманная кража (Pickpocketing)
- * Полноценная D&D 5e стелс-механика: Sleight of Hand против Passive Perception (DC).
- * Контроль внимания жертвы с предупреждениями (Telegraph), натяжение шнура кошеля (Belt Tension),
- * тактильный ритм вытягивания добычи и процедурный объёмный звук монет и ткани.
+ * Глубокая D&D 5e стелс-механика: Sleight of Hand против Passive Perception (DC).
+ * 
+ * Особенности:
+ * 1. Честная сложность: с ростом DC сопротивление вытягиванию резко растёт (меньше прогресса за рывок,
+ *    сильнее трение, короче безопасные окна и быстрее натягивается пояс).
+ * 2. Разнообразие добычи (Кошель с золотом, Связка ключей, Секретный свиток, Драгоценный амулет)
+ *    с уникальными звуками и визуалом.
+ * 3. Живая анимация силуэта жертвы: плечи напрягаются, голова физически поворачивается при настороженности
+ *    и оборачивается прямо к карману при тревоге.
+ * 4. Чистый процедурный объёмный звук (шелест ткани, ключи, пергамент, монеты, стук сердца).
  */
 
 import { audio } from '../audio.js';
 import { dnd } from '../dnd-engine.js';
+
+export const LOOT_TYPES = {
+  pouch: {
+    id: 'pouch',
+    name: '💰 Тяжёлый кошель с золотом',
+    weight: 1.05,
+    soundType: 'coins'
+  },
+  keys: {
+    id: 'keys',
+    name: '🗝️ Связка ключей от темницы',
+    weight: 0.90,
+    soundType: 'keys'
+  },
+  scroll: {
+    id: 'scroll',
+    name: '📜 Секретное письмо / свиток',
+    weight: 0.78,
+    soundType: 'parchment'
+  },
+  amulet: {
+    id: 'amulet',
+    name: '💎 Драгоценный амулет на цепочке',
+    weight: 0.95,
+    soundType: 'amulet'
+  }
+};
 
 export class PickpocketGame {
   constructor(container, app) {
@@ -18,7 +52,7 @@ export class PickpocketGame {
     this.animationFrameId = null;
 
     // Состояния внимания жертвы:
-    // 'DISTRACTED' (пьёт/зевает) -> 'SUSPICIOUS' (микро-предупреждение) -> 'ALERT' (смотрит на пояс)
+    // 'DISTRACTED' -> 'SUSPICIOUS' (микро-предупреждение) -> 'ALERT' (смотрит на пояс)
     this.targetState = 'DISTRACTED';
     this.stateTimer = 0;
     this.stateDuration = 2.0;
@@ -31,7 +65,7 @@ export class PickpocketGame {
 
     // Шкала натяжения шнура/пояса (0..100%) при непрерывном вытягивании
     this.beltTension = 0;
-    this.pullDuration = 0; // сколько секунд игрок непрерывно тянет без паузы
+    this.pullDuration = 0;
 
     // Статусы сессии
     this.isExtracting = false;
@@ -41,19 +75,30 @@ export class PickpocketGame {
     // Таймеры фаз
     this.telegraphTimer = 0;
     this.alertLookTimer = 0;
-    this.clothSoundCooldown = 0;
+    this.rustleSoundCooldown = 0;
     this.heartbeatTimer = 0;
 
     // Параметры D&D (динамически рассчитываются от DC и Бонуса)
-    this.extractionSpeed = 18; // % в секунду
-    this.maxSafeTug = 0.55; // максимальное время непрерывного рывка до натяжения
+    this.extractionSpeed = 16;
+    this.maxSafeTug = 0.50;
+    this.tensionBuildRate = 160;
     this.distractedMin = 1.4;
     this.distractedMax = 2.4;
     this.telegraphDuration = 0.6;
     this.alertDuration = 1.1;
     this.suspicionMult = 1.0;
 
-    // Частицы блеска золота
+    // Тип добычи ('pouch' | 'keys' | 'scroll' | 'amulet')
+    this.lootType = 'pouch';
+
+    // Анимационные параметры силуэта жертвы
+    this.currentHeadAngle = -8; // в градусах
+    this.targetHeadAngle = -8;
+    this.currentTorsoTurn = 0;
+    this.targetTorsoTurn = 0;
+    this.breathCycle = 0;
+
+    // Частицы блеска
     this.particles = [];
 
     // Привязанные события
@@ -64,10 +109,23 @@ export class PickpocketGame {
     this.boundResize = this.setupCanvas.bind(this);
   }
 
+  setLootType(type) {
+    if (type === 'auto') {
+      this.lootType = this.app?.getLootType ? this.app.getLootType() : 'pouch';
+    } else if (LOOT_TYPES[type]) {
+      this.lootType = type;
+    }
+    this.calculateDndParams();
+    this.updateHUD();
+  }
+
   init() {
     this.renderDOM();
     this.setupCanvas();
     this.bindEvents();
+    if (this.app?.getLootType) {
+      this.lootType = this.app.getLootType();
+    }
     this.calculateDndParams();
     this.reset();
     this.startAnimationLoop();
@@ -78,7 +136,7 @@ export class PickpocketGame {
       <div class="stage-container pickpocket-stage">
         <div class="stage-header">
           <h2 class="stage-title">🪙 Карманная кража</h2>
-          <p class="stage-subtitle">Тяните кошель короткими аккуратными рывками. Замрите при настороженности жертвы!</p>
+          <p class="stage-subtitle" id="pickpocketSubtitle">Тяните добычу аккуратными рывками. При повышении DC вытягивать сложнее!</p>
         </div>
 
         <div class="pickpocket-layout">
@@ -87,8 +145,8 @@ export class PickpocketGame {
             <div class="awareness-header">
               <span class="awareness-icon" id="awarenessIcon">🍺</span>
               <div class="awareness-info">
-                <span class="awareness-label">Внимание цели (Passive Perception DC <strong id="hudDcVal">${dnd.dc}</strong>):</span>
-                <span class="awareness-status" id="awarenessStatus">Отвлечён (Считает кружки эля)</span>
+                <span class="awareness-label">Внимание цели (Passive Perception DC <strong id="hudDcVal">${dnd.dc}</strong> | <span id="hudLootName">Кошель</span>):</span>
+                <span class="awareness-status" id="awarenessStatus">Отвлечён (Смотрит в зал)</span>
               </div>
             </div>
             
@@ -105,7 +163,7 @@ export class PickpocketGame {
             <!-- Шкала натяжения шнура / ритма рывка -->
             <div class="suspicion-bar-wrap" style="margin-top: 4px;">
               <div class="suspicion-label-row">
-                <span>Натяжение шнура (Ритм рывка):</span>
+                <span>Натяжение пояса (Ритм рывка):</span>
                 <span id="tensionVal" style="font-weight: 600; color: #60a5fa;">0%</span>
               </div>
               <div class="tension-track" style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; overflow: hidden;">
@@ -120,7 +178,7 @@ export class PickpocketGame {
             
             <div class="extraction-progress-overlay">
               <div class="progress-label-row">
-                <span>Добыча срезана / извлечена:</span>
+                <span>Добыча извлечена:</span>
                 <span id="extractionPercent" style="font-weight: 700; color: var(--accent-gold);">0%</span>
               </div>
               <div class="extraction-track">
@@ -129,7 +187,7 @@ export class PickpocketGame {
             </div>
           </div>
 
-          <!-- Кнопка действия (для мыши, тача и доступности) -->
+          <!-- Кнопка действия -->
           <div class="pickpocket-controls-row">
             <button type="button" class="btn fantasy-btn primary" id="btnTouchSteal" style="min-width: 260px; padding: 12px 28px; font-size: 1rem; font-weight: 700;">
               <span>🤏</span> Тянуть добычу (Зажать ПРОБЕЛ / ЛКМ)
@@ -139,16 +197,16 @@ export class PickpocketGame {
 
         <div class="lock-controls-guide" style="margin-top: 14px;">
           <div class="guide-pill">
-            <span class="guide-key">Короткий зажим</span>
-            <span>Потянуть на 0.4–0.6 сек</span>
+            <span class="guide-key">Ритм рывка</span>
+            <span>Тянуть на долю секунды и отпускать</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">Отпустить</span>
-            <span>Сбросить натяжение пояса</span>
+            <span class="guide-key">Сопротивление</span>
+            <span>При высоком DC предмет выходит медленнее</span>
           </div>
           <div class="guide-pill">
             <span class="guide-key">👂 / 👁️ Замри!</span>
-            <span>Не тянуть, пока цель смотрит</span>
+            <span>Остановиться при повороте головы цели</span>
           </div>
         </div>
       </div>
@@ -167,6 +225,7 @@ export class PickpocketGame {
     this.extractionFill = this.container.querySelector('#extractionFill');
     this.btnTouchSteal = this.container.querySelector('#btnTouchSteal');
     this.hudDcVal = this.container.querySelector('#hudDcVal');
+    this.hudLootName = this.container.querySelector('#hudLootName');
   }
 
   setupCanvas() {
@@ -209,44 +268,61 @@ export class PickpocketGame {
     }
   }
 
-  // Расчет параметров D&D 5e
+  // Расчет параметров D&D 5e (С ростом DC вытягивать заметно сложнее!)
   calculateDndParams(advantage = null) {
     const dc = dnd.dc;
     const bonus = dnd.bonus;
     const adv = advantage || dnd.getEffectiveAdvantage();
+    const dcFactor = Math.max(0, dc - 8);
 
-    // 1. Скорость вытягивания: базово ~16%, каждый +1 к бонусу персонажа даёт +1.5%
-    const baseSpeed = 16 + (bonus * 1.5);
-    const speedMultiplier = adv?.extraDurability ? 1.25 : adv?.toleranceFactor || 1.0;
-    this.extractionSpeed = Math.max(10, baseSpeed * speedMultiplier);
+    // 1. СКОРОСТЬ ВЫТЯГИВАНИЯ (Сопротивление трения):
+    // При DC 8: ~26%/сек (идёт гладко и легко)
+    // При DC 14: ~18%/сек (умеренно тугой карман)
+    // При DC 20: ~11.5%/сек (глубокий кошель, сильное сопротивление)
+    // При DC 26+: ~6.5%/сек (сверх-тугой карман, требует много терпеливых рывков)
+    const basePull = Math.max(5.0, 26 - (dcFactor * 1.15));
+    const bonusPull = bonus * Math.max(0.6, 1.5 - (dcFactor * 0.035));
+    const advMult = adv?.extraDurability ? 1.25 : adv?.toleranceFactor || 1.0;
 
-    // 2. Длительность безопасного окна (жертва отвлечена):
-    // При DC 10: 2.2 – 3.2 сек
-    // При DC 15: 1.5 – 2.3 сек
-    // При DC 20: 1.0 – 1.6 сек
-    // При DC 25+: 0.7 – 1.2 сек
-    this.distractedMin = Math.max(0.7, 2.2 - (dc - 10) * 0.08);
-    this.distractedMax = Math.max(1.2, 3.2 - (dc - 10) * 0.10);
+    const lootDef = LOOT_TYPES[this.lootType] || LOOT_TYPES.pouch;
+    this.extractionSpeed = Math.max(4.5, (basePull + bonusPull) / lootDef.weight) * advMult;
 
-    // 3. Окно предупреждения (Telegraph): время игрока среагировать и замереть
-    // При DC 10: 0.8 сек; при DC 15: 0.6 сек; при DC 20+: 0.45 сек
-    this.telegraphDuration = Math.max(0.35, 0.78 - (dc - 10) * 0.024);
+    // 2. БЕЗОПАСНЫЙ РЫВОК ДО НАТЯЖЕНИЯ (maxSafeTug):
+    // При DC 8: до 0.70 сек безопасного удержания
+    // При DC 15: ~0.48 сек
+    // При DC 22+: ~0.32 сек (чуткий ремень, чуть передержал — сразу натяжение)
+    this.maxSafeTug = Math.max(0.24, Math.min(0.85, 0.70 - (dcFactor * 0.024) + (bonus * 0.02)));
 
-    // 4. Длительность пристального взгляда (Alert):
-    this.alertDuration = Math.max(0.8, 1.1 + (dc - 15) * 0.035);
+    // 3. СКОРОСТЬ РОСТА НАТЯЖЕНИЯ:
+    // Чем выше DC, тем резче шнур врезается в пояс
+    this.tensionBuildRate = 120 + (dcFactor * 9);
 
-    // 5. Максимально безопасный непрерывный рывок:
-    this.maxSafeTug = Math.max(0.36, Math.min(0.85, 0.54 + (bonus * 0.025) - ((dc - 15) * 0.015)));
+    // 4. ДЛИТЕЛЬНОСТЬ ОКНА ОТВЛЕЧЕНИЯ:
+    // При DC 8: 2.5 – 3.8 сек
+    // При DC 15: 1.5 – 2.4 сек
+    // При DC 22+: 0.8 – 1.4 сек
+    this.distractedMin = Math.max(0.65, 2.5 - (dcFactor * 0.09));
+    this.distractedMax = Math.max(1.1, 3.8 - (dcFactor * 0.12));
 
-    // 6. Множитель роста подозрения от DC:
-    this.suspicionMult = 1.0 + Math.max(0, (dc - 12) * 0.05);
+    // 5. ОКНО ПРЕДУПРЕЖДЕНИЯ (Telegraph):
+    this.telegraphDuration = Math.max(0.32, 0.80 - (dcFactor * 0.026));
 
-    if (this.hudDcVal) {
-      this.hudDcVal.textContent = dc;
+    // 6. ВРЕМЯ ОСМОТРА ЦЕЛИ (Alert):
+    this.alertDuration = Math.max(0.8, 1.1 + (dcFactor * 0.03));
+
+    // 7. МНОЖИТЕЛЬ РОСТА ПОДОЗРЕНИЯ:
+    this.suspicionMult = 1.0 + Math.max(0, (dc - 10) * 0.06);
+
+    if (this.hudDcVal) this.hudDcVal.textContent = dc;
+    if (this.hudLootName) {
+      this.hudLootName.textContent = lootDef.name.replace(/^[^\s]+\s*/, '');
     }
   }
 
   onParametersChanged(advantage) {
+    if (this.app?.getLootType) {
+      this.lootType = this.app.getLootType();
+    }
     this.calculateDndParams(advantage);
     this.reset();
   }
@@ -258,7 +334,7 @@ export class PickpocketGame {
       this.btnTouchSteal.classList.add('active');
     }
     audio.ensureContext();
-    audio.playClothRustle(0.04);
+    this.playTugSound(0.04);
   }
 
   stopStealing() {
@@ -266,6 +342,28 @@ export class PickpocketGame {
     this.pullDuration = 0;
     if (this.btnTouchSteal) {
       this.btnTouchSteal.classList.remove('active');
+    }
+  }
+
+  playTugSound(volume = 0.045) {
+    const lootDef = LOOT_TYPES[this.lootType] || LOOT_TYPES.pouch;
+    if (lootDef.soundType === 'keys') {
+      audio.playKeysClink(volume * 0.9);
+    } else if (lootDef.soundType === 'parchment') {
+      audio.playParchmentRustle(volume * 1.1);
+    } else {
+      audio.playClothRustle(volume);
+    }
+  }
+
+  playOverTugSound() {
+    const lootDef = LOOT_TYPES[this.lootType] || LOOT_TYPES.pouch;
+    if (lootDef.soundType === 'keys') {
+      audio.playKeysClink(0.09);
+    } else if (lootDef.soundType === 'parchment') {
+      audio.playParchmentRustle(0.09);
+    } else {
+      audio.playCoinJingle(0.08);
     }
   }
 
@@ -323,9 +421,14 @@ export class PickpocketGame {
     this.isStolen = false;
     this.telegraphTimer = 0;
     this.alertLookTimer = 0;
-    this.clothSoundCooldown = 0;
+    this.rustleSoundCooldown = 0;
     this.heartbeatTimer = 0;
     this.particles = [];
+
+    this.currentHeadAngle = -8;
+    this.targetHeadAngle = -8;
+    this.currentTorsoTurn = 0;
+    this.targetTorsoTurn = 0;
 
     if (this.btnTouchSteal) {
       this.btnTouchSteal.classList.remove('active');
@@ -334,6 +437,9 @@ export class PickpocketGame {
   }
 
   start() {
+    if (this.app?.getLootType) {
+      this.lootType = this.app.getLootType();
+    }
     this.calculateDndParams();
     this.reset();
   }
@@ -359,13 +465,24 @@ export class PickpocketGame {
   update(dt) {
     if (this.isCaught || this.isStolen) return;
 
+    this.breathCycle += dt;
+
+    // Плавная анимация поворота головы и плеч жертвы (LERP)
+    this.currentHeadAngle += (this.targetHeadAngle - this.currentHeadAngle) * Math.min(1, 14 * dt);
+    this.currentTorsoTurn += (this.targetTorsoTurn - this.currentTorsoTurn) * Math.min(1, 10 * dt);
+
     // 1. АВТОМАТ СОСТОЯНИЙ ВНИМАНИЯ ЖЕРТВЫ
     if (this.targetState === 'DISTRACTED') {
+      this.targetHeadAngle = -8;
+      this.targetTorsoTurn = 0;
+
       this.stateTimer += dt;
       if (this.stateTimer >= this.stateDuration) {
-        // Переход к настороженности (предупреждение игроку!)
+        // Переход к настороженности
         this.targetState = 'SUSPICIOUS';
         this.telegraphTimer = this.telegraphDuration;
+        this.targetHeadAngle = 28; // голова начинает поворачиваться
+        this.targetTorsoTurn = 8;
         audio.playTargetSuspicious();
       }
 
@@ -374,28 +491,30 @@ export class PickpocketGame {
         this.pullDuration += dt;
         this.progress = Math.min(100, this.progress + this.extractionSpeed * dt);
 
-        // Мягкий шелест ткани при непрерывном движении
-        this.clothSoundCooldown -= dt;
-        if (this.clothSoundCooldown <= 0) {
-          audio.playClothRustle(0.04);
-          this.clothSoundCooldown = 0.18;
+        // Звук трения при непрерывном вытягивании
+        this.rustleSoundCooldown -= dt;
+        if (this.rustleSoundCooldown <= 0) {
+          this.playTugSound(0.04);
+          this.rustleSoundCooldown = 0.17;
         }
 
-        // Рост натяжения ремня при непрерывном удержании
+        // Рост натяжения ремня
         if (this.pullDuration > this.maxSafeTug) {
-          this.beltTension = Math.min(100, this.beltTension + 140 * dt);
+          this.beltTension = Math.min(100, this.beltTension + this.tensionBuildRate * dt);
 
-          // Перенатяжение: шнур натянулся, монеты тихо брякнули!
+          // Перенатяжение ремня
           if (this.beltTension >= 98) {
-            audio.playCoinJingle(0.08);
+            this.playOverTugSound();
             this.spawnCoinSparkle(1);
-            this.suspicion = Math.min(100, this.suspicion + (18 * this.suspicionMult));
+            this.suspicion = Math.min(100, this.suspicion + (20 * this.suspicionMult));
             if (this.app?.stealthNoiseEnabled) {
               this.app.addNoise(12);
             }
-            // Цель сразу настораживается от рывка
+            // Цель сразу дёргается от рывка
             this.targetState = 'SUSPICIOUS';
-            this.telegraphTimer = this.telegraphDuration * 0.8;
+            this.telegraphTimer = this.telegraphDuration * 0.75;
+            this.targetHeadAngle = 35;
+            this.targetTorsoTurn = 10;
             this.beltTension = 60;
             this.pullDuration = this.maxSafeTug * 0.5;
             audio.playTargetSuspicious();
@@ -404,82 +523,89 @@ export class PickpocketGame {
           this.beltTension = (this.pullDuration / this.maxSafeTug) * 55;
         }
       } else {
-        // Игрок отпустил кнопку: натяжение быстро спадает, рука прячется
+        // Рука отпущена: натяжение быстро сбрасывается
         this.pullDuration = 0;
-        this.beltTension = Math.max(0, this.beltTension - 320 * dt);
-        // Медленное успокоение подозрения в тени
+        this.beltTension = Math.max(0, this.beltTension - 340 * dt);
         if (this.suspicion > 0) {
           this.suspicion = Math.max(0, this.suspicion - 8.5 * dt);
         }
       }
 
     } else if (this.targetState === 'SUSPICIOUS') {
-      // ФАЗА ПРЕДУПРЕЖДЕНИЯ (Telegraph) — жертва замерла и вот-вот обернётся
+      // ФАЗА ПРЕДУПРЕЖДЕНИЯ (Telegraph)
+      this.targetHeadAngle = 32;
+      this.targetTorsoTurn = 10;
       this.telegraphTimer -= dt;
 
       if (this.isExtracting) {
         // ОШИБКА: Игрок тянет, пока цель насторожена!
-        this.suspicion = Math.min(100, this.suspicion + (65 * this.suspicionMult * dt));
-        this.progress = Math.min(100, this.progress + (this.extractionSpeed * 0.35) * dt);
-        audio.playCoinJingle(0.06);
+        this.suspicion = Math.min(100, this.suspicion + (70 * this.suspicionMult * dt));
+        this.progress = Math.min(100, this.progress + (this.extractionSpeed * 0.3) * dt);
+        this.playOverTugSound();
 
         if (this.app?.stealthNoiseEnabled) {
-          this.app.addNoise(20 * dt);
+          this.app.addNoise(22 * dt);
         }
 
         if (this.telegraphTimer <= 0 || this.suspicion >= 50) {
-          // Мгновенный разворот
           this.targetState = 'ALERT';
           this.alertLookTimer = this.alertDuration;
+          this.targetHeadAngle = 65; // смотрит прямо на пояс!
+          this.targetTorsoTurn = 22;
           audio.playTargetAlert();
         }
       } else {
-        // Игрок вовремя замер! Натяжение сброшено
-        this.beltTension = Math.max(0, this.beltTension - 340 * dt);
+        // Игрок вовремя замер
+        this.beltTension = Math.max(0, this.beltTension - 350 * dt);
 
         if (this.telegraphTimer <= 0) {
-          // Жертва либо обернётся проверить (65%), либо отмахнётся (35%)
-          if (Math.random() < 0.65) {
+          if (Math.random() < 0.68) {
             this.targetState = 'ALERT';
             this.alertLookTimer = this.alertDuration;
+            this.targetHeadAngle = 65;
+            this.targetTorsoTurn = 22;
             audio.playTargetAlert();
           } else {
-            // Отвлеклась обратно
+            // Отмахнулась обратно
             this.targetState = 'DISTRACTED';
             this.stateTimer = 0;
             this.stateDuration = this.getDistractedDuration();
+            this.targetHeadAngle = -8;
+            this.targetTorsoTurn = 0;
           }
         }
       }
 
     } else if (this.targetState === 'ALERT') {
-      // ФАЗА ПРОВЕРКИ (Alert) — цель смотрит прямо на пояс!
+      // ФАЗА ПРОВЕРКИ (Alert) — цель смотрит прямо на карман!
+      this.targetHeadAngle = 68;
+      this.targetTorsoTurn = 24;
       this.alertLookTimer -= dt;
 
       if (this.isExtracting) {
-        // КАТАСТРОФА: попытка кражи прямо под пристальным взглядом жертвы!
+        // КАТАСТРОФА: движение под прямым взглядом!
         this.suspicion = 100;
         this.triggerCaught();
         return;
       } else {
-        // Игрок стоит неподвижно в тени
         this.beltTension = 0;
 
         if (this.alertLookTimer <= 0) {
-          // Цель ничего не заметила, выдыхает и отворачивается!
+          // Ничего не заметила, успокаивается и отворачивается
           this.targetState = 'DISTRACTED';
           this.stateTimer = 0;
           this.stateDuration = this.getDistractedDuration();
-          // Награда за выдержку: подозрение заметно падает
+          this.targetHeadAngle = -8;
+          this.targetTorsoTurn = 0;
           this.suspicion = Math.max(0, this.suspicion - 18);
         }
       }
     }
 
-    // 2. СТУК СЕРДЦА ПРИ ВЫСОКОМ НАПРЯЖЕНИИ
+    // 2. СТУК СЕРДЦА
     if (this.suspicion >= 40) {
       this.heartbeatTimer += dt;
-      const beatRate = this.suspicion >= 75 ? 0.55 : 0.85;
+      const beatRate = this.suspicion >= 75 ? 0.52 : 0.85;
       if (this.heartbeatTimer >= beatRate) {
         this.heartbeatTimer = 0;
         audio.playHeartbeat();
@@ -561,6 +687,8 @@ export class PickpocketGame {
   triggerCaught() {
     this.isCaught = true;
     this.isExtracting = false;
+    this.targetHeadAngle = 72;
+    this.targetTorsoTurn = 28;
     audio.playTargetAlert();
     audio.playFailure();
     this.app?.recordMistake?.();
@@ -576,10 +704,15 @@ export class PickpocketGame {
   triggerStolenSuccess() {
     this.isStolen = true;
     this.isExtracting = false;
-    audio.playPurseSnatch();
+    const lootDef = LOOT_TYPES[this.lootType] || LOOT_TYPES.pouch;
+    if (lootDef.soundType === 'keys') {
+      audio.playKeysClink(0.14);
+    } else {
+      audio.playPurseSnatch();
+    }
     audio.playSuccess();
 
-    // Россыпь золотых искр победы
+    // Россыпь искр победы
     for (let i = 0; i < 35; i++) {
       this.spawnCoinSparkle(2.5);
     }
@@ -621,7 +754,7 @@ export class PickpocketGame {
     ctx.save();
     ctx.clearRect(0, 0, w, h);
 
-    // 1. Трактирный полумрак и ткань мантии
+    // 1. Трактирный полумрак и ткань мантии с живой анимацией плеч и головы
     this.drawBackground(ctx, cx, w, h);
 
     // 2. Световой конус/аура внимания цели
@@ -633,7 +766,7 @@ export class PickpocketGame {
     // 4. Кожаный кошель со шнурками
     this.drawPouch(ctx, cx, h);
 
-    // 5. Драгоценная добыча, вытягиваемая из кошеля
+    // 5. Драгоценная добыча выбранного типа
     this.drawLootItem(ctx, cx, h);
 
     // 6. Воровские перчатки и руки
@@ -652,47 +785,91 @@ export class PickpocketGame {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // Тёмный шерстяной плащ жертвы на спине
-    ctx.fillStyle = '#181b28';
+    // Дыхание цели в спокойном состоянии
+    const breath = this.targetState === 'DISTRACTED' ? Math.sin(this.breathCycle * 2.2) * 2.5 : 0;
+    const torsoShift = (this.currentTorsoTurn / 25) * 16;
+
+    // Спина и плечи жертвы
+    ctx.save();
+    ctx.translate(torsoShift, breath);
+
+    // Тёмный шерстяной плащ
+    ctx.fillStyle = '#171926';
     ctx.beginPath();
-    ctx.moveTo(w * 0.12, 0);
-    ctx.lineTo(w * 0.88, 0);
-    ctx.lineTo(w * 0.96, h);
-    ctx.lineTo(w * 0.04, h);
+    ctx.moveTo(cx - 150, 0);
+    ctx.lineTo(cx + 150, 0);
+    ctx.lineTo(cx + 190, h);
+    ctx.lineTo(cx - 190, h);
     ctx.fill();
 
     // Складки плаща
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(cx - 70, 0);
-    ctx.bezierCurveTo(cx - 90, h * 0.4, cx - 110, h * 0.8, cx - 120, h);
-    ctx.moveTo(cx + 70, 0);
-    ctx.bezierCurveTo(cx + 90, h * 0.4, cx + 110, h * 0.8, cx + 120, h);
+    ctx.moveTo(cx - 75, 0);
+    ctx.bezierCurveTo(cx - 95, h * 0.4, cx - 115, h * 0.8, cx - 125, h);
+    ctx.moveTo(cx + 75, 0);
+    ctx.bezierCurveTo(cx + 95, h * 0.4, cx + 115, h * 0.8, cx + 125, h);
     ctx.stroke();
+
+    // Воротник плаща
+    ctx.fillStyle = '#232738';
+    ctx.beginPath();
+    ctx.ellipse(cx, 12, 100, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // ГОЛОВА ЖЕРТВЫ (С анимацией поворота шеи)
+    const headRad = (this.currentHeadAngle * Math.PI) / 180;
+    ctx.save();
+    ctx.translate(cx, 8);
+    ctx.rotate(headRad);
+
+    // Капюшон / затылок
+    ctx.fillStyle = '#11131c';
+    ctx.beginPath();
+    ctx.ellipse(0, -18, 42, 38, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2b3044';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Если голова сильно повернута (ALERT) — виден профиль лица и глаз
+    if (this.currentHeadAngle > 40) {
+      ctx.fillStyle = '#d1a784';
+      ctx.beginPath();
+      ctx.arc(28, -14, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Глаз смотрящий на пояс
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(32, -12, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore(); // возврат от головы
+    ctx.restore(); // возврат от туловища
   }
 
   drawAwarenessAura(ctx, cx, w, h) {
     if (this.targetState === 'DISTRACTED') {
-      // Спокойное рассеянное свечение
       const g = ctx.createRadialGradient(cx, 30, 20, cx, 30, 180);
-      g.addColorStop(0, 'rgba(34, 197, 94, 0.07)');
+      g.addColorStop(0, 'rgba(34, 197, 94, 0.08)');
       g.addColorStop(1, 'transparent');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
     } else if (this.targetState === 'SUSPICIOUS') {
-      // Пульсирующая янтарная настороженность
-      const pulse = 0.5 + Math.sin(performance.now() * 0.012) * 0.3;
-      const g = ctx.createRadialGradient(cx, 30, 20, cx, 30, 220);
-      g.addColorStop(0, `rgba(245, 158, 11, ${0.12 * pulse})`);
+      const pulse = 0.5 + Math.sin(performance.now() * 0.012) * 0.35;
+      const g = ctx.createRadialGradient(cx, 30, 20, cx, 30, 230);
+      g.addColorStop(0, `rgba(245, 158, 11, ${0.14 * pulse})`);
       g.addColorStop(1, 'transparent');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
     } else if (this.targetState === 'ALERT') {
-      // Ярко-красный конус наблюдения
       const pulse = 0.7 + Math.sin(performance.now() * 0.018) * 0.3;
-      const g = ctx.createRadialGradient(cx, 40, 10, cx, 140, 240);
-      g.addColorStop(0, `rgba(239, 68, 68, ${0.22 * pulse})`);
+      const g = ctx.createRadialGradient(cx, 40, 10, cx, 140, 250);
+      g.addColorStop(0, `rgba(239, 68, 68, ${0.24 * pulse})`);
       g.addColorStop(1, 'transparent');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
@@ -708,7 +885,6 @@ export class PickpocketGame {
   }
 
   drawBelt(ctx, cx, w) {
-    // Кожаный ремень
     ctx.fillStyle = '#26170a';
     ctx.fillRect(cx - 200, 22, 400, 36);
     ctx.strokeStyle = '#422812';
@@ -723,7 +899,7 @@ export class PickpocketGame {
       ctx.fill();
     }
 
-    // Латунная пряжка по центру
+    // Латунная пряжка
     ctx.strokeStyle = '#e5b839';
     ctx.lineWidth = 3;
     ctx.strokeRect(cx - 24, 20, 48, 40);
@@ -738,10 +914,10 @@ export class PickpocketGame {
     const actualPouchY = pouchTopY - liftY;
 
     // Дрожь кошеля при высоком натяжении
-    const shake = this.beltTension > 60 ? (Math.random() - 0.5) * (this.beltTension / 25) : 0;
+    const shake = this.beltTension > 60 ? (Math.random() - 0.5) * (this.beltTension / 22) : 0;
     const finalCx = cx + shake;
 
-    // Шнурки подвеса (натягиваются и вибрируют)
+    // Шнурки подвеса (натягиваются, меняют цвет на предупреждающий красный)
     ctx.save();
     ctx.strokeStyle = this.beltTension > 75 ? '#ef4444' : this.beltTension > 45 ? '#f59e0b' : '#8d5b2d';
     ctx.lineWidth = this.beltTension > 75 ? 3.5 : 2.5;
@@ -770,7 +946,7 @@ export class PickpocketGame {
     ctx.fillStyle = pouchGrad;
     ctx.fill();
 
-    ctx.strokeStyle = this.beltTension > 80 ? 'rgba(239, 68, 68, 0.7)' : '#744728';
+    ctx.strokeStyle = this.beltTension > 80 ? 'rgba(239, 68, 68, 0.75)' : '#744728';
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
@@ -782,38 +958,147 @@ export class PickpocketGame {
   }
 
   drawLootItem(ctx, cx, h) {
-    // Добыча (золотой амулет с рубином) появляется и поднимается вверх
     const startY = 175;
     const endY = 65;
     const currentY = startY - (this.progress / 100) * (startY - endY);
 
     ctx.save();
-    ctx.shadowColor = '#d4af37';
-    ctx.shadowBlur = this.progress > 75 ? 18 : 6;
 
-    // Золотая витая цепочка
-    ctx.strokeStyle = '#ffd700';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx, currentY - 24);
-    ctx.lineTo(cx, currentY);
-    ctx.stroke();
+    if (this.lootType === 'keys') {
+      // 🗝️ СВЯЗКА КЛЮЧЕЙ
+      ctx.shadowColor = '#94a3b8';
+      ctx.shadowBlur = this.progress > 75 ? 14 : 4;
 
-    // Оправа амулета
-    ctx.fillStyle = '#d4af37';
-    ctx.beginPath();
-    ctx.arc(cx, currentY, 17, 0, Math.PI * 2);
-    ctx.fill();
+      // Стальное кольцо связки
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.arc(cx, currentY - 12, 16, 0, Math.PI * 2);
+      ctx.stroke();
 
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+      // 3 ключа, висящих веером
+      const angles = [-0.35, 0, 0.35];
+      const lengths = [36, 42, 34];
+      const colors = ['#f59e0b', '#94a3b8', '#e2e8f0'];
 
-    // Вставка: сияющий рубин
-    ctx.fillStyle = '#dc2626';
-    ctx.beginPath();
-    ctx.arc(cx, currentY, 8, 0, Math.PI * 2);
-    ctx.fill();
+      angles.forEach((ang, i) => {
+        ctx.save();
+        ctx.translate(cx, currentY - 6);
+        ctx.rotate(ang);
+
+        // Стержень ключа
+        ctx.strokeStyle = colors[i];
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(0, lengths[i]);
+        ctx.stroke();
+
+        // Бородка ключа
+        ctx.fillStyle = colors[i];
+        ctx.fillRect(2, lengths[i] - 12, 7, 3);
+        ctx.fillRect(2, lengths[i] - 6, 9, 4);
+
+        ctx.restore();
+      });
+
+    } else if (this.lootType === 'scroll') {
+      // 📜 СВИТОК / ПИСЬМО
+      ctx.shadowColor = '#fef08a';
+      ctx.shadowBlur = this.progress > 75 ? 16 : 5;
+
+      ctx.save();
+      ctx.translate(cx, currentY + 4);
+
+      // Тело свитка (свернутый пергамент)
+      const pGrad = ctx.createLinearGradient(-18, 0, 18, 0);
+      pGrad.addColorStop(0, '#d4c090');
+      pGrad.addColorStop(0.5, '#fef9c3');
+      pGrad.addColorStop(1, '#c8b27c');
+
+      ctx.fillStyle = pGrad;
+      ctx.beginPath();
+      ctx.roundRect(-20, -22, 40, 44, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#a1834e';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Свитые края
+      ctx.fillStyle = '#b89b62';
+      ctx.beginPath();
+      ctx.ellipse(-20, 0, 4, 21, 0, 0, Math.PI * 2);
+      ctx.ellipse(20, 0, 4, 21, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Красная шелковая лента с сургучной печатью
+      ctx.fillStyle = '#b91c1c';
+      ctx.fillRect(-20, -5, 40, 10);
+
+      // Сургучная печать
+      ctx.fillStyle = '#991b1b';
+      ctx.beginPath();
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#f87171';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.restore();
+
+    } else if (this.lootType === 'amulet') {
+      // 💎 АМУЛЕТ НА ЦЕПОЧКЕ
+      ctx.shadowColor = '#d4af37';
+      ctx.shadowBlur = this.progress > 75 ? 18 : 6;
+
+      // Золотая цепочка
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, currentY - 24);
+      ctx.lineTo(cx, currentY);
+      ctx.stroke();
+
+      // Оправа амулета
+      ctx.fillStyle = '#d4af37';
+      ctx.beginPath();
+      ctx.arc(cx, currentY, 17, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Рубин
+      ctx.fillStyle = '#dc2626';
+      ctx.beginPath();
+      ctx.arc(cx, currentY, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+    } else {
+      // 💰 ТЯЖЁЛЫЙ КОШЕЛЬ (Вытягивание золота прямо из кармана)
+      ctx.shadowColor = '#ffd700';
+      ctx.shadowBlur = this.progress > 75 ? 16 : 6;
+
+      // Горка золотых монет, показывающаяся из горловины
+      const coinY = currentY - 4;
+      ctx.fillStyle = '#f59e0b';
+      ctx.strokeStyle = '#fef08a';
+      ctx.lineWidth = 1.5;
+
+      [-14, 0, 14].forEach((xOff, i) => {
+        ctx.beginPath();
+        ctx.ellipse(cx + xOff, coinY + (i % 2 === 0 ? 0 : -4), 10, 6, 0.2 * (i - 1), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+
+      // Золотое тиснение знака гильдии
+      ctx.fillStyle = '#ffd700';
+      ctx.font = 'bold 16px Segoe UI, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚜️', cx, coinY + 18);
+    }
 
     ctx.restore();
   }
@@ -827,7 +1112,7 @@ export class PickpocketGame {
     ctx.lineWidth = 2;
 
     if (this.isExtracting) {
-      // Пальцы вора крепко и осторожно держат шнур кошеля
+      // Пальцы вора крепко и осторожно держат шнур / предмет
       ctx.beginPath();
       ctx.roundRect(cx - 15, handY - 12, 9, 28, 4);
       ctx.fill();
@@ -838,7 +1123,7 @@ export class PickpocketGame {
       ctx.fill();
       ctx.stroke();
     } else {
-      // Рука убрана в тень (чуть ниже кошеля, готовая к следующему рывку)
+      // Рука убрана в тень
       ctx.globalAlpha = 0.45;
       ctx.beginPath();
       ctx.roundRect(cx - 15, 235, 9, 22, 4);
@@ -862,7 +1147,7 @@ export class PickpocketGame {
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#9ca3af';
+      ctx.fillStyle = '#ef4444';
       ctx.font = 'bold 12px Segoe UI, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText('ХВАТКА!', cx, handY + 12);

@@ -45,6 +45,7 @@ export default function TrialsTab({ onOpenSidebar }) {
   const [tier, setTier] = useState(2);
   const [stealthNoise, setStealthNoise] = useState(false);
   const [lockTheme, setLockTheme] = useState('auto');
+  const [lootType, setLootType] = useState('auto');
   const [maxPicks, setMaxPicks] = useState(5);
   const [currentPicks, setCurrentPicks] = useState(5);
   const [pickDurability, setPickDurability] = useState(100);
@@ -75,6 +76,7 @@ export default function TrialsTab({ onOpenSidebar }) {
     currentPicks: 5,
     maxPicks: 5,
     lockTheme: 'auto',
+    lootType: 'auto',
     stealthNoise: false,
     challengeName: 'Тяжёлый кованый сундук бандитов'
   });
@@ -84,6 +86,7 @@ export default function TrialsTab({ onOpenSidebar }) {
   stateRef.current.currentPicks = currentPicks;
   stateRef.current.maxPicks = maxPicks;
   stateRef.current.lockTheme = lockTheme;
+  stateRef.current.lootType = lootType;
   stateRef.current.stealthNoise = stealthNoise;
   stateRef.current.challengeName = challengeName;
 
@@ -171,6 +174,16 @@ export default function TrialsTab({ onOpenSidebar }) {
         return 'arcane';
       }
       return 'iron';
+    },
+    getLootType: () => {
+      if (stateRef.current.lootType && stateRef.current.lootType !== 'auto') {
+        return stateRef.current.lootType;
+      }
+      const objName = (stateRef.current.challengeName || '').toLowerCase();
+      if (objName.includes('ключ') || objName.includes('связк')) return 'keys';
+      if (objName.includes('письм') || objName.includes('свиток') || objName.includes('документ')) return 'scroll';
+      if (objName.includes('амулет') || objName.includes('око') || objName.includes('камен') || objName.includes('реликв')) return 'amulet';
+      return 'pouch';
     },
     get stealthNoiseEnabled() {
       return stateRef.current.stealthNoise;
@@ -430,6 +443,28 @@ export default function TrialsTab({ onOpenSidebar }) {
                   <option value="iron">⛓️ Кованое железо</option>
                   <option value="dwarven">⚙️ Гномья механика</option>
                   <option value="arcane">✨ Тайная магия</option>
+                </select>
+              </div>
+            )}
+
+            {currentGame === 'pickpocket' && (
+              <div className="curtain-row">
+                <label>Предмет кражи:</label>
+                <select 
+                  className="curtain-select"
+                  value={lootType}
+                  onChange={(e) => {
+                    setLootType(e.target.value);
+                    if (activeGameInstanceRef.current?.setLootType) {
+                      activeGameInstanceRef.current.setLootType(e.target.value);
+                    }
+                  }}
+                >
+                  <option value="auto">🎲 Авто (по сюжету)</option>
+                  <option value="pouch">💰 Тяжёлый кошель с золотом</option>
+                  <option value="keys">🗝️ Связка ключей от темницы</option>
+                  <option value="scroll">📜 Секретное письмо / свиток</option>
+                  <option value="amulet">💎 Драгоценный амулет</option>
                 </select>
               </div>
             )}

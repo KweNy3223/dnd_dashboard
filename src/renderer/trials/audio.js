@@ -425,6 +425,72 @@ class AudioEngine {
     noise.start(t);
   }
 
+  // 8.1a. Звяканье стальных ключей на кольце
+  playKeysClink(volume = 0.075) {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    if (this._lastKeysTime && t - this._lastKeysTime < 0.12) return;
+    this._lastKeysTime = t;
+
+    const freqs = [2550 + Math.random() * 100, 3350 + Math.random() * 120, 4150 + Math.random() * 140];
+    freqs.forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, t + idx * 0.012);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(5000, t);
+
+      gain.gain.setValueAtTime(0.04 * (volume / 0.075), t + idx * 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + idx * 0.012 + 0.07);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(t + idx * 0.012);
+      osc.stop(t + idx * 0.012 + 0.08);
+    });
+  }
+
+  // 8.1b. Сухой шелест свитка / пергамента
+  playParchmentRustle(volume = 0.06) {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    if (this._lastParchmentTime && t - this._lastParchmentTime < 0.14) return;
+    this._lastParchmentTime = t;
+
+    const dur = 0.12;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(dur);
+    if (!noise.buffer) return;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1450 + Math.random() * 200, t);
+    filter.Q.setValueAtTime(1.8, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(volume, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    noise.start(t);
+  }
+
   // 8.2. Настороженность жертвы (микро-предупреждение: шорох поворота тела)
   playTargetSuspicious() {
     if (this.muted) return;
