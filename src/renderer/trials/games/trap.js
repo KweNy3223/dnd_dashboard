@@ -147,14 +147,16 @@ export class TrapGame {
 
     // --- 4. Газовый распылитель ---
     this.gas = {
-      pressure: 20,         // 0..100%
-      riseRate: 16,         // % в секунду
-      safeZoneMax: 44,      // комфортная зеленая зона (0..44%)
-      dangerZoneMin: 78,    // граница красной зоны
+      pressure: 18,         // 0..100%
+      riseRate: 23,         // % в секунду (динамически от DC)
+      safeZoneMax: 38,      // динамическая безопасная зона
+      dangerZoneMin: 75,    // граница красной зоны
       neutralizeProgress: 0,// 0..100%
+      neutralizeSpeed: 16,  // скорость очистки
+      reactionHeat: 12,     // подогрев от реакции впрыска
       ventCooldown: 0,
       ventHeat: 0,
-      surgeTimer: 2.8,      // таймер внезапного скачка давления (2.5..4.0с)
+      surgeTimer: 2.5,      // таймер внезапного скачка давления
       surgeWarning: false
     };
 
@@ -221,10 +223,12 @@ export class TrapGame {
     this.plate.pourRate = 52 + (this.bonus * 1.8);
     this.plate.maxDangerTime = Math.max(0.48, 0.62 - (this.dc - 15) * 0.02);
 
-    // 4. Газ: комфортная зеленая зона (до 44%) и умеренный рост
-    this.gas.safeZoneMax = 44;
-    this.gas.dangerZoneMin = 78;
-    this.gas.riseRate = Math.max(12, 16 + (this.dc - 15) * 0.8 - (this.bonus * 0.3));
+    // 4. Газ: динамическая калибровка от DC и бонуса персонажа
+    this.gas.safeZoneMax = Math.max(28, Math.min(42, 38 - (this.dc - 15) * 0.8 + (this.bonus * 0.4)));
+    this.gas.dangerZoneMin = 75;
+    this.gas.riseRate = Math.max(18, 23 + (this.dc - 15) * 1.5 - (this.bonus * 0.4));
+    this.gas.neutralizeSpeed = Math.max(11, 16 - (this.dc - 15) * 0.4 + (this.bonus * 0.3));
+    this.gas.reactionHeat = Math.max(8, 12 + (this.dc - 15) * 0.6);
   }
 
   reset() {
@@ -266,7 +270,7 @@ export class TrapGame {
     this.gas.neutralizeProgress = 0;
     this.gas.ventCooldown = 0;
     this.gas.ventHeat = 0;
-    this.gas.surgeTimer = 2.5 + Math.random() * 1.5;
+    this.gas.surgeTimer = 2.0 + Math.random() * 1.5;
     this.gas.surgeWarning = false;
   }
 
@@ -677,24 +681,24 @@ export class TrapGame {
   ventGasPressure() {
     if (this.gas.ventCooldown > 0) return;
 
-    // МОЩНЫЙ СБРОС: гарантированно сбивает давление глубоко в зелёную зону!
-    let dropAmount = 45;
-    if (this.gas.ventHeat > 1.8) {
-      dropAmount = 34;
-      this.gas.ventCooldown = 0.75;
-      this.statusMessage = '⚠️ Клапан горячий! Стравливание слегка замедлено';
+    // Сброс давления: ощутимый сброс, но соразмерный сложности
+    let dropAmount = 38;
+    if (this.gas.ventHeat > 1.6) {
+      dropAmount = 26;
+      this.gas.ventCooldown = 0.85;
+      this.statusMessage = '⚠️ Клапан перегрет! Стравливание ослаблено';
       this.statusTimer = 1.0;
     } else {
-      dropAmount = 44 + Math.random() * 6;
-      this.gas.ventCooldown = 0.55;
+      dropAmount = 36 + Math.random() * 6;
+      this.gas.ventCooldown = 0.65;
       this.statusMessage = '💨 Пар стравлен! Зажимайте впрыск, пока манометр в зелёной зоне!';
       this.statusTimer = 1.0;
     }
 
-    this.gas.ventHeat += 0.8;
+    this.gas.ventHeat += 0.9;
     audio.playSteamHiss(0.35);
 
-    this.gas.pressure = Math.max(5, this.gas.pressure - dropAmount);
+    this.gas.pressure = Math.max(6, this.gas.pressure - dropAmount);
     this.spawnSteam(this.logicalWidth / 2 + 75, this.logicalHeight * 0.45, 28);
     this.updateHUD();
   }
@@ -709,34 +713,36 @@ export class TrapGame {
       this.gas.ventHeat = Math.max(0, this.gas.ventHeat - dt * 0.8);
     }
 
-    // Фоновое умеренное нарастание давления
+    // Быстрый уверенный рост давления кипящего яда
     this.gas.pressure += this.gas.riseRate * dt;
 
-    // СЛУЧАЙНЫЕ СКАЧКИ ДАВЛЕНИЯ (вскипания каждые 2.5..4.0с)
+    // СЛУЧАЙНЫЕ СКАЧКИ ДАВЛЕНИЯ (вскипания каждые 2.0..3.5с)
     this.gas.surgeTimer -= dt;
-    if (this.gas.surgeTimer <= 0.55 && !this.gas.surgeWarning) {
+    if (this.gas.surgeTimer <= 0.45 && !this.gas.surgeWarning) {
       this.gas.surgeWarning = true;
     }
 
     if (this.gas.surgeTimer <= 0) {
-      // Скачок давления: ощутимый (+14..18%), но предсказанный предупреждением!
-      const jump = 13 + Math.random() * (4 + (this.dc - 15) * 0.4);
+      // Скачок давления: ощутимый (+15..24%)!
+      const jump = 15 + Math.random() * (5 + (this.dc - 15) * 0.5);
       this.gas.pressure = Math.min(100, this.gas.pressure + jump);
-      this.gas.surgeTimer = 2.5 + Math.random() * 1.8;
+      this.gas.surgeTimer = 2.0 + Math.random() * 1.5;
       this.gas.surgeWarning = false;
-      this.shakeAmount = 3.5;
-      audio.playSteamHiss(0.18);
-      this.spawnSparks(this.logicalWidth / 2, this.logicalHeight * 0.5, '#a855f7', 14);
+      this.shakeAmount = 4.0;
+      audio.playSteamHiss(0.20);
+      this.spawnSparks(this.logicalWidth / 2, this.logicalHeight * 0.5, '#a855f7', 16);
     }
 
     // Впрыск нейтрализатора
     if (this.isHoldingAction) {
-      // Легкий экзотермический нагрев при впрыске
-      this.gas.pressure += (6 + (this.dc - 15) * 0.3) * dt;
+      // Экзотермическая реакция нейтрализатора подогревает смесь
+      const heatRate = this.gas.reactionHeat || 12;
+      this.gas.pressure += heatRate * dt;
 
       if (this.gas.pressure <= this.gas.safeZoneMax) {
-        // ЗЕЛЕНАЯ ЗОНА (<44%): бодрый прогресс нейтрализации (24%/сек)
-        this.gas.neutralizeProgress = Math.min(100, this.gas.neutralizeProgress + 24 * dt);
+        // ЗЕЛЕНАЯ ЗОНА: прогресс нейтрализации пропорционален сложности
+        const neutRate = this.gas.neutralizeSpeed || 15;
+        this.gas.neutralizeProgress = Math.min(100, this.gas.neutralizeProgress + neutRate * dt);
         audio.playChemicalFizz();
         audio.playNeedleInsert();
 
@@ -1547,24 +1553,26 @@ export class TrapGame {
 
     const startA = -Math.PI * 0.75;
     const totalA = Math.PI * 1.5;
+    const safeF = (this.gas.safeZoneMax || 38) / 100;
+    const dangerF = (this.gas.dangerZoneMin || 75) / 100;
 
-    // Зелёный безопасный сектор (<44%): РАЗРЕШЕН ВПРЫСК
+    // Зелёный безопасный сектор: РАЗРЕШЕН ВПРЫСК
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 6, startA, startA + totalA * 0.44);
+    ctx.arc(gaugeX, gaugeY, gr - 6, startA, startA + totalA * safeF);
     ctx.strokeStyle = '#22c55e';
     ctx.lineWidth = 7;
     ctx.stroke();
 
-    // Жёлтый сектор (44..78%): ОПАСНОСТЬ ГИДРОУДАРА
+    // Жёлтый сектор: ОПАСНОСТЬ ГИДРОУДАРА
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * 0.44, startA + totalA * 0.78);
+    ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * safeF, startA + totalA * dangerF);
     ctx.strokeStyle = '#f59e0b';
     ctx.lineWidth = 7;
     ctx.stroke();
 
-    // Красный сектор (78..100%): ВЗРЫВ КОТЛА
+    // Красный сектор: ВЗРЫВ КОТЛА
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * 0.78, startA + totalA);
+    ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * dangerF, startA + totalA);
     ctx.strokeStyle = '#ef4444';
     ctx.lineWidth = 7;
     ctx.stroke();
