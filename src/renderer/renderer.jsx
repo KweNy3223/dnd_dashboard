@@ -33,7 +33,7 @@ import TrialsTab from './components/TrialsTab.jsx';
 
 function AppContent() {
   const location = useLocation();
-  const isTrialsRoute = location.pathname === '/trials';
+  const isTrialsRoute = location.pathname.startsWith('/trials');
 
   // 1. ПАМЯТЬ ПРИЛОЖЕНИЯ
   const [modules, setModules] = useState([]);
