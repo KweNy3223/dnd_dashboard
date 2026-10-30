@@ -1,12 +1,16 @@
 /**
- * Модуль мини-игры: Обезвреживание ловушки (Trap Disarming) v2.1
- * Точная калибровка сложности и кристально понятная физическая модель:
- * 1. 🏹 «Арбалетная растяжка (нить)» (активная фиксация шептала + узкое окно натяжения + таймер срыва)
- * 2. ⚙️ «Зубчатый часовой механизм (шестерня)» (высокая базовая скорость + УСКОРЕНИЕ после 1-го клина)
- * 3. ⚖️ «Плита-противовес (давление и вес)» (физика инерции массы + строгий коридор равновесия)
- * 4. 🧪 «Ядовитый распылитель (газ и давление)» (прозрачный цикл: нарастание пара -> сброс -> впрыск в зеленой зоне)
- *
- * Единая система взвода бойка: 3 ошибки до детонации!
+ * Модуль мини-игры: Обезвреживание ловушки (Trap Disarming) v2.2
+ * Высокая сложность, точная физика и исправление всех багов:
+ * 1. 🏹 «Арбалетная растяжка (нить)»:
+ *    - Исправлен критический баг: срез натянутой струны БОЛЬШЕ НЕ ДАЕТ ПОБЕДУ, а взводит боёк!
+ *    - Шептало требует прицельного клика при совпадении + таймер срыва пружины.
+ * 2. ⚙️ «Зубчатый часовой механизм (шестерня)»:
+ *    - Высокая базовая скорость + бешеное ускорение (+50%) после 1-го клина!
+ * 3. ⚖️ «Плита-противовес (давление и вес)»:
+ *    - Полностью перерисован и исправлен интерфейс (шкала недовеса/перевеса, выдвижные штифты).
+ *    - Узкий коридор равновесия + быстрый срыв бойка при перекосе (>0.4с).
+ * 4. 🧪 «Ядовитый распылитель (газ и давление)»:
+ *    - Быстрое нарастание пара, строгое окно впрыска (0..38%), обратный гидроудар при жадности!
  */
 
 import { audio } from '../audio.js';
@@ -24,8 +28,8 @@ export const TRAP_CONFIGS = {
     guide1Desc: 'Наведите штифт на паз и нажмите ПРОБЕЛ/Клик',
     guide2Key: 'Нить',
     guide2Desc: 'Срезайте нить строго в зелёной зоне натяжения',
-    guide3Key: 'Срыв',
-    guide3Desc: 'Промах или срез под натяжением взводят боёк'
+    guide3Key: 'Осечка',
+    guide3Desc: 'Срез под натяжением дергает спуск и взводит боёк!'
   },
   gears: {
     id: 'gears',
@@ -37,7 +41,7 @@ export const TRAP_CONFIGS = {
     guide1Key: 'Тайминг',
     guide1Desc: 'Ждите момента точного совмещения паза с клином',
     guide2Key: 'Ускорение',
-    guide2Desc: 'После 1-го клина шестерня вращается на +45% быстрее!',
+    guide2Desc: 'После 1-го клина шестерня крутится на +50% быстрее!',
     guide3Key: 'Осечка',
     guide3Desc: 'Удар по зубьям шестерни взводит боёк'
   },
@@ -45,29 +49,29 @@ export const TRAP_CONFIGS = {
     id: 'plate',
     name: 'Плита-противовес',
     icon: '⚖️',
-    subtitle: 'Подсыпайте песок короткими нажатиями (ПРОБЕЛ / ЛКМ), учитывая инерцию плиты',
+    subtitle: 'Подсыпайте песок короткими нажатиями (ПРОБЕЛ / ЛКМ), балансируя плиту в зелёном секторе',
     actionBtnText: 'Сыпать песок (Зажать ПРОБЕЛ / ЛКМ)',
     actionBtnIcon: '⏳',
-    guide1Key: 'Инерция',
+    guide1Key: 'Ритм',
     guide1Desc: 'Сыпьте песок короткими порциями (тап-тап)',
     guide2Key: 'Баланс',
     guide2Desc: 'Удерживайте стрелку в зелёном секторе до 100%',
     guide3Key: 'Перекос',
-    guide3Desc: 'Выход из зелёной зоны на 0.5с сдвигает боёк'
+    guide3Desc: 'Перевес или недобор свыше 0.4 сек сдвигает боёк!'
   },
   gas: {
     id: 'gas',
     name: 'Ядовитый распылитель',
     icon: '🧪',
-    subtitle: 'Сбрасывайте давление клавишей ПРОБЕЛ, а в зелёной зоне зажимайте ЛКМ для нейтрализации',
+    subtitle: 'Сбрасывайте пар клавишей ПРОБЕЛ, а в зелёной зоне (<38%) зажимайте впрыск нейтрализатора',
     actionBtnText: 'Впрыск нейтрализатора (Зажать ЛКМ / кнопку)',
     actionBtnIcon: '💉',
     guide1Key: 'Сброс пара',
     guide1Desc: 'Клавиша ПРОБЕЛ сбивает напор пара в зелёную зону',
     guide2Key: 'Впрыск',
-    guide2Desc: 'Вводите реагент, пока манометр в ЗЕЛЁНОМ секторе',
-    guide3Key: 'Перегрев',
-    guide3Desc: 'Не допускайте роста давления до 100% (красная зона)'
+    guide2Desc: 'Вводите реагент только пока манометр в ЗЕЛЁНОМ секторе (<38%)',
+    guide3Key: 'Гидроудар',
+    guide3Desc: 'Впрыск в жёлтой зоне или рост давления до 100% сорвут затвор!'
   }
 };
 
@@ -101,16 +105,16 @@ export class TrapGame {
       subStage: 'SEAR_LOCK', // 'SEAR_LOCK' -> 'WIRE_SNIP'
       searProgress: 0,
       searTargetX: 0.5,
-      searTargetWidth: 0.16,
+      searTargetWidth: 0.12,
       searCurrentX: 0.2,
       searAligned: false,
       tension: 50,
       tensionPhase: 0,
-      tensionSpeed: 2.2,
-      tensionSafeMin: 45,
-      tensionSafeMax: 55,
+      tensionSpeed: 2.8,
+      tensionSafeMin: 46,
+      tensionSafeMax: 54,
       wireSevered: false,
-      searTimer: 0 // Таймер напряжения спуска
+      searTimer: 0
     };
 
     // --- 2. Шестерни ---
@@ -118,39 +122,37 @@ export class TrapGame {
       wedgesInserted: 0,
       wedgesRequired: 2,
       angle: 0,
-      baseSpeed: 2.5,
-      speed: 2.5,
+      baseSpeed: 2.8,
+      speed: 2.8,
       wedgeDropY: 0,
       wedgeStriking: false,
       notches: [
-        { angle: 0, width: 0.26, jammed: false },
-        { angle: Math.PI, width: 0.26, jammed: false }
+        { angle: 0, width: 0.24, jammed: false },
+        { angle: Math.PI, width: 0.24, jammed: false }
       ],
       lastTickTooth: -1
     };
 
-    // --- 3. Плита-противовес (с физической инерцией) ---
+    // --- 3. Плита-противовес ---
     this.plate = {
       weight: 50,           // 0..100%
-      velocity: 0,          // скорость изменения веса
       safeMin: 46,
       safeMax: 54,
       stabilizeProgress: 0, // 0..100%
-      pourPower: 95,
-      drainPower: 45,
-      dangerAccumulator: 0,
-      sandGrains: []
+      pourRate: 58,
+      drainRate: 48,
+      maxDangerTime: 0.42,
+      dangerAccumulator: 0
     };
 
-    // --- 4. Газовый распылитель (прозрачный цикл) ---
+    // --- 4. Газовый распылитель ---
     this.gas = {
-      pressure: 25,         // 0..100%
-      riseRate: 16,         // % в секунду
-      safeZoneMax: 42,      // граница зеленой зоны
+      pressure: 20,         // 0..100%
+      riseRate: 25,         // % в секунду
+      safeZoneMax: 38,      // строгая граница зеленой зоны
       dangerZoneMin: 75,    // граница красной зоны
       neutralizeProgress: 0,// 0..100%
-      ventCooldown: 0,
-      vaporMist: []
+      ventCooldown: 0
     };
 
     // Привязанные события
@@ -195,34 +197,29 @@ export class TrapGame {
     this.dc = dnd.dc || 15;
     this.bonus = dnd.bonus !== undefined ? dnd.bonus : 3;
 
-    // --- 1. Растяжка ---
-    // Ширина паза шептала: на высоком DC заметно уже
-    const searW = Math.max(0.09, Math.min(0.24, 0.16 + (this.bonus * 0.012) - ((this.dc - 15) * 0.01)));
+    // 1. Растяжка: шептало и натяжение
+    const searW = Math.max(0.08, Math.min(0.20, 0.13 + (this.bonus * 0.01) - ((this.dc - 15) * 0.01)));
     this.tripwire.searTargetWidth = searW;
-    this.tripwire.tensionSpeed = Math.max(1.5, 2.2 + (this.dc - 15) * 0.14 - (this.bonus * 0.05));
-    // Зеленая зона струны: ровно 10% ширины
-    this.tripwire.tensionSafeMin = 45;
-    this.tripwire.tensionSafeMax = 55;
+    this.tripwire.tensionSpeed = Math.max(1.8, 2.8 + (this.dc - 15) * 0.16 - (this.bonus * 0.06));
+    this.tripwire.tensionSafeMin = 46;
+    this.tripwire.tensionSafeMax = 54;
 
-    // --- 2. Шестерни ---
-    // Базовая скорость вращения (ощутимо быстрее!)
-    this.gears.baseSpeed = Math.max(1.6, 2.4 + (this.dc - 15) * 0.15 - (this.bonus * 0.05));
+    // 2. Шестерни: высокая скорость
+    this.gears.baseSpeed = Math.max(1.8, 2.8 + (this.dc - 15) * 0.18 - (this.bonus * 0.06));
     this.gears.speed = this.gears.baseSpeed;
-    // Ширина стопорного паза
-    const notchW = Math.max(0.16, Math.min(0.36, 0.26 + (this.bonus * 0.016) - ((this.dc - 15) * 0.012)));
+    const notchW = Math.max(0.14, Math.min(0.32, 0.22 + (this.bonus * 0.015) - ((this.dc - 15) * 0.014)));
     this.gears.notches.forEach(n => { n.width = notchW; });
 
-    // --- 3. Плита-противовес ---
-    // Узкий коридор равновесия
-    const plateSpread = Math.max(4.5, Math.min(10, 7.5 + this.bonus * 0.5 - (this.dc - 15) * 0.45));
+    // 3. Плита: узкий коридор
+    const plateSpread = Math.max(4.0, Math.min(8.5, 6.5 + this.bonus * 0.4 - (this.dc - 15) * 0.4));
     this.plate.safeMin = 50 - plateSpread;
     this.plate.safeMax = 50 + plateSpread;
-    this.plate.drainPower = Math.max(35, 45 + (this.dc - 15) * 2.0);
-    this.plate.pourPower = 95 + (this.bonus * 2);
+    this.plate.drainRate = Math.max(40, 50 + (this.dc - 15) * 1.8);
+    this.plate.pourRate = 62 + (this.bonus * 2);
+    this.plate.maxDangerTime = Math.max(0.32, 0.46 - (this.dc - 15) * 0.02);
 
-    // --- 4. Газ ---
-    // Скорость нарастания пара в котле
-    this.gas.riseRate = Math.max(12, 16 + (this.dc - 15) * 0.8 - (this.bonus * 0.3));
+    // 4. Газ: скорость нарастания давления
+    this.gas.riseRate = Math.max(18, 25 + (this.dc - 15) * 1.3 - (this.bonus * 0.4));
   }
 
   reset() {
@@ -242,7 +239,6 @@ export class TrapGame {
   }
 
   resetSubgames() {
-    // 1. Растяжка
     this.tripwire.subStage = 'SEAR_LOCK';
     this.tripwire.searProgress = 0;
     this.tripwire.searCurrentX = 0.2;
@@ -251,25 +247,19 @@ export class TrapGame {
     this.tripwire.wireSevered = false;
     this.tripwire.searTimer = 0;
 
-    // 2. Шестерни
     this.gears.wedgesInserted = 0;
     this.gears.wedgeDropY = 0;
     this.gears.wedgeStriking = false;
     this.gears.speed = this.gears.baseSpeed;
     this.gears.notches.forEach(n => { n.jammed = false; });
 
-    // 3. Плита
     this.plate.weight = 50;
-    this.plate.velocity = 0;
     this.plate.stabilizeProgress = 0;
     this.plate.dangerAccumulator = 0;
-    this.plate.sandGrains = [];
 
-    // 4. Газ
-    this.gas.pressure = 25;
+    this.gas.pressure = 20;
     this.gas.neutralizeProgress = 0;
     this.gas.ventCooldown = 0;
-    this.gas.vaporMist = [];
   }
 
   start() {
@@ -410,7 +400,6 @@ export class TrapGame {
 
     if (this.trapType === 'tripwire' && this.tripwire.subStage === 'SEAR_LOCK') {
       this.tripwire.searCurrentX = x;
-      // Проверка совпадения в реальном времени
       const diff = Math.abs(this.tripwire.searCurrentX - this.tripwire.searTargetX);
       const isAlignedNow = diff <= this.tripwire.searTargetWidth / 2;
       if (isAlignedNow && !this.tripwire.searAligned) {
@@ -434,7 +423,6 @@ export class TrapGame {
     if (e.code === 'Space') {
       e.preventDefault();
       if (this.trapType === 'gas' && this.btnTrapSecondary) {
-        // В режиме газа Пробел стравливает пар
         this.handleSecondaryAction();
       } else {
         this.handleActionStart();
@@ -464,7 +452,6 @@ export class TrapGame {
       if (this.tripwire.subStage === 'WIRE_SNIP') {
         this.snipTripwire();
       } else {
-        // Активная фиксация штифта при нажатии
         this.checkSearAlignmentClick();
       }
     }
@@ -481,14 +468,13 @@ export class TrapGame {
     }
   }
 
-  // --- ЛОГИКА ОШИБОК И ВЗВОДА БОЙКА (3 ЩЕЛЧКА) ---
   advanceStriker(reason = '') {
     if (this.isDisarmed || this.isDetonated) return;
 
     this.strikerStage = Math.min(3, this.strikerStage + 1);
-    this.shakeAmount = 9 * this.strikerStage;
+    this.shakeAmount = 10 * this.strikerStage;
     this.statusMessage = reason || `Щёлк! Боёк сдвинулся (${this.strikerStage}/3)`;
-    this.statusTimer = 2.0;
+    this.statusTimer = 2.2;
 
     audio.playStrikerStep(this.strikerStage);
     this.spawnSparks(this.logicalWidth / 2, this.logicalHeight / 2, '#f97316', 30 * this.strikerStage);
@@ -509,10 +495,10 @@ export class TrapGame {
 
   triggerDetonation(reason = '') {
     this.isDetonated = true;
-    this.shakeAmount = 28;
+    this.shakeAmount = 30;
     audio.playExplosion();
-    this.spawnSparks(this.logicalWidth / 2, this.logicalHeight / 2, '#ef4444', 65);
-    this.spawnSmoke(this.logicalWidth / 2, this.logicalHeight / 2, 45);
+    this.spawnSparks(this.logicalWidth / 2, this.logicalHeight / 2, '#ef4444', 70);
+    this.spawnSmoke(this.logicalWidth / 2, this.logicalHeight / 2, 50);
 
     this.statusMessage = `💥 ДЕТОНАЦИЯ! ${reason || 'Ловушка сработала!'}`;
     this.statusTimer = 4.0;
@@ -532,7 +518,7 @@ export class TrapGame {
     this.statusTimer = 3.0;
 
     audio.playSuccess();
-    this.spawnSparks(this.logicalWidth / 2, this.logicalHeight / 2, '#22c55e', 50);
+    this.spawnSparks(this.logicalWidth / 2, this.logicalHeight / 2, '#22c55e', 55);
     this.updateHUD();
 
     setTimeout(() => {
@@ -549,7 +535,7 @@ export class TrapGame {
       this.tripwire.searProgress = 100;
       this.finishSearLock();
     } else {
-      // Клик мимо щели сдвигает боёк!
+      // Клик мимо щели взводит боёк!
       this.advanceStriker('Штифт со звоном соскочил мимо шептала бойка!');
     }
   }
@@ -557,7 +543,7 @@ export class TrapGame {
   finishSearLock() {
     audio.playSearClick();
     this.tripwire.subStage = 'WIRE_SNIP';
-    this.statusMessage = '🛡️ Шептало бойка надёжно заблокировано! Теперь срежьте нить кусачками.';
+    this.statusMessage = '🛡️ Шептало бойка заблокировано! Срежьте нить строго в зелёной зоне!';
     this.statusTimer = 2.5;
 
     if (this.trapActionIcon) this.trapActionIcon.textContent = '✂️';
@@ -568,18 +554,16 @@ export class TrapGame {
   snipTripwire() {
     const t = this.tripwire.tension;
     if (t >= this.tripwire.tensionSafeMin && t <= this.tripwire.tensionSafeMax) {
-      // Идеальный срез в узкой зоне
+      // Идеальный чистый срез в узкой зоне!
       this.tripwire.wireSevered = true;
       audio.playWireCut(false);
       this.triggerVictory();
     } else {
-      // Срез под натяжением рвёт струну и натягивает боёк
+      // ИСПРАВЛЕН БАГ: ошибка перекусывания БОЛЬШЕ НЕ ДАЕТ ПОБЕДУ!
+      // Струна рвётся/бьет по спуску, боёк делает шаг!
       audio.playWireCut(true);
-      this.advanceStriker('Струна лопнула под натяжением, ударив по вторичному спуску!');
-      if (!this.isDetonated) {
-        this.tripwire.wireSevered = true;
-        this.triggerVictory();
-      }
+      this.advanceStriker('Струна натянута! Кусачки дернули спусковой крючок!');
+      // Нить остается натянутой, попытка не завершена, игрок должен поймать зеленую зону!
     }
   }
 
@@ -612,68 +596,51 @@ export class TrapGame {
       if (this.gears.wedgesInserted >= this.gears.wedgesRequired) {
         this.triggerVictory();
       } else {
-        // ПОСЛЕ 1-ГО КЛИНА КОЛЕСО УСКОРЯЕТСЯ НА +45%!
-        this.gears.speed = this.gears.baseSpeed * 1.45;
-        this.shakeAmount = 10;
-        this.statusMessage = '⚠️ ПРУЖИНА ПЕРЕГРУЖЕНА! Колесо бешено ускорилось! Ловите 2-й паз!';
+        // УСКОРЕНИЕ НА +50%!
+        this.gears.speed = this.gears.baseSpeed * 1.5;
+        this.shakeAmount = 12;
+        this.statusMessage = '⚠️ ПРУЖИНА ПЕРЕГРУЖЕНА! Колесо бешено ускорилось (+50%)!';
         this.statusTimer = 2.4;
         this.updateHUD();
       }
     } else {
-      // Промах по зубьям
       audio.playGearGrind();
       this.spawnSparks(this.logicalWidth / 2, this.logicalHeight * 0.38, '#f59e0b', 25);
       this.advanceStriker('Клин со скрежетом отскочил от калёных зубьев шестерни!');
     }
   }
 
-  // --- ПОД-ИГРА 3: ПЛИТА-ПРОТИВОВЕС (ФИЗИКА ИНЕРЦИИ) ---
+  // --- ПОД-ИГРА 3: ПЛИТА-ПРОТИВОВЕС ---
   updatePlate(dt) {
     if (this.isDisarmed || this.isDetonated) return;
 
+    // Прямой отзывчивый баланс песка
     if (this.isHoldingAction) {
-      // Ускорение подсыпания песка
-      this.plate.velocity += this.plate.pourPower * dt;
+      this.plate.weight = Math.min(100, this.plate.weight + this.plate.pourRate * dt);
       audio.playSandPour();
       this.spawnSandGrains();
     } else {
-      // Утечка и тяжесть камня
-      this.plate.velocity -= this.plate.drainPower * dt;
+      this.plate.weight = Math.max(0, this.plate.weight - this.plate.drainRate * dt);
     }
 
-    // Сопротивление / демпфирование
-    this.plate.velocity *= 0.94;
-
-    // Смещение веса
-    this.plate.weight += this.plate.velocity * dt;
-
-    if (this.plate.weight <= 0) {
-      this.plate.weight = 0;
-      this.plate.velocity = 0;
-    } else if (this.plate.weight >= 100) {
-      this.plate.weight = 100;
-      this.plate.velocity = 0;
-    }
-
-    // Проверка узкой зоны равновесия
     const inSafe = this.plate.weight >= this.plate.safeMin && this.plate.weight <= this.plate.safeMax;
 
     if (inSafe) {
-      this.plate.stabilizeProgress = Math.min(100, this.plate.stabilizeProgress + 24 * dt);
-      this.plate.dangerAccumulator = Math.max(0, this.plate.dangerAccumulator - dt * 2.5);
+      this.plate.stabilizeProgress = Math.min(100, this.plate.stabilizeProgress + 22 * dt);
+      this.plate.dangerAccumulator = Math.max(0, this.plate.dangerAccumulator - dt * 2.0);
       audio.playBalanceChime();
 
       if (this.plate.stabilizeProgress >= 100) {
         this.triggerVictory();
       }
     } else {
-      // Накопление опасности при дисбалансе (быстрый срыв бойка!)
+      // Строгий лимит опасности: перекос свыше ~0.4с сдвигает боёк!
       this.plate.dangerAccumulator += dt;
       audio.playStoneGrind();
 
-      if (this.plate.dangerAccumulator >= 0.55) {
+      if (this.plate.dangerAccumulator >= this.plate.maxDangerTime) {
         this.plate.dangerAccumulator = 0;
-        this.advanceStriker('Плита опасно перекосилась от резкого дисбаланса!');
+        this.advanceStriker(this.plate.weight > this.plate.safeMax ? 'Плита просела от перевеса!' : 'Плита перекосилась от недобора веса!');
       }
     }
 
@@ -681,34 +648,34 @@ export class TrapGame {
   }
 
   spawnSandGrains() {
-    const cx = this.logicalWidth * 0.72;
-    const cy = this.logicalHeight * 0.32;
+    const cx = this.logicalWidth / 2 + 140;
+    const cy = 160;
     for (let i = 0; i < 3; i++) {
       this.particles.push({
         type: 'sand',
-        x: cx + (Math.random() - 0.5) * 8,
+        x: cx + (Math.random() - 0.5) * 6,
         y: cy + (Math.random() - 0.5) * 4,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: 2 + Math.random() * 3,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: 3 + Math.random() * 3,
         color: '#d97706',
         size: 2 + Math.random() * 1.5,
-        life: 0.6,
-        decay: 0.04
+        life: 0.5,
+        decay: 0.05
       });
     }
   }
 
-  // --- ПОД-ИГРА 4: ЯДОВИТЫЙ РАСПЫЛИТЕЛЬ (ПРОЗРАЧНЫЙ ЦИКЛ) ---
+  // --- ПОД-ИГРА 4: ЯДОВИТЫЙ РАСПЫЛИТЕЛЬ ---
   ventGasPressure() {
     if (this.gas.ventCooldown > 0) return;
-    this.gas.ventCooldown = 0.45;
+    this.gas.ventCooldown = 0.55;
     audio.playSteamHiss(0.35);
 
-    // Сбрасываем 38% давления прямо в зеленую зону!
-    this.gas.pressure = Math.max(12, this.gas.pressure - 38);
+    // Сбрасываем 36% давления
+    this.gas.pressure = Math.max(10, this.gas.pressure - 36);
     this.spawnSteam(this.logicalWidth * 0.8, this.logicalHeight * 0.42, 25);
-    this.statusMessage = '💨 Пар безопасно стравлен! Зажимайте впрыск нейтрализатора!';
-    this.statusTimer = 1.4;
+    this.statusMessage = '💨 Пар стравлен! Зажимайте впрыск пока манометр зелёный!';
+    this.statusTimer = 1.3;
     this.updateHUD();
   }
 
@@ -719,21 +686,20 @@ export class TrapGame {
       this.gas.ventCooldown = Math.max(0, this.gas.ventCooldown - dt);
     }
 
-    // Предсказуемое, равномерное нарастание давления в котле
+    // Быстрое нарастание давления
     this.gas.pressure += this.gas.riseRate * dt;
 
-    // Если давление достигло 100% — перегрев котла и взрыв!
+    // Взрыв котла при 100%
     if (this.gas.pressure >= 100) {
-      this.gas.pressure = 100;
+      this.gas.pressure = 60;
       this.advanceStriker('Критический перегрев котла — гидроудар сорвал затвор!');
-      this.gas.pressure = 65; // Сброс после взрыва
     }
 
-    // Введение нейтрализатора
+    // Впрыск нейтрализатора
     if (this.isHoldingAction) {
       if (this.gas.pressure <= this.gas.safeZoneMax) {
-        // ЗЕЛЕНАЯ ЗОНА: идеальный впрыск
-        this.gas.neutralizeProgress = Math.min(100, this.gas.neutralizeProgress + 28 * dt);
+        // ЗЕЛЕНАЯ ЗОНА (<38%): впрыск работает
+        this.gas.neutralizeProgress = Math.min(100, this.gas.neutralizeProgress + 18 * dt);
         audio.playChemicalFizz();
         audio.playNeedleInsert();
 
@@ -741,9 +707,9 @@ export class TrapGame {
           this.triggerVictory();
         }
       } else {
-        // Желтая или красная зона: блокировка клапана
-        this.statusMessage = '⚠️ Давление слишком высоко! Сначала сбросьте пар (ПРОБЕЛ)!';
-        this.statusTimer = 0.8;
+        // ЖЕЛТАЯ/КРАСНАЯ ЗОНА: обратный удар вышибает шприц и взводит боёк!
+        this.isHoldingAction = false;
+        this.advanceStriker('Обратное давление яда вышибло шприц! Боёк сорван!');
       }
     }
 
@@ -776,7 +742,7 @@ export class TrapGame {
         this.trapHudLabel.textContent = 'Шептало бойка:';
         this.trapHudValue.textContent = isAligned ? '🟢 СОВПАДЕНИЕ! Жмите ПРОБЕЛ / Клик!' : '🔴 Штифт не в пазу (наведите на синий паз)';
         this.trapHudValue.style.color = isAligned ? '#22c55e' : '#f59e0b';
-        this.trapProgressFill.style.width = isAligned ? '100%' : '25%';
+        this.trapProgressFill.style.width = isAligned ? '100%' : '20%';
       } else {
         const t = Math.round(this.tripwire.tension);
         const inSafe = t >= this.tripwire.tensionSafeMin && t <= this.tripwire.tensionSafeMax;
@@ -788,16 +754,15 @@ export class TrapGame {
     } else if (this.trapType === 'gears') {
       const ins = this.gears.wedgesInserted;
       const req = this.gears.wedgesRequired;
-      this.trapHudLabel.textContent = ins > 0 ? '⚠️ Шестерня перегружена (+45% скорости):' : 'Стопорные клинья в шестерне:';
+      this.trapHudLabel.textContent = ins > 0 ? '⚠️ Пружина перегружена (+50% скорости):' : 'Стопорные клинья в шестерне:';
       this.trapHudValue.textContent = `${ins} из ${req} ${ins >= req ? '(Остановлено)' : '(Ловите пазы!)'}`;
       this.trapHudValue.style.color = ins > 0 ? '#f59e0b' : '#38bdf8';
       this.trapProgressFill.style.width = `${(ins / req) * 100}%`;
     } else if (this.trapType === 'plate') {
       const p = Math.round(this.plate.stabilizeProgress);
-      const w = Math.round(this.plate.weight);
-      const inSafe = w >= this.plate.safeMin && w <= this.plate.safeMax;
-      this.trapHudLabel.textContent = `Стабилизация плиты (${w}% веса):`;
-      this.trapHudValue.textContent = `${p}% ${inSafe ? '(🟢 В равновесии)' : '(🔴 Перекос!)'}`;
+      const inSafe = this.plate.weight >= this.plate.safeMin && this.plate.weight <= this.plate.safeMax;
+      this.trapHudLabel.textContent = 'Фиксация стопорных штифтов:';
+      this.trapHudValue.textContent = `${p}% ${inSafe ? '(🟢 Равновесие удерживается)' : '(🔴 ПЕРЕКОС ПЛИТЫ!)'}`;
       this.trapHudValue.style.color = inSafe ? '#22c55e' : '#ed4245';
       this.trapProgressFill.style.width = `${p}%`;
     } else if (this.trapType === 'gas') {
@@ -854,43 +819,37 @@ export class TrapGame {
 
     if (this.isDisarmed || this.isDetonated) return;
 
-    // --- 1. Растяжка ---
+    // 1. Растяжка
     if (this.trapType === 'tripwire') {
       if (this.tripwire.subStage === 'SEAR_LOCK') {
-        // Дрожание шептала под натяжением боевой пружины
-        this.tripwire.searTargetX = 0.5 + Math.sin(this.animTime * 3.2) * 0.22 + Math.cos(this.animTime * 1.8) * 0.12;
-
+        this.tripwire.searTargetX = 0.5 + Math.sin(this.animTime * 4.2) * 0.28 + Math.cos(this.animTime * 2.3) * 0.15;
         const diff = Math.abs(this.tripwire.searCurrentX - this.tripwire.searTargetX);
         this.tripwire.searAligned = diff <= this.tripwire.searTargetWidth / 2;
 
-        // Таймер ожидания: если игрок не фиксирует шептало дольше 8 секунд, боёк дрогнет!
         this.tripwire.searTimer += dt;
-        if (this.tripwire.searTimer >= 8.5) {
+        if (this.tripwire.searTimer >= 6.5) {
           this.tripwire.searTimer = 0;
           this.advanceStriker('Шептало сорвалось от долгого напряжения пружины!');
         }
 
         this.updateHUD();
       } else {
-        // Динамическое колебание натяжения
         this.tripwire.tensionPhase += this.tripwire.tensionSpeed * dt;
-        this.tripwire.tension = 50 + Math.sin(this.tripwire.tensionPhase) * 40;
+        this.tripwire.tension = 50 + Math.sin(this.tripwire.tensionPhase) * 44;
         this.updateHUD();
       }
     }
 
-    // --- 2. Шестерни ---
+    // 2. Шестерни
     if (this.trapType === 'gears') {
       this.gears.angle += this.gears.speed * dt;
 
-      // Звук тиканья шестерен
       const toothIdx = Math.floor((this.gears.angle / (Math.PI * 2)) * 12);
       if (toothIdx !== this.gears.lastTickTooth) {
         this.gears.lastTickTooth = toothIdx;
         audio.playGearTick(1.0 + (toothIdx % 2) * 0.25);
       }
 
-      // Анимация удара клина
       if (this.gears.wedgeStriking) {
         this.gears.wedgeDropY += dt * 5;
         if (this.gears.wedgeDropY >= 1) {
@@ -900,12 +859,12 @@ export class TrapGame {
       }
     }
 
-    // --- 3. Плита ---
+    // 3. Плита
     if (this.trapType === 'plate') {
       this.updatePlate(dt);
     }
 
-    // --- 4. Газ ---
+    // 4. Газ
     if (this.trapType === 'gas') {
       this.updateGas(dt);
     }
@@ -1221,88 +1180,141 @@ export class TrapGame {
     ctx.restore();
   }
 
-  // --- МЕХАНИЗМ 3: ПЛИТА-ПРОТИВОВЕС ---
+  // --- МЕХАНИЗМ 3: ПЛИТА-ПРОТИВОВЕС (ПОЛНОСТЬЮ ПЕРЕРАБОТАННЫЙ ИНТЕРФЕЙС) ---
   drawPlateMechanism(ctx, w, h) {
     const cx = w / 2;
 
+    // 1. Гранитная плита сверху
     const plateShiftY = (this.plate.weight - 50) * 0.45;
-    const slabY = 55 + plateShiftY;
+    const slabY = 46 + plateShiftY;
 
     ctx.fillStyle = '#374151';
-    ctx.fillRect(cx - 160, slabY, 320, 24);
+    ctx.fillRect(cx - 150, slabY, 300, 22);
     ctx.strokeStyle = '#6b7280';
     ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 160, slabY, 320, 24);
+    ctx.strokeRect(cx - 150, slabY, 300, 22);
 
-    ctx.font = '11px "Segoe UI", sans-serif';
+    ctx.font = 'bold 11px "Segoe UI", sans-serif';
     ctx.fillStyle = '#9ca3af';
     ctx.textAlign = 'center';
-    ctx.fillText('ГРАНИТНАЯ НАЖИМНАЯ ПЛИТА', cx, slabY + 16);
+    ctx.fillText('ГРАНИТНАЯ НАЖИМНАЯ ПЛИТА', cx, slabY + 15);
 
-    [-110, 0, 110].forEach(ox => {
-      ctx.strokeStyle = '#b45309';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(cx + ox, slabY + 24);
-      ctx.lineTo(cx + ox, 105);
-      ctx.stroke();
-    });
+    // Выдвижные стопорные штифты в стенах (анимируются от 0% до 100%)
+    const pinProgress = this.plate.stabilizeProgress / 100;
+    const boltWidth = 32 * pinProgress;
 
+    // Левый штифт
+    ctx.fillStyle = pinProgress >= 1 ? '#22c55e' : '#f59e0b';
+    ctx.fillRect(cx - 180, slabY + 3, boltWidth, 16);
+    ctx.strokeStyle = '#d97706';
+    ctx.strokeRect(cx - 180, slabY + 3, boltWidth, 16);
+
+    // Правый штифт
+    ctx.fillRect(cx + 180 - boltWidth, slabY + 3, boltWidth, 16);
+    ctx.strokeRect(cx + 180 - boltWidth, slabY + 3, boltWidth, 16);
+
+    // 2. Циферблат весов (индикатор равновесия)
+    const dialX = cx - 35;
     const dialY = 210;
-    const dialRadius = 65;
+    const dialRadius = 66;
 
+    // Базовый корпус циферблата
     ctx.beginPath();
-    ctx.arc(cx, dialY, dialRadius, Math.PI, 0);
-    ctx.fillStyle = '#111827';
+    ctx.arc(dialX, dialY, dialRadius, Math.PI, 0);
+    ctx.fillStyle = '#0f172a';
     ctx.fill();
-    ctx.strokeStyle = '#4b5563';
+    ctx.strokeStyle = '#475569';
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Узкий сектор равновесия
-    const angleMin = Math.PI + (this.plate.safeMin / 100) * Math.PI;
-    const angleMax = Math.PI + (this.plate.safeMax / 100) * Math.PI;
+    // Шкала 3 секторов:
+    // Левый красный сектор (недобор веса: 0 .. safeMin)
+    const startA = Math.PI;
+    const safeMinA = Math.PI + (this.plate.safeMin / 100) * Math.PI;
+    const safeMaxA = Math.PI + (this.plate.safeMax / 100) * Math.PI;
+    const endA = Math.PI * 2;
 
+    // Левый красный
     ctx.beginPath();
-    ctx.arc(cx, dialY, dialRadius - 4, angleMin, angleMax);
-    ctx.lineWidth = 10;
-    ctx.strokeStyle = 'rgba(34, 197, 94, 0.65)';
+    ctx.arc(dialX, dialY, dialRadius - 4, startA, safeMinA);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 8;
     ctx.stroke();
+
+    // Центральный яркий зелёный (РАВНОВЕСИЕ)
+    ctx.beginPath();
+    ctx.arc(dialX, dialY, dialRadius - 4, safeMinA, safeMaxA);
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 10;
+    ctx.stroke();
+
+    // Правый красный (перевес)
+    ctx.beginPath();
+    ctx.arc(dialX, dialY, dialRadius - 4, safeMaxA, endA);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // Подписи секторов на циферблате
+    ctx.font = 'bold 9px "Segoe UI", sans-serif';
+    ctx.fillStyle = '#f87171';
+    ctx.textAlign = 'left';
+    ctx.fillText('◄ НЕДОБОР', dialX - dialRadius + 4, dialY - 14);
+
+    ctx.fillStyle = '#4ade80';
+    ctx.textAlign = 'center';
+    ctx.fillText('⚖ РАВНОВЕСИЕ', dialX, dialY - dialRadius + 14);
+
+    ctx.fillStyle = '#f87171';
+    ctx.textAlign = 'right';
+    ctx.fillText('ПЕРЕВЕС ►', dialX + dialRadius - 4, dialY - 14);
 
     // Стрелка циферблата
     const needleAngle = Math.PI + (this.plate.weight / 100) * Math.PI;
-    ctx.save();
-    ctx.translate(cx, dialY);
-    ctx.rotate(needleAngle);
+    const inSafe = this.plate.weight >= this.plate.safeMin && this.plate.weight <= this.plate.safeMax;
 
+    ctx.save();
+    ctx.translate(dialX, dialY);
+    ctx.rotate(needleAngle);
     ctx.beginPath();
     ctx.moveTo(0, 0);
     ctx.lineTo(dialRadius - 8, 0);
-    ctx.strokeStyle = this.plate.weight >= this.plate.safeMin && this.plate.weight <= this.plate.safeMax ? '#22c55e' : '#ed4245';
+    ctx.strokeStyle = inSafe ? '#22c55e' : '#ef4444';
     ctx.lineWidth = 3.5;
     ctx.stroke();
     ctx.restore();
 
     ctx.beginPath();
-    ctx.arc(cx, dialY, 6, 0, Math.PI * 2);
+    ctx.arc(dialX, dialY, 6, 0, Math.PI * 2);
     ctx.fillStyle = '#d4af37';
     ctx.fill();
 
-    const pouchX = cx + 150;
-    const pouchY = 160;
+    // 3. Мешок с песком и чаша справа
+    const pouchX = cx + 140;
+    const pouchY = 145;
 
+    // Мешочек
     ctx.fillStyle = '#78350f';
     ctx.beginPath();
     ctx.arc(pouchX, pouchY, 18, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 2;
     ctx.stroke();
 
+    ctx.font = '10px "Segoe UI", sans-serif';
+    ctx.fillStyle = '#fbbf24';
+    ctx.textAlign = 'center';
+    ctx.fillText('ПЕСОК', pouchX, pouchY + 4);
+
+    // Чаша противовеса снизу
+    const cupY = 230 + (this.plate.weight - 50) * 0.2;
     ctx.beginPath();
-    ctx.arc(pouchX, pouchY + 70, 24, 0, Math.PI);
-    ctx.fillStyle = '#4b5563';
+    ctx.arc(pouchX, cupY, 26, 0, Math.PI);
+    ctx.fillStyle = '#334155';
     ctx.fill();
-    ctx.strokeStyle = '#9ca3af';
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
     ctx.stroke();
   }
 
@@ -1346,26 +1358,24 @@ export class TrapGame {
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
-    // Шкала 3 цветов: Зелёная (0..42%), Жёлтая (42..75%), Красная (75..100%)
-    // Дуга от -Math.PI * 0.75 до +Math.PI * 0.75
     const startA = -Math.PI * 0.75;
     const totalA = Math.PI * 1.5;
 
-    // Зелёный сектор
+    // Зелёный сектор (<38%)
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 5, startA, startA + totalA * 0.42);
+    ctx.arc(gaugeX, gaugeY, gr - 5, startA, startA + totalA * 0.38);
     ctx.strokeStyle = '#22c55e';
     ctx.lineWidth = 5;
     ctx.stroke();
 
-    // Жёлтый сектор
+    // Жёлтый сектор (38..75%)
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 5, startA + totalA * 0.42, startA + totalA * 0.75);
+    ctx.arc(gaugeX, gaugeY, gr - 5, startA + totalA * 0.38, startA + totalA * 0.75);
     ctx.strokeStyle = '#f59e0b';
     ctx.lineWidth = 5;
     ctx.stroke();
 
-    // Красный сектор
+    // Красный сектор (75..100%)
     ctx.beginPath();
     ctx.arc(gaugeX, gaugeY, gr - 5, startA + totalA * 0.75, startA + totalA);
     ctx.strokeStyle = '#ed4245';
