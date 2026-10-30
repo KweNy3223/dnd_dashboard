@@ -622,7 +622,7 @@ export class PickpocketGame {
     ctx.clearRect(0, 0, w, h);
 
     // 1. Трактирный полумрак и ткань мантии
-    this.drawBackground(ctx, w, h);
+    this.drawBackground(ctx, cx, w, h);
 
     // 2. Световой конус/аура внимания цели
     this.drawAwarenessAura(ctx, cx, w, h);
@@ -645,7 +645,7 @@ export class PickpocketGame {
     ctx.restore();
   }
 
-  drawBackground(ctx, w, h) {
+  drawBackground(ctx, cx, w, h) {
     const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
     bgGrad.addColorStop(0, '#0f1118');
     bgGrad.addColorStop(1, '#07080c');
