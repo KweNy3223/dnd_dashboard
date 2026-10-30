@@ -1031,18 +1031,21 @@ input[type="number"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: var(--bg-module);
-  border-bottom: 1px solid var(--border-color);
-  padding: 6px 16px;
-  min-height: 48px;
-  flex-wrap: wrap;
-  gap: 8px;
+  background-color: var(--bg-header);
+  border-bottom: 2px solid var(--border-color);
+  padding: 0 16px;
+  height: 60px;
+  min-height: 60px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 100;
+  gap: 12px;
 }
 
 .trials-tabs-group {
   display: flex;
   gap: 6px;
-  flex-wrap: wrap;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 .trials-tab-btn {

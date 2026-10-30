@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter, Routes, Route, NavLink } from 'react-router-dom'; // Импортируем магию роутера
+import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'; // Импортируем магию роутера
 import './styles.css';
 
 // Иконки
@@ -31,7 +31,10 @@ import RulesTab from './components/RulesTab.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import TrialsTab from './components/TrialsTab.jsx';
 
-function App() {
+function AppContent() {
+  const location = useLocation();
+  const isTrialsRoute = location.pathname === '/trials';
+
   // 1. ПАМЯТЬ ПРИЛОЖЕНИЯ
   const [modules, setModules] = useState([]);
   const [snapToGrid, setSnapToGrid] = useState(false);
@@ -130,18 +133,18 @@ function App() {
 
   // 3. РАЗМЕТКА
   return (
-    <HashRouter>
-      <div className='app-container' data-theme={isDarkTheme ? 'dark' : 'light'}>
-        
-        {/* Боковая шторка навигации */}
-        <Sidebar 
-          isOpen={isSidebarOpen} 
-          onClose={() => setIsSidebarOpen(false)}
-          isDarkTheme={isDarkTheme}
-          onToggleTheme={() => setIsDarkTheme(!isDarkTheme)}
-        />
+    <div className='app-container' data-theme={isDarkTheme ? 'dark' : 'light'}>
+      
+      {/* Боковая шторка навигации */}
+      <Sidebar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)}
+        isDarkTheme={isDarkTheme}
+        onToggleTheme={() => setIsDarkTheme(!isDarkTheme)}
+      />
 
-        {/* --- ВЕРХНЯЯ ПАНЕЛЬ НАВИГАЦИИ --- */}
+      {/* --- ВЕРХНЯЯ ПАНЕЛЬ НАВИГАЦИИ (скрывается в Мастерской Испытаний) --- */}
+      {!isTrialsRoute && (
         <header className='top-navbar'>
           <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button 
@@ -180,6 +183,7 @@ function App() {
           <div className="navbar-right"></div>
           <input type="file" id="config-upload" accept=".json" style={{ display: 'none' }} onChange={handleLoadConfig} />
         </header>
+      )}
         
         {/* --- ГЛАВНЫЙ ЭКРАН (МЕНЯЕТСЯ РОУТЕРОМ) --- */}
         <main className='main-board'>
@@ -228,7 +232,7 @@ function App() {
             } />
 
             {/* СТРАНИЦА: МАСТЕРСКАЯ ИСПЫТАНИЙ */}
-            <Route path="/trials" element={<TrialsTab />} />
+            <Route path="/trials" element={<TrialsTab onOpenSidebar={() => setIsSidebarOpen(true)} />} />
 
             {/* СТРАНИЦА 2: СПРАВОЧНИК ЦЕН */}
             <Route path="/prices" element={<PricesTab />} />
@@ -276,6 +280,13 @@ function App() {
         )}
 
       </div>
+  );
+}
+
+function App() {
+  return (
+    <HashRouter>
+      <AppContent />
     </HashRouter>
   );
 }

@@ -19,8 +19,7 @@ import {
   ShieldAlert, 
   Maximize2, 
   Minimize2,
-  Copy,
-  Check,
+  Menu,
   Dices,
   ChevronDown,
   ChevronUp
@@ -34,7 +33,7 @@ const GAME_MODULES = {
   alchemy: { id: 'alchemy', name: 'Зельеварение', icon: FlaskConical, Class: AlchemyGame }
 };
 
-export default function TrialsTab() {
+export default function TrialsTab({ onOpenSidebar }) {
   const [currentGame, setCurrentGame] = useState('lockpick');
   const [isCurtainOpen, setIsCurtainOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(audio.isMuted());
@@ -65,7 +64,6 @@ export default function TrialsTab() {
   // Модальные окна
   const [outcome, setOutcome] = useState(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
 
   // Ссылки
   const arenaRef = useRef(null);
@@ -273,24 +271,6 @@ export default function TrialsTab() {
     }, 45);
   };
 
-  // Копирование в буфер
-  const copyVerdict = () => {
-    if (!outcome) return;
-    const text = [
-      `**⚔️ D&D Испытание: ${challengeName}**`,
-      `🎯 DC ${dc} | Модификатор: ${bonus >= 0 ? '+' : ''}${bonus}`,
-      `📊 Исход: ${outcome.crest} ${outcome.title} — ${outcome.subtitle}`,
-      `⏳ Время решения: ${outcome.timeFormatted} | Шум: ${outcome.noiseStatus}`,
-      `📜 **Вердикт Мастера:**`,
-      `> ${outcome.narrative}`
-    ].join('\n');
-
-    navigator.clipboard.writeText(text).then(() => {
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
-    });
-  };
-
   // Полноэкранный режим
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -304,6 +284,92 @@ export default function TrialsTab() {
 
   return (
     <div className="trials-container">
+      {/* ================= ВЕРХНЯЯ ПОЛОСА МИНИ-ИГР ================= */}
+      <div className="trials-nav-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {onOpenSidebar && (
+            <button 
+              type="button" 
+              className="sidebar-toggle-btn"
+              onClick={onOpenSidebar}
+              title="Открыть меню разделов"
+            >
+              <Menu size={20} />
+            </button>
+          )}
+
+          <div className="trials-tabs-group">
+            {Object.values(GAME_MODULES).map((g) => {
+              const Icon = g.icon;
+              const isActive = currentGame === g.id;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  className={`trials-tab-btn ${isActive ? 'active' : ''}`}
+                  onClick={() => setCurrentGame(g.id)}
+                >
+                  <Icon size={16} />
+                  <span>{g.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="trials-actions-group">
+          <button 
+            type="button" 
+            className={`trials-action-btn curtain-toggle ${isCurtainOpen ? 'active' : ''}`}
+            onClick={() => setIsCurtainOpen(!isCurtainOpen)}
+            title="Панель Мастера: DC, таймер, генератор"
+          >
+            <ShieldAlert size={16} />
+            <span>Панель Мастера</span>
+            {isCurtainOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+
+          <button 
+            type="button" 
+            className="trials-icon-btn" 
+            onClick={() => {
+              const muted = audio.toggleMute();
+              setIsMuted(muted);
+            }}
+            title={isMuted ? 'Включить звук' : 'Выключить звук'}
+          >
+            {isMuted ? <VolumeX size={17} /> : <Volume2 size={17} />}
+          </button>
+
+          <button 
+            type="button" 
+            className="trials-icon-btn" 
+            onClick={toggleFullscreen}
+            title="Полноэкранный режим"
+          >
+            {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
+          </button>
+
+          <button 
+            type="button" 
+            className="trials-icon-btn" 
+            onClick={() => setIsHelpOpen(true)}
+            title="Справка и правила"
+          >
+            <HelpCircle size={17} />
+          </button>
+
+          <button 
+            type="button" 
+            className="trials-icon-btn" 
+            onClick={resetGame}
+            title="Перезапустить испытание"
+          >
+            <RotateCcw size={17} />
+          </button>
+        </div>
+      </div>
+
       {/* ================= ШТОРКА МАСТЕРА ================= */}
       <div className={`trials-curtain ${isCurtainOpen ? 'open' : ''}`}>
         <div className="trials-curtain-grid">
@@ -493,79 +559,6 @@ export default function TrialsTab() {
         </div>
       </div>
 
-      {/* ================= ВЕРХНЯЯ ПОЛОСА МИНИ-ИГР ================= */}
-      <div className="trials-nav-bar">
-        <div className="trials-tabs-group">
-          {Object.values(GAME_MODULES).map((g) => {
-            const Icon = g.icon;
-            const isActive = currentGame === g.id;
-            return (
-              <button
-                key={g.id}
-                type="button"
-                className={`trials-tab-btn ${isActive ? 'active' : ''}`}
-                onClick={() => setCurrentGame(g.id)}
-              >
-                <Icon size={16} />
-                <span>{g.name}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="trials-actions-group">
-          <button 
-            type="button" 
-            className={`trials-action-btn curtain-toggle ${isCurtainOpen ? 'active' : ''}`}
-            onClick={() => setIsCurtainOpen(!isCurtainOpen)}
-            title="Панель Мастера: DC, таймер, генератор"
-          >
-            <ShieldAlert size={16} />
-            <span>Панель Мастера</span>
-            {isCurtainOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-
-          <button 
-            type="button" 
-            className="trials-icon-btn" 
-            onClick={() => {
-              const muted = audio.toggleMute();
-              setIsMuted(muted);
-            }}
-            title={isMuted ? 'Включить звук' : 'Выключить звук'}
-          >
-            {isMuted ? <VolumeX size={17} /> : <Volume2 size={17} />}
-          </button>
-
-          <button 
-            type="button" 
-            className="trials-icon-btn" 
-            onClick={toggleFullscreen}
-            title="Полноэкранный режим"
-          >
-            {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
-          </button>
-
-          <button 
-            type="button" 
-            className="trials-icon-btn" 
-            onClick={() => setIsHelpOpen(true)}
-            title="Справка и правила"
-          >
-            <HelpCircle size={17} />
-          </button>
-
-          <button 
-            type="button" 
-            className="trials-icon-btn" 
-            onClick={resetGame}
-            title="Перезапустить испытание"
-          >
-            <RotateCcw size={17} />
-          </button>
-        </div>
-      </div>
-
       {/* ================= СЕССИОННЫЙ HUD ================= */}
       <div className="trials-hud">
         <div className="hud-target-info">
@@ -628,10 +621,6 @@ export default function TrialsTab() {
                 <span className="detail-label">Затраченное время:</span>
                 <span className="detail-val">{outcome.timeFormatted}</span>
               </div>
-              <div className="detail-item narrative-item">
-                <span className="detail-label">Вердикт для Мастера:</span>
-                <p className="detail-narrative">{outcome.narrative}</p>
-              </div>
             </div>
 
             <div className="modal-actions-row">
@@ -645,14 +634,6 @@ export default function TrialsTab() {
                 }}
               >
                 <RotateCcw size={16} /> Повторить
-              </button>
-              <button 
-                type="button" 
-                className="trials-btn secondary"
-                onClick={copyVerdict}
-              >
-                {isCopied ? <Check size={16} /> : <Copy size={16} />}
-                <span>{isCopied ? 'Скопировано!' : 'Скопировать в чат'}</span>
               </button>
               <button 
                 type="button" 
