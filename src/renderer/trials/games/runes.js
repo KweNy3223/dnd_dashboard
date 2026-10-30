@@ -39,6 +39,43 @@ export const SPECTRA = {
 // Символы Старшей Футарки для аутентичной гравировки
 const RUNIC_ALPHABET = ['ᚠ', 'ᚢ', 'ᚦ', 'ᚨ', 'ᚱ', 'ᚲ', 'ᚷ', 'ᚹ', 'ᚺ', 'ᚾ', 'ᛁ', 'ᛃ', 'ᛇ', 'ᛈ', 'ᛉ', 'ᛋ', 'ᛏ', 'ᛒ', 'ᛖ', 'ᛗ', 'ᛚ', 'ᛜ', 'ᛞ', 'ᛟ'];
 
+// Вспомогательные функции для плавной геометрии кубических кривых Безье в каналах
+function getBezierPt(p0, cp1, cp2, p3, t) {
+  const mt = 1 - t;
+  const mt2 = mt * mt;
+  const t2 = t * t;
+  return {
+    x: mt2 * mt * p0.x + 3 * mt2 * t * cp1.x + 3 * mt * t2 * cp2.x + t2 * t * p3.x,
+    y: mt2 * mt * p0.y + 3 * mt2 * t * cp1.y + 3 * mt * t2 * cp2.y + t2 * t * p3.y
+  };
+}
+
+function getBezierTan(p0, cp1, cp2, p3, t) {
+  const mt = 1 - t;
+  return {
+    x: -3 * mt * mt * p0.x + (3 * mt * mt - 6 * mt * t) * cp1.x + (6 * mt * t - 3 * t * t) * cp2.x + 3 * t * t * p3.x,
+    y: -3 * mt * mt * p0.y + (3 * mt * mt - 6 * mt * t) * cp1.y + (6 * mt * t - 3 * t * t) * cp2.y + 3 * t * t * p3.y
+  };
+}
+
+function drawFlowChevron(ctx, x, y, angle, size = 4.5, color = 'rgba(251, 191, 36, 0.85)') {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(-size, -size * 0.75);
+  ctx.lineTo(0, 0);
+  ctx.lineTo(-size, size * 0.75);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.0;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 6;
+  ctx.stroke();
+  ctx.restore();
+}
+
 export class RunesGame {
   constructor(container, app) {
     this.container = container;
@@ -74,6 +111,7 @@ export class RunesGame {
     this.boundPointerDown = this.onPointerDown.bind(this);
     this.boundPointerMove = this.onPointerMove.bind(this);
     this.boundPointerUp = this.onPointerUp.bind(this);
+    this.boundWheel = this.onWheel.bind(this);
     this.boundKeyDown = this.onKeyDown.bind(this);
     this.boundResize = this.setupCanvas.bind(this);
   }
@@ -91,14 +129,14 @@ export class RunesGame {
       <div class="stage-container runes-stage">
         <div class="stage-header">
           <h2 class="stage-title">🔮 Магические руны: Арканная Цепь</h2>
-          <p class="stage-subtitle">Вращайте кольца, совмещая золотые желоба со светящимися лучами из центрального ядра, чтобы замкнуть алтари стихий.</p>
+          <p class="stage-subtitle">Вращайте кольца печати, совмещая золотые желоба со светящимися лучами из ядра, чтобы замкнуть стихийные алтари.</p>
         </div>
 
         <!-- Подсказка для понимания правил -->
         <div class="runes-hint-banner">
           <span class="hint-icon">💡</span>
           <span class="hint-text">
-            <strong>Как играть:</strong> Мана бьёт из центрального ядра. Совмещайте золотые желоба на кольцах с сияющими точками удара маны, чтобы провести ток к цветным алтарям стихий на внешнем круге.
+            <strong>Как играть:</strong> Мана бьёт из центрального ядра по 4 направлениям. Поворачивайте кольца, чтобы золотые стрелочки-шевроны провели ток к цветным стихийным алтарям на внешнем ободе. Колёсико мыши или стрелки вращают выбранное кольцо.
           </span>
         </div>
 
@@ -138,10 +176,10 @@ export class RunesGame {
             <div class="runes-elements-legend">
               <span class="legend-title">Магические фокусы в цепи:</span>
               <div class="legend-items-list">
-                <div class="legend-item"><span class="legend-icon">💎</span><span>Призма: меняет цвет маны под алтарь</span></div>
-                <div class="legend-item"><span class="legend-icon">🌀</span><span>Портал: телепортирует луч через кольца</span></div>
-                <div class="legend-item"><span class="legend-icon">☀️</span><span>Резонатор: заряжает луч маны</span></div>
-                <div class="legend-item"><span class="legend-icon">💀</span><span>Тёмный глиф: тупик, поглощает луч</span></div>
+                <div class="legend-item"><span class="legend-icon">💎</span><span>Призма: окрашивает луч под цвет алтаря</span></div>
+                <div class="legend-item"><span class="legend-icon">🌀</span><span>Портал (α): переносит луч на связанное кольцо</span></div>
+                <div class="legend-item"><span class="legend-icon">☀️</span><span>Резонатор: сверхзаряд для алтарей со знаком ☀️</span></div>
+                <div class="legend-item"><span class="legend-icon">⛔</span><span>Энтропия: поглотитель маны (тупиковый барьер)</span></div>
               </div>
             </div>
           </div>
@@ -154,11 +192,15 @@ export class RunesGame {
           </div>
           <div class="guide-pill">
             <span class="guide-key">A / D или ← / →</span>
-            <span>Поворот выбранного кольца</span>
+            <span>Поворот кольца</span>
+          </div>
+          <div class="guide-pill">
+            <span class="guide-key">Колёсико мыши</span>
+            <span>Быстрое вращение</span>
           </div>
           <div class="guide-pill">
             <span class="guide-key">ЛКМ / Свайп</span>
-            <span>Плавное вращение мышью</span>
+            <span>Вращение перетаскиванием</span>
           </div>
         </div>
       </div>
@@ -190,6 +232,7 @@ export class RunesGame {
 
   bindEvents() {
     this.canvas.addEventListener('pointerdown', this.boundPointerDown);
+    this.canvas.addEventListener('wheel', this.boundWheel, { passive: false });
     window.addEventListener('pointermove', this.boundPointerMove);
     window.addEventListener('pointerup', this.boundPointerUp);
     window.addEventListener('keydown', this.boundKeyDown);
@@ -201,9 +244,13 @@ export class RunesGame {
     if (this.btnRotateCW) {
       this.btnRotateCW.addEventListener('click', () => this.rotateSelectedRing(45));
     }
-    if (this.btnArcaneFocus) {
-      this.btnArcaneFocus.addEventListener('click', () => this.activateArcaneFocus());
-    }
+  }
+
+  onWheel(e) {
+    if (this.isSolved || this.isFailed) return;
+    e.preventDefault();
+    const dir = e.deltaY < 0 ? -45 : 45;
+    this.rotateSelectedRing(dir);
   }
 
   onKeyDown(e) {
@@ -244,6 +291,7 @@ export class RunesGame {
     }
     if (this.canvas) {
       this.canvas.removeEventListener('pointerdown', this.boundPointerDown);
+      this.canvas.removeEventListener('wheel', this.boundWheel);
     }
     window.removeEventListener('pointermove', this.boundPointerMove);
     window.removeEventListener('pointerup', this.boundPointerUp);
@@ -661,35 +709,25 @@ export class RunesGame {
     }
 
     if (node.type === NODE_TYPES.TURN_CW) {
-      // Дуговой поворот по часовой стрелке (+45°)
+      // Плавный поворот по часовой стрелке (+45°)
       const nextSector = (beam.currentSector + 1) % 8;
       const nextRad = (nextSector * 45 * Math.PI) / 180;
+      const dr = rOut - rIn;
+      const k = dr * 0.45;
 
-      // Отрезок входа до rMid
+      const x0 = center + Math.cos(currentRad) * rIn;
+      const y0 = center + Math.sin(currentRad) * rIn;
+      const cp1x = x0 + Math.cos(currentRad) * k;
+      const cp1y = y0 + Math.sin(currentRad) * k;
+
+      const x1 = center + Math.cos(nextRad) * rOut;
+      const y1 = center + Math.sin(nextRad) * rOut;
+      const cp2x = x1 - Math.cos(nextRad) * k;
+      const cp2y = y1 - Math.sin(nextRad) * k;
+
       beam.path.push({
-        type: 'line',
-        x1: center + Math.cos(currentRad) * rIn,
-        y1: center + Math.sin(currentRad) * rIn,
-        x2: center + Math.cos(currentRad) * rMid,
-        y2: center + Math.sin(currentRad) * rMid
-      });
-      // Дуга по rMid
-      beam.path.push({
-        type: 'arc',
-        cx: center,
-        cy: center,
-        r: rMid,
-        startA: currentRad,
-        endA: currentRad + (Math.PI / 4),
-        ccw: false
-      });
-      // Отрезок выхода от rMid до rOut
-      beam.path.push({
-        type: 'line',
-        x1: center + Math.cos(nextRad) * rMid,
-        y1: center + Math.sin(nextRad) * rMid,
-        x2: center + Math.cos(nextRad) * rOut,
-        y2: center + Math.sin(nextRad) * rOut
+        type: 'bezier',
+        x0, y0, cp1x, cp1y, cp2x, cp2y, x1, y1
       });
 
       beam.currentSector = nextSector;
@@ -699,32 +737,25 @@ export class RunesGame {
     }
 
     if (node.type === NODE_TYPES.TURN_CCW) {
-      // Дуговой поворот против часовой стрелки (-45°)
+      // Плавный поворот против часовой стрелки (-45°)
       const nextSector = (beam.currentSector - 1 + 8) % 8;
       const nextRad = (nextSector * 45 * Math.PI) / 180;
+      const dr = rOut - rIn;
+      const k = dr * 0.45;
+
+      const x0 = center + Math.cos(currentRad) * rIn;
+      const y0 = center + Math.sin(currentRad) * rIn;
+      const cp1x = x0 + Math.cos(currentRad) * k;
+      const cp1y = y0 + Math.sin(currentRad) * k;
+
+      const x1 = center + Math.cos(nextRad) * rOut;
+      const y1 = center + Math.sin(nextRad) * rOut;
+      const cp2x = x1 - Math.cos(nextRad) * k;
+      const cp2y = y1 - Math.sin(nextRad) * k;
 
       beam.path.push({
-        type: 'line',
-        x1: center + Math.cos(currentRad) * rIn,
-        y1: center + Math.sin(currentRad) * rIn,
-        x2: center + Math.cos(currentRad) * rMid,
-        y2: center + Math.sin(currentRad) * rMid
-      });
-      beam.path.push({
-        type: 'arc',
-        cx: center,
-        cy: center,
-        r: rMid,
-        startA: currentRad,
-        endA: currentRad - (Math.PI / 4),
-        ccw: true
-      });
-      beam.path.push({
-        type: 'line',
-        x1: center + Math.cos(nextRad) * rMid,
-        y1: center + Math.sin(nextRad) * rMid,
-        x2: center + Math.cos(nextRad) * rOut,
-        y2: center + Math.sin(nextRad) * rOut
+        type: 'bezier',
+        x0, y0, cp1x, cp1y, cp2x, cp2y, x1, y1
       });
 
       beam.currentSector = nextSector;
@@ -734,7 +765,38 @@ export class RunesGame {
     }
 
     if (node.type === NODE_TYPES.FORK) {
-      // Развилка: один луч идет прямо, копия луча поворачивает
+      // Развилка: один луч идет прямо, копия плавно ветвится вправо
+      const branchSector = (beam.currentSector + 1) % 8;
+      const branchRad = (branchSector * 45 * Math.PI) / 180;
+      const dr = rOut - rIn;
+      const k = dr * 0.45;
+
+      const x0 = center + Math.cos(currentRad) * rIn;
+      const y0 = center + Math.sin(currentRad) * rIn;
+      const cp1x = x0 + Math.cos(currentRad) * k;
+      const cp1y = y0 + Math.sin(currentRad) * k;
+
+      const x1 = center + Math.cos(branchRad) * rOut;
+      const y1 = center + Math.sin(branchRad) * rOut;
+      const cp2x = x1 - Math.cos(branchRad) * k;
+      const cp2y = y1 - Math.sin(branchRad) * k;
+
+      const branchBeam = {
+        spectrum: beam.spectrum,
+        isOvercharged: beam.isOvercharged,
+        currentSector: branchSector,
+        ringIdx: beam.ringIdx + 1,
+        path: [
+          ...beam.path,
+          {
+            type: 'bezier',
+            x0, y0, cp1x, cp1y, cp2x, cp2y, x1, y1
+          }
+        ]
+      };
+      this.propagateBeam(branchBeam, center);
+
+      // Прямой ствол
       beam.path.push({
         type: 'line',
         x1: center + Math.cos(currentRad) * rIn,
@@ -743,42 +805,13 @@ export class RunesGame {
         y2: center + Math.sin(currentRad) * rOut
       });
 
-      // Ответвление
-      const branchSector = (beam.currentSector + 1) % 8;
-      const branchRad = (branchSector * 45 * Math.PI) / 180;
-      const branchBeam = {
-        spectrum: beam.spectrum,
-        isOvercharged: beam.isOvercharged,
-        currentSector: branchSector,
-        ringIdx: beam.ringIdx + 1,
-        path: [...beam.path]
-      };
-      branchBeam.path.push({
-        type: 'arc',
-        cx: center,
-        cy: center,
-        r: rMid,
-        startA: currentRad,
-        endA: currentRad + (Math.PI / 4),
-        ccw: false
-      });
-      branchBeam.path.push({
-        type: 'line',
-        x1: center + Math.cos(branchRad) * rMid,
-        y1: center + Math.sin(branchRad) * rMid,
-        x2: center + Math.cos(branchRad) * rOut,
-        y2: center + Math.sin(branchRad) * rOut
-      });
-
-      this.propagateBeam(branchBeam, center);
-
       beam.ringIdx++;
       this.propagateBeam(beam, center);
       return;
     }
 
     if (node.type === NODE_TYPES.PORTAL) {
-      // Портал: прыжок в связанный сектор
+      // Портал: мгновенный эфирный прыжок луча в связанный сектор
       const targetRingIdx = node.targetRing;
       const targetSectorLocal = node.targetSector;
       if (targetRingIdx !== undefined && this.rings[targetRingIdx]) {
@@ -786,22 +819,36 @@ export class RunesGame {
         const destWorldSector = (targetSectorLocal + Math.round(destRing.currentAngle / 45)) % 8;
         const destRad = (destWorldSector * 45 * Math.PI) / 180;
 
+        const srcX = center + Math.cos(currentRad) * rMid;
+        const srcY = center + Math.sin(currentRad) * rMid;
+        const dstX = center + Math.cos(destRad) * destRing.midR;
+        const dstY = center + Math.sin(destRad) * destRing.midR;
+
         // Вход в портал
         beam.path.push({
           type: 'line',
           x1: center + Math.cos(currentRad) * rIn,
           y1: center + Math.sin(currentRad) * rIn,
-          x2: center + Math.cos(currentRad) * rMid,
-          y2: center + Math.sin(currentRad) * rMid
+          x2: srcX,
+          y2: srcY
         });
 
-        // Выход из портала на целевом кольце
+        // Мост сквозь подпространство между порталами
+        beam.path.push({
+          type: 'line',
+          x1: srcX,
+          y1: srcY,
+          x2: dstX,
+          y2: dstY
+        });
+
+        // Выход из целевого портала
         beam.ringIdx = targetRingIdx + 1;
         beam.currentSector = destWorldSector;
         beam.path.push({
           type: 'line',
-          x1: center + Math.cos(destRad) * destRing.midR,
-          y1: center + Math.sin(destRad) * destRing.midR,
+          x1: dstX,
+          y1: dstY,
           x2: center + Math.cos(destRad) * destRing.outerR,
           y2: center + Math.sin(destRad) * destRing.outerR
         });
@@ -930,13 +977,15 @@ export class RunesGame {
   onPointerDown(e) {
     if (this.isSolved || this.isFailed) return;
     const rect = this.canvas.getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    const x = e.clientX - rect.left - cx;
-    const y = e.clientY - rect.top - cy;
+    const cx = this.logicalSize / 2;
+    const cy = this.logicalSize / 2;
+    const scaleX = this.logicalSize / rect.width;
+    const scaleY = this.logicalSize / rect.height;
+    const x = (e.clientX - rect.left) * scaleX - cx;
+    const y = (e.clientY - rect.top) * scaleY - cy;
     const dist = Math.hypot(x, y);
 
-    const foundRing = this.rings.find(r => dist >= r.innerR && dist <= r.outerR);
+    const foundRing = this.rings.find(r => dist >= r.innerR - 6 && dist <= r.outerR + 6);
     if (foundRing) {
       this.draggedRing = foundRing;
       this.selectedRingIndex = foundRing.index;
@@ -951,36 +1000,43 @@ export class RunesGame {
   onPointerMove(e) {
     if (!this.draggedRing || this.isSolved || this.isFailed) return;
     const rect = this.canvas.getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    const x = e.clientX - rect.left - cx;
-    const y = e.clientY - rect.top - cy;
+    const cx = this.logicalSize / 2;
+    const cy = this.logicalSize / 2;
+    const scaleX = this.logicalSize / rect.width;
+    const scaleY = this.logicalSize / rect.height;
+    const x = (e.clientX - rect.left) * scaleX - cx;
+    const y = (e.clientY - rect.top) * scaleY - cy;
 
     const currentAngle = Math.atan2(y, x) * (180 / Math.PI);
     const delta = currentAngle - this.dragStartAngle;
 
     this.draggedRing.angle = (this.ringInitialAngle + delta + 720) % 360;
+
+    // Живой расчет дискретного угла при вращении
+    const discrete = (Math.round(this.draggedRing.angle / 45) * 45 + 720) % 360;
+    if (discrete !== this.draggedRing.currentAngle) {
+      const prevDiscrete = this.draggedRing.currentAngle;
+      this.draggedRing.currentAngle = discrete;
+
+      if (this.draggedRing.coupledRing !== null && this.rings[this.draggedRing.coupledRing]) {
+        const coupled = this.rings[this.draggedRing.coupledRing];
+        const stepDelta = (discrete - prevDiscrete + 720) % 360;
+        const normalizedStep = stepDelta > 180 ? stepDelta - 360 : stepDelta;
+        coupled.angle = (coupled.angle + normalizedStep * this.draggedRing.coupledRatio + 720) % 360;
+        coupled.currentAngle = Math.round(coupled.angle / 45) * 45;
+      }
+
+      audio.playTumblerClick(1.0);
+      this.traceManaBeams();
+    }
   }
 
   onPointerUp() {
     if (!this.draggedRing) return;
-    // Привязка к 45 градусам
+    // Привязка к ближайшим 45 градусам
     const snapped = Math.round(this.draggedRing.angle / 45) * 45;
-    const prevDiscrete = this.draggedRing.currentAngle;
-    this.draggedRing.angle = (snapped + 360) % 360;
+    this.draggedRing.angle = (snapped + 720) % 360;
     this.draggedRing.currentAngle = this.draggedRing.angle;
-
-    const delta = (this.draggedRing.currentAngle - prevDiscrete + 360) % 360;
-    if (delta !== 0) {
-      // Применяем сцепку, если была
-      if (this.draggedRing.coupledRing !== null && this.rings[this.draggedRing.coupledRing]) {
-        const coupled = this.rings[this.draggedRing.coupledRing];
-        const coupledDelta = (delta > 180 ? delta - 360 : delta) * this.draggedRing.coupledRatio;
-        coupled.angle = (coupled.angle + coupledDelta + 720) % 360;
-        coupled.currentAngle = Math.round(coupled.angle / 45) * 45;
-      }
-      audio.playRuneHum(300 + this.draggedRing.index * 120, 0.2);
-    }
 
     this.draggedRing = null;
     this.traceManaBeams();
@@ -1046,6 +1102,9 @@ export class RunesGame {
     // 1. Древняя обсидиановая каменная плита
     this.drawBackground(ctx, cx, cy, size);
 
+    // 1.1. Эфирные нити связи между фазовыми порталами
+    this.drawPortalLinks(ctx, cx, cy);
+
     // 2. Кольца, каналы и магические элементы
     this.rings.forEach(ring => this.drawRing(ctx, cx, cy, ring));
 
@@ -1058,7 +1117,7 @@ export class RunesGame {
     // 4. Пульсирующее арканное ядро
     this.drawCentralCore(ctx, cx, cy);
 
-    // 5. Стихийные алтари по краям
+    // 5. Стихийные алтари по краям с направляющими рельсами
     this.drawAnchors(ctx, cx, cy);
 
     // 6. Магические искры
@@ -1068,30 +1127,60 @@ export class RunesGame {
   }
 
   drawBackground(ctx, cx, cy, size) {
-    const bgGrad = ctx.createRadialGradient(cx, cy, 25, cx, cy, size / 2);
-    bgGrad.addColorStop(0, '#10131f');
-    bgGrad.addColorStop(0.65, '#090a12');
-    bgGrad.addColorStop(1, '#030408');
+    const bgGrad = ctx.createRadialGradient(cx, cy, 30, cx, cy, size / 2);
+    bgGrad.addColorStop(0, '#0d111e');
+    bgGrad.addColorStop(0.6, '#080a13');
+    bgGrad.addColorStop(1, '#020306');
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, size, size);
 
-    // Золотисто-аметистовые астрологические круги
-    ctx.strokeStyle = 'rgba(192, 132, 252, 0.12)';
-    ctx.lineWidth = 1;
-    for (let r = 75; r < size / 2 - 25; r += 40) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.stroke();
-    }
+    // Внешний декоративный арканный обод
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 0.44, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.12)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
 
-    // Тонкие перекрестные направляющие
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
-    for (let a = 0; a < 360; a += 45) {
-      const rad = (a * Math.PI) / 180;
+    // Тонкие кардинальные засечки 0°, 90°, 180°, 270°
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.15)';
+    ctx.lineWidth = 1;
+    [0, 90, 180, 270].forEach(deg => {
+      const rad = (deg * Math.PI) / 180;
       ctx.beginPath();
-      ctx.moveTo(cx, cy);
+      ctx.moveTo(cx + Math.cos(rad) * 38, cy + Math.sin(rad) * 38);
       ctx.lineTo(cx + Math.cos(rad) * (size * 0.44), cy + Math.sin(rad) * (size * 0.44));
       ctx.stroke();
+    });
+  }
+
+  drawPortalLinks(ctx, cx, cy) {
+    const portals = [];
+    this.rings.forEach(ring => {
+      ring.sectors.forEach((sec, s) => {
+        if (sec.type === NODE_TYPES.PORTAL) {
+          const worldAngle = ((s * 45 + ring.angle) * Math.PI) / 180;
+          portals.push({
+            ring,
+            x: cx + Math.cos(worldAngle) * ring.midR,
+            y: cy + Math.sin(worldAngle) * ring.midR
+          });
+        }
+      });
+    });
+
+    if (portals.length >= 2) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(portals[0].x, portals[0].y);
+      ctx.quadraticCurveTo(cx, cy, portals[1].x, portals[1].y);
+      ctx.strokeStyle = 'rgba(129, 140, 248, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 6]);
+      ctx.lineDashOffset = -this.manaFlowTime * 18;
+      ctx.shadowColor = '#818cf8';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
@@ -1099,109 +1188,177 @@ export class RunesGame {
     ctx.save();
     const isSelected = (ring.index === this.selectedRingIndex);
 
-    // Тело кольца
+    // 1. Тело кольца печати (глубокий обсидиан)
     ctx.beginPath();
     ctx.arc(cx, cy, ring.outerR, 0, Math.PI * 2);
     ctx.arc(cx, cy, ring.innerR, 0, Math.PI * 2, true);
-    ctx.fillStyle = isSelected ? 'rgba(38, 44, 68, 0.65)' : 'rgba(20, 24, 38, 0.55)';
+    ctx.fillStyle = isSelected ? 'rgba(30, 41, 59, 0.78)' : 'rgba(15, 23, 42, 0.68)';
     ctx.fill();
 
-    // Обод
-    ctx.strokeStyle = isSelected ? '#d4af37' : 'rgba(212, 175, 55, 0.25)';
-    ctx.lineWidth = isSelected ? 2 : 1;
+    // 2. Металлические ободья кольца
+    ctx.beginPath();
+    ctx.arc(cx, cy, ring.outerR, 0, Math.PI * 2);
+    ctx.arc(cx, cy, ring.innerR, 0, Math.PI * 2);
+    ctx.strokeStyle = isSelected ? '#f59e0b' : 'rgba(212, 175, 55, 0.38)';
+    ctx.lineWidth = isSelected ? 2.5 : 1.2;
+    if (isSelected) {
+      ctx.shadowColor = '#f59e0b';
+      ctx.shadowBlur = 10;
+    }
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    // Вращаем контекст под угол кольца для отрисовки элементов и рун
+    // Вращаем холст под текущий угол поворота кольца
     ctx.translate(cx, cy);
     ctx.rotate((ring.angle * Math.PI) / 180);
 
-    // 1. Руны футарки на фоне
-    ctx.font = '12px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = isSelected ? 'rgba(255, 214, 102, 0.65)' : 'rgba(200, 210, 230, 0.25)';
-
+    // 3. Аккуратные механические засечки 8 секторов (0°, 45°, 90°...)
     for (let s = 0; s < 8; s++) {
-      const segAngle = (s * 45 * Math.PI) / 180;
-      const rx = Math.cos(segAngle) * ring.midR;
-      const ry = Math.sin(segAngle) * ring.midR;
-      ctx.fillText(ring.runes[s], rx, ry);
+      const notchRad = (s * 45 * Math.PI) / 180;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(notchRad) * (ring.innerR - 1), Math.sin(notchRad) * (ring.innerR - 1));
+      ctx.lineTo(Math.cos(notchRad) * (ring.innerR + 5), Math.sin(notchRad) * (ring.innerR + 5));
+      ctx.moveTo(Math.cos(notchRad) * (ring.outerR - 5), Math.sin(notchRad) * (ring.outerR - 5));
+      ctx.lineTo(Math.cos(notchRad) * (ring.outerR + 1), Math.sin(notchRad) * (ring.outerR + 1));
+      ctx.strokeStyle = isSelected ? 'rgba(251, 191, 36, 0.6)' : 'rgba(148, 163, 184, 0.35)';
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
     }
 
-    // 2. Отрисовка желобов каналов и магических элементов
+    // 4. Отрисовка желобов каналов и магических элементов
     ring.sectors.forEach((node, s) => {
-      this.drawNodeElement(ctx, ring, node, s);
+      this.drawNodeElement(ctx, ring, node, s, isSelected);
     });
 
     ctx.restore();
   }
 
-  drawNodeElement(ctx, ring, node, s) {
+  drawNodeElement(ctx, ring, node, s, isSelected) {
+    if (node.type === NODE_TYPES.EMPTY) return;
+
     const rad = (s * 45 * Math.PI) / 180;
     const rIn = ring.innerR;
     const rOut = ring.outerR;
     const rMid = ring.midR;
+    const dr = rOut - rIn;
+    const k = dr * 0.45;
 
-    if (node.type === NODE_TYPES.EMPTY) return;
+    // Геометрия Безье для поворотов
+    let p0, cp1, cp2, p3;
+    if (node.type === NODE_TYPES.TURN_CW) {
+      const nextRad = ((s + 1) * 45 * Math.PI) / 180;
+      p0 = { x: Math.cos(rad) * rIn, y: Math.sin(rad) * rIn };
+      cp1 = { x: p0.x + Math.cos(rad) * k, y: p0.y + Math.sin(rad) * k };
+      p3 = { x: Math.cos(nextRad) * rOut, y: Math.sin(nextRad) * rOut };
+      cp2 = { x: p3.x - Math.cos(nextRad) * k, y: p3.y - Math.sin(nextRad) * k };
+    } else if (node.type === NODE_TYPES.TURN_CCW) {
+      const nextRad = ((s - 1) * 45 * Math.PI) / 180;
+      p0 = { x: Math.cos(rad) * rIn, y: Math.sin(rad) * rIn };
+      cp1 = { x: p0.x + Math.cos(rad) * k, y: p0.y + Math.sin(rad) * k };
+      p3 = { x: Math.cos(nextRad) * rOut, y: Math.sin(nextRad) * rOut };
+      cp2 = { x: p3.x - Math.cos(nextRad) * k, y: p3.y - Math.sin(nextRad) * k };
+    } else if (node.type === NODE_TYPES.FORK) {
+      const nextRad = ((s + 1) * 45 * Math.PI) / 180;
+      p0 = { x: Math.cos(rad) * rIn, y: Math.sin(rad) * rIn };
+      cp1 = { x: p0.x + Math.cos(rad) * k, y: p0.y + Math.sin(rad) * k };
+      p3 = { x: Math.cos(nextRad) * rOut, y: Math.sin(nextRad) * rOut };
+      cp2 = { x: p3.x - Math.cos(nextRad) * k, y: p3.y - Math.sin(nextRad) * k };
+    }
 
-    // Вспомогательная функция для отрисовки пути желоба (подложка + бортики)
-    const renderGroovePath = () => {
+    const renderPath = () => {
       ctx.beginPath();
-      if (node.type === NODE_TYPES.STRAIGHT || node.type === NODE_TYPES.PRISM || node.type === NODE_TYPES.RESONATOR) {
+      if (node.type === NODE_TYPES.STRAIGHT || node.type === NODE_TYPES.PRISM || node.type === NODE_TYPES.RESONATOR || node.type === NODE_TYPES.ENTROPY) {
         ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
         ctx.lineTo(Math.cos(rad) * rOut, Math.sin(rad) * rOut);
-      } else if (node.type === NODE_TYPES.TURN_CW) {
-        const nextRad = ((s + 1) * 45 * Math.PI) / 180;
-        ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
-        ctx.lineTo(Math.cos(rad) * rMid, Math.sin(rad) * rMid);
-        ctx.arc(0, 0, rMid, rad, rad + (Math.PI / 4), false);
-        ctx.lineTo(Math.cos(nextRad) * rOut, Math.sin(nextRad) * rOut);
-      } else if (node.type === NODE_TYPES.TURN_CCW) {
-        const nextRad = ((s - 1) * 45 * Math.PI) / 180;
-        ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
-        ctx.lineTo(Math.cos(rad) * rMid, Math.sin(rad) * rMid);
-        ctx.arc(0, 0, rMid, rad, rad - (Math.PI / 4), true);
-        ctx.lineTo(Math.cos(nextRad) * rOut, Math.sin(nextRad) * rOut);
+      } else if (node.type === NODE_TYPES.TURN_CW || node.type === NODE_TYPES.TURN_CCW) {
+        ctx.moveTo(p0.x, p0.y);
+        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p3.x, p3.y);
       } else if (node.type === NODE_TYPES.FORK) {
-        const nextRad = ((s + 1) * 45 * Math.PI) / 180;
+        // Прямой ствол
         ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
         ctx.lineTo(Math.cos(rad) * rOut, Math.sin(rad) * rOut);
-        ctx.moveTo(Math.cos(rad) * rMid, Math.sin(rad) * rMid);
-        ctx.arc(0, 0, rMid, rad, rad + (Math.PI / 4), false);
-        ctx.lineTo(Math.cos(nextRad) * rOut, Math.sin(nextRad) * rOut);
+        // Ветвление вправо
+        ctx.moveTo(p0.x, p0.y);
+        ctx.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, p3.x, p3.y);
       }
     };
 
-    // Вспомогательная функция для контактного узла (порта) на ободе
-    const drawPort = (radius, angle) => {
-      const px = Math.cos(angle) * radius;
-      const py = Math.sin(angle) * radius;
-      ctx.beginPath();
-      ctx.arc(px, py, 3.2, 0, Math.PI * 2);
-      ctx.fillStyle = '#d4af37';
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(px, py, 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-    };
+    // --- СЛОИ ЖЕЛОБА-ПРОВОДНИКА ---
+    // 1. Внешняя глубокая тёмная постель желоба
+    renderPath();
+    ctx.strokeStyle = 'rgba(7, 9, 15, 0.95)';
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+    ctx.stroke();
 
-    // 1. Глубокая темная канавка желоба
-    renderGroovePath();
-    ctx.strokeStyle = 'rgba(10, 12, 18, 0.95)';
+    // 2. Металлические латунные бортики
+    renderPath();
+    ctx.strokeStyle = isSelected ? 'rgba(245, 158, 11, 0.85)' : 'rgba(212, 175, 55, 0.65)';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // 3. Внутренняя полость канала
+    renderPath();
+    ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // 2. Золотистые металлические бортики
-    renderGroovePath();
-    ctx.strokeStyle = 'rgba(212, 175, 55, 0.65)';
+    // 4. Светящаяся кристаллическая трубка (хорошо заметна даже без запитки маной!)
+    renderPath();
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // 3. Золотые контактные порты на краях кольца
-    if (node.type === NODE_TYPES.STRAIGHT || node.type === NODE_TYPES.PRISM || node.type === NODE_TYPES.RESONATOR) {
+    // --- ШЕВРОНЫ НАПРАВЛЕНИЯ ПОТОКА (УКАЗЫВАЮТ КУДА ТЕЧЕТ ТОК) ---
+    const chevronColor = isSelected ? 'rgba(251, 191, 36, 0.9)' : 'rgba(212, 175, 55, 0.75)';
+
+    if (node.type === NODE_TYPES.STRAIGHT) {
+      const r1 = rIn + dr * 0.35;
+      const r2 = rIn + dr * 0.7;
+      drawFlowChevron(ctx, Math.cos(rad) * r1, Math.sin(rad) * r1, rad, 4.2, chevronColor);
+      drawFlowChevron(ctx, Math.cos(rad) * r2, Math.sin(rad) * r2, rad, 4.2, chevronColor);
+    } else if (node.type === NODE_TYPES.TURN_CW || node.type === NODE_TYPES.TURN_CCW) {
+      [0.35, 0.7].forEach(t => {
+        const pt = getBezierPt(p0, cp1, cp2, p3, t);
+        const tan = getBezierTan(p0, cp1, cp2, p3, t);
+        const ang = Math.atan2(tan.y, tan.x);
+        drawFlowChevron(ctx, pt.x, pt.y, ang, 4.2, chevronColor);
+      });
+    } else if (node.type === NODE_TYPES.FORK) {
+      // Прямой ствол
+      const r1 = rIn + dr * 0.4;
+      const r2 = rIn + dr * 0.75;
+      drawFlowChevron(ctx, Math.cos(rad) * r1, Math.sin(rad) * r1, rad, 3.8, chevronColor);
+      drawFlowChevron(ctx, Math.cos(rad) * r2, Math.sin(rad) * r2, rad, 3.8, chevronColor);
+      // Ветвь
+      const pt = getBezierPt(p0, cp1, cp2, p3, 0.65);
+      const tan = getBezierTan(p0, cp1, cp2, p3, 0.65);
+      drawFlowChevron(ctx, pt.x, pt.y, Math.atan2(tan.y, tan.x), 3.8, chevronColor);
+    }
+
+    // --- КОНТАКТНЫЕ ПОРТЫ НА ОБОДЬЯХ КОЛЬЦА ---
+    const drawPort = (radius, angle) => {
+      const px = Math.cos(angle) * radius;
+      const py = Math.sin(angle) * radius;
+
+      ctx.beginPath();
+      ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = isSelected ? '#fbbf24' : '#d4af37';
+      ctx.lineWidth = 1.6;
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = '#fde047';
+      ctx.fill();
+    };
+
+    if (node.type === NODE_TYPES.STRAIGHT || node.type === NODE_TYPES.PRISM || node.type === NODE_TYPES.RESONATOR || node.type === NODE_TYPES.ENTROPY) {
       drawPort(rIn, rad);
       drawPort(rOut, rad);
     } else if (node.type === NODE_TYPES.TURN_CW) {
@@ -1216,7 +1373,7 @@ export class RunesGame {
       drawPort(rOut, ((s + 1) * 45 * Math.PI) / 180);
     }
 
-    // 4. Отрисовка магических вставок
+    // --- ОТРИСОВКА МАГИЧЕСКИХ ВСТАВОК (ПРИЗМЫ, РЕЗОНАТОРЫ, ПОРТАЛЫ, ЭНТРОПИЯ) ---
     if (node.type === NODE_TYPES.PRISM) {
       const px = Math.cos(rad) * rMid;
       const py = Math.sin(rad) * rMid;
@@ -1225,67 +1382,148 @@ export class RunesGame {
       ctx.save();
       ctx.translate(px, py);
       ctx.rotate(rad);
-      ctx.fillStyle = spec.color;
-      ctx.shadowColor = spec.color;
-      ctx.shadowBlur = 10;
+
+      // Латунная оправа кристалла
       ctx.beginPath();
-      ctx.moveTo(0, -7);
-      ctx.lineTo(7, 0);
-      ctx.lineTo(0, 7);
-      ctx.lineTo(-7, 0);
-      ctx.closePath();
+      ctx.arc(0, 0, 11, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 1.8;
       ctx.fill();
+      ctx.stroke();
+
+      // Ограненный кристалл (ромб)
+      ctx.beginPath();
+      ctx.moveTo(0, -9);
+      ctx.lineTo(9, 0);
+      ctx.lineTo(0, 9);
+      ctx.lineTo(-9, 0);
+      ctx.closePath();
+
+      const gemGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 9);
+      gemGrad.addColorStop(0, '#ffffff');
+      gemGrad.addColorStop(0.4, spec.color);
+      gemGrad.addColorStop(1, '#0f172a');
+      ctx.fillStyle = gemGrad;
+      ctx.shadowColor = spec.color;
+      ctx.shadowBlur = 14;
+      ctx.fill();
+
+      // Грани кристалла
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Иконка стихии
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(spec.icon, 0, 0);
+
       ctx.restore();
     } else if (node.type === NODE_TYPES.RESONATOR) {
       const rx = Math.cos(rad) * rMid;
       const ry = Math.sin(rad) * rMid;
+
       ctx.save();
+      ctx.translate(rx, ry);
+
+      // Солнечные лучи
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 1.5;
+      for (let a = 0; a < 8; a++) {
+        const ar = (a * 45 * Math.PI) / 180;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ar) * 8, Math.sin(ar) * 8);
+        ctx.lineTo(Math.cos(ar) * 12, Math.sin(ar) * 12);
+        ctx.stroke();
+      }
+
+      // Золотой солярный диск
       ctx.beginPath();
-      ctx.arc(rx, ry, 6, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffd666';
-      ctx.shadowColor = '#ffd666';
-      ctx.shadowBlur = 12;
+      ctx.arc(0, 0, 8, 0, Math.PI * 2);
+      const resGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 8);
+      resGrad.addColorStop(0, '#ffffff');
+      resGrad.addColorStop(0.5, '#fde047');
+      resGrad.addColorStop(1, '#d97706');
+      ctx.fillStyle = resGrad;
+      ctx.shadowColor = '#fde047';
+      ctx.shadowBlur = 14;
       ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      ctx.font = '9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('☀️', 0, 0);
+
       ctx.restore();
     } else if (node.type === NODE_TYPES.ENTROPY) {
       const ex = Math.cos(rad) * rMid;
       const ey = Math.sin(rad) * rMid;
+
       ctx.save();
+      ctx.translate(ex, ey);
+
+      // Тёмная октагональная печать поглощения
       ctx.beginPath();
-      ctx.arc(ex, ey, 8, 0, Math.PI * 2);
-      ctx.fillStyle = '#3b0764';
+      ctx.arc(0, 0, 9.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e0524';
       ctx.strokeStyle = '#c026d3';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1.8;
       ctx.shadowColor = '#c026d3';
       ctx.shadowBlur = 12;
       ctx.fill();
       ctx.stroke();
 
-      ctx.fillStyle = '#fdf4ff';
-      ctx.font = '11px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('💀', ex, ey);
+      // Знак блокировки / тупика
+      ctx.strokeStyle = '#f43f5e';
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-4, -4);
+      ctx.lineTo(4, 4);
+      ctx.moveTo(4, -4);
+      ctx.lineTo(-4, 4);
+      ctx.stroke();
+
       ctx.restore();
     } else if (node.type === NODE_TYPES.PORTAL) {
       const pox = Math.cos(rad) * rMid;
       const poy = Math.sin(rad) * rMid;
+
       ctx.save();
+      ctx.translate(pox, poy);
+
+      // Вращающийся вихрь портала
+      const rotA = this.manaFlowTime * 2.5;
+      ctx.rotate(rotA);
+
       ctx.beginPath();
-      ctx.arc(pox, poy, 7, 0, Math.PI * 2);
-      ctx.fillStyle = '#1e1b4b';
+      ctx.arc(0, 0, 10, 0, Math.PI * 2);
+      ctx.fillStyle = '#090514';
       ctx.strokeStyle = '#818cf8';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 2;
       ctx.shadowColor = '#818cf8';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 14;
       ctx.fill();
       ctx.stroke();
 
+      ctx.beginPath();
+      ctx.arc(0, 0, 6, 0, Math.PI);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.rotate(-rotA);
       ctx.fillStyle = '#ffffff';
-      ctx.font = '10px sans-serif';
+      ctx.font = 'bold 9px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('🌀', pox, poy);
+      ctx.fillText('α', 0, 0);
+
       ctx.restore();
     }
   }
@@ -1298,21 +1536,29 @@ export class RunesGame {
     this.impactPoints.forEach(pt => {
       ctx.save();
 
-      // Пульсирующий внешний ореол
+      // 1. Пульсирующий внешний ореол точки рассеивания маны
       ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 7 + pulse, 0, Math.PI * 2);
+      ctx.arc(pt.x, pt.y, 8 + pulse, 0, Math.PI * 2);
       ctx.fillStyle = pt.color;
       ctx.shadowColor = pt.color;
-      ctx.shadowBlur = 14;
-      ctx.globalAlpha = 0.55;
+      ctx.shadowBlur = 16;
+      ctx.globalAlpha = 0.6;
       ctx.fill();
 
-      // Яркий концентрический ободок
+      // 2. Яркое горячее белое ядро удара
       ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+      ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
-      ctx.globalAlpha = 0.95;
+      ctx.globalAlpha = 1.0;
       ctx.fill();
+
+      // 3. Расходящиеся искры
+      const sparkAng = pt.angle + Math.PI;
+      ctx.strokeStyle = pt.color;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 6 + pulse * 0.5, sparkAng - 0.7, sparkAng + 0.7);
+      ctx.stroke();
 
       ctx.restore();
     });
@@ -1332,6 +1578,9 @@ export class RunesGame {
         if (seg.type === 'line') {
           ctx.moveTo(seg.x1, seg.y1);
           ctx.lineTo(seg.x2, seg.y2);
+        } else if (seg.type === 'bezier') {
+          ctx.moveTo(seg.x0, seg.y0);
+          ctx.bezierCurveTo(seg.cp1x, seg.cp1y, seg.cp2x, seg.cp2y, seg.x1, seg.y1);
         } else if (seg.type === 'arc') {
           ctx.arc(seg.cx, seg.cy, seg.r, seg.startA, seg.endA, seg.ccw);
         }
@@ -1340,20 +1589,20 @@ export class RunesGame {
         ctx.strokeStyle = beamColor;
         ctx.shadowColor = beamColor;
         ctx.shadowBlur = beam.isOvercharged ? 20 : 12;
-        ctx.lineWidth = beam.isOvercharged ? 6.5 : 4.5;
+        ctx.lineWidth = beam.isOvercharged ? 7 : 5;
         ctx.lineCap = 'round';
         ctx.stroke();
 
         // 2. Белое горячее ядро луча
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = beam.isOvercharged ? 2.5 : 1.5;
+        ctx.lineWidth = beam.isOvercharged ? 3 : 2;
         ctx.stroke();
 
         // 3. Бегущие искры тока маны
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([6, 12]);
-        ctx.lineDashOffset = -this.manaFlowTime * 35;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([8, 14]);
+        ctx.lineDashOffset = -this.manaFlowTime * 40;
         ctx.stroke();
 
         ctx.restore();
@@ -1366,42 +1615,56 @@ export class RunesGame {
     const pulse = Math.sin(this.manaFlowTime * 2.5) * 3.5;
     const r = 26 + pulse;
 
-    // 4 Выходных сопла эмиттеров маны
+    // 4 Направленных фокусирующих сопла эмиттеров маны
     [0, 90, 180, 270].forEach(deg => {
       const rad = (deg * Math.PI) / 180;
       const ex = cx + Math.cos(rad) * (r + 4);
       const ey = cy + Math.sin(rad) * (r + 4);
+
+      // Оправа сопла
       ctx.beginPath();
-      ctx.arc(ex, ey, 4.5, 0, Math.PI * 2);
+      ctx.arc(ex, ey, 5.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 1.6;
+      ctx.fill();
+      ctx.stroke();
+
+      // Светящаяся линза эмиттера
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2.5, 0, Math.PI * 2);
       ctx.fillStyle = '#38bdf8';
       ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 8;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(ex, ey, 2, 0, Math.PI * 2);
-      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 10;
       ctx.fill();
     });
 
     ctx.shadowColor = '#8b5cf6';
-    ctx.shadowBlur = 22;
+    ctx.shadowBlur = 24;
 
     const coreGrad = ctx.createRadialGradient(cx, cy, 3, cx, cy, r);
     coreGrad.addColorStop(0, '#ffffff');
     coreGrad.addColorStop(0.3, '#38bdf8');
     coreGrad.addColorStop(0.7, '#8b5cf6');
-    coreGrad.addColorStop(1, '#2e1065');
+    coreGrad.addColorStop(1, '#1e0840');
 
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.fillStyle = coreGrad;
     ctx.fill();
 
+    // Оправа ядра
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
     // Центральный глиф источника
     ctx.font = '18px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = '#ffffff';
+    ctx.shadowBlur = 10;
     ctx.fillText('✧', cx, cy);
 
     ctx.restore();
@@ -1409,6 +1672,7 @@ export class RunesGame {
 
   drawAnchors(ctx, cx, cy) {
     const endR = this.logicalSize * 0.44;
+    const lastRing = this.rings[this.rings.length - 1];
 
     this.anchors.forEach(anchor => {
       const rad = (anchor.angle * Math.PI) / 180;
@@ -1416,21 +1680,51 @@ export class RunesGame {
       const ay = cy + Math.sin(rad) * endR;
 
       ctx.save();
+
+      // 1. Направляющий энергетический рельс от внешнего кольца к алтарю
+      if (lastRing) {
+        const rStart = lastRing.outerR + 3;
+        const rEnd = endR - 22;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(rad) * rStart, cy + Math.sin(rad) * rStart);
+        ctx.lineTo(cx + Math.cos(rad) * rEnd, cy + Math.sin(rad) * rEnd);
+        ctx.strokeStyle = anchor.defaultColor;
+        ctx.setLineDash([4, 5]);
+        ctx.lineWidth = anchor.connected ? 3 : 1.5;
+        ctx.globalAlpha = anchor.connected ? 0.95 : 0.35;
+        if (anchor.connected) {
+          ctx.shadowColor = anchor.defaultColor;
+          ctx.shadowBlur = 12;
+        }
+        ctx.stroke();
+      }
+
+      // 2. Постамент алтаря
       ctx.beginPath();
       ctx.arc(ax, ay, 20, 0, Math.PI * 2);
+      ctx.globalAlpha = 1.0;
 
       if (anchor.connected) {
         ctx.shadowColor = anchor.defaultColor;
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 24;
         ctx.fillStyle = anchor.defaultColor;
       } else {
-        ctx.fillStyle = '#171a26';
+        ctx.fillStyle = '#0f172a';
       }
       ctx.fill();
 
       ctx.strokeStyle = anchor.defaultColor;
-      ctx.lineWidth = anchor.connected ? 3 : 2;
+      ctx.lineWidth = anchor.connected ? 3.5 : 2;
       ctx.stroke();
+
+      // Внутреннее светящееся кольцо при активности
+      if (anchor.connected) {
+        ctx.beginPath();
+        ctx.arc(ax, ay, 15, 0, Math.PI * 2);
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
 
       // Стихийный символ
       ctx.font = '16px sans-serif';
