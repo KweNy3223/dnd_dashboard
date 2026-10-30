@@ -142,12 +142,9 @@ export default function TrialsTab() {
       setNoiseLevel(prev => Math.max(0, prev - amount));
     },
     onPickBroke: () => {
-      let remaining = 0;
-      setCurrentPicks(prev => {
-        remaining = Math.max(0, prev - 1);
-        stateRef.current.currentPicks = remaining;
-        return remaining;
-      });
+      const remaining = Math.max(0, stateRef.current.currentPicks - 1);
+      stateRef.current.currentPicks = remaining;
+      setCurrentPicks(remaining);
       setMistakesCount(m => m + 1);
       setPickDurability(0);
 
@@ -197,6 +194,7 @@ export default function TrialsTab() {
     setMistakesCount(0);
     setNoiseLevel(0);
     setCurrentPicks(maxPicks);
+    stateRef.current.currentPicks = maxPicks;
     setPickDurability(100);
 
     if (activeGameInstanceRef.current && typeof activeGameInstanceRef.current.start === 'function') {
@@ -210,6 +208,7 @@ export default function TrialsTab() {
     setMistakesCount(0);
     setNoiseLevel(0);
     setCurrentPicks(maxPicks);
+    stateRef.current.currentPicks = maxPicks;
     setPickDurability(100);
     setOutcome(null);
 
@@ -281,7 +280,7 @@ export default function TrialsTab() {
       `**⚔️ D&D Испытание: ${challengeName}**`,
       `🎯 DC ${dc} | Модификатор: ${bonus >= 0 ? '+' : ''}${bonus}`,
       `📊 Исход: ${outcome.crest} ${outcome.title} — ${outcome.subtitle}`,
-      `⏳ Время: ${outcome.timeFormatted} | ${outcome.toolsLabel} ${outcome.toolsStatus}`,
+      `⏳ Время решения: ${outcome.timeFormatted} | Шум: ${outcome.noiseStatus}`,
       `📜 **Вердикт Мастера:**`,
       `> ${outcome.narrative}`
     ].join('\n');
@@ -323,6 +322,9 @@ export default function TrialsTab() {
                   const val = parseInt(e.target.value, 10);
                   setDc(val);
                   dnd.setDC(val);
+                  if (activeGameInstanceRef.current?.onParametersChanged) {
+                    activeGameInstanceRef.current.onParametersChanged(dnd.getEffectiveAdvantage());
+                  }
                 }} 
               />
             </div>
@@ -338,6 +340,9 @@ export default function TrialsTab() {
                   const val = parseInt(e.target.value, 10);
                   setBonus(val);
                   dnd.setBonus(val);
+                  if (activeGameInstanceRef.current?.onParametersChanged) {
+                    activeGameInstanceRef.current.onParametersChanged(dnd.getEffectiveAdvantage());
+                  }
                 }} 
               />
             </div>
@@ -370,18 +375,39 @@ export default function TrialsTab() {
 
             {currentGame === 'lockpick' && (
               <div className="curtain-row">
-                <label>Запас отмычек: <strong>{maxPicks} шт</strong></label>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="10" 
-                  value={maxPicks} 
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    setMaxPicks(val);
-                    setCurrentPicks(val);
-                  }} 
-                />
+                <label>Запас отмычек у персонажа:</label>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max="50" 
+                    value={maxPicks} 
+                    onChange={(e) => {
+                      const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                      setMaxPicks(val);
+                      setCurrentPicks(val);
+                      stateRef.current.maxPicks = val;
+                      stateRef.current.currentPicks = val;
+                    }}
+                    className="curtain-select"
+                    style={{ width: '70px', textAlign: 'center', fontWeight: 'bold' }}
+                  />
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>шт.</span>
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="20" 
+                    value={Math.min(20, maxPicks)} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setMaxPicks(val);
+                      setCurrentPicks(val);
+                      stateRef.current.maxPicks = val;
+                      stateRef.current.currentPicks = val;
+                    }} 
+                    style={{ flex: 1 }}
+                  />
+                </div>
               </div>
             )}
 
@@ -597,10 +623,6 @@ export default function TrialsTab() {
               <div className="detail-item">
                 <span className="detail-label">Уровень шума:</span>
                 <span className="detail-val">{outcome.noiseStatus}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">{outcome.toolsLabel}</span>
-                <span className="detail-val">{outcome.toolsStatus}</span>
               </div>
               <div className="detail-item">
                 <span className="detail-label">Затраченное время:</span>
