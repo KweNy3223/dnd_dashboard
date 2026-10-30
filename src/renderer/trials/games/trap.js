@@ -1,7 +1,7 @@
 /**
  * Модуль мини-игры: Обезвреживание ловушки (Trap Disarming)
- * Аутентичная D&D механика: натянутые стальные тросы, медные струны-растяжки,
- * трубки ядовитого газа, противовесы лезвий и переключаемый стопорный клин (шплинт).
+ * Аутентичный средневековый D&D механизм: стальные витые тросы, медные струны-растяжки,
+ * свинцовые трубки ядовитого газа, взведённый боёк натяжителя и переключаемый стопорный клин.
  */
 
 import { audio } from '../audio.js';
@@ -19,19 +19,23 @@ export class TrapGame {
     // Параметры механизма ловушки
     this.wires = []; // массив спусковых жил / тросов
     this.rules = []; // текстовые правила обезвреживания
+    this.solutionOrder = [];
     this.disarmedWiresCount = 0;
     this.targetCutsRequired = 3;
-    this.pressure = 65; // Натяжение / давление 0..100%
-    this.pressureTarget = 65;
+    this.pressure = 70; // Натяжение / давление 0..100%
+    this.pressureTarget = 70;
     this.isBypassActive = false; // Установлен ли стопорный клин (Toggle)
     this.isDisarmed = false;
     this.isDetonated = false;
 
     // Взаимодействие и визуальные эффекты
     this.hoveredWire = null;
+    this.mouseX = 0;
+    this.mouseY = 0;
     this.particles = [];
     this.shakeAmount = 0;
     this.corePulse = 0;
+    this.gearAngle = 0;
 
     // Привязанные события
     this.boundMouseMove = this.onMouseMove.bind(this);
@@ -53,8 +57,8 @@ export class TrapGame {
     this.container.innerHTML = `
       <div class="stage-container trap-stage">
         <div class="stage-header">
-          <h2 class="stage-title">💣 Обезвреживание ловушки</h2>
-          <p class="stage-subtitle">Изучите спусковой механизм и перекусите натянутые жилы в верной последовательности.</p>
+          <h2 class="stage-title">💣 Обезвреживание механизма ловушки</h2>
+          <p class="stage-subtitle">Изучите натяжные тросы и срежьте спусковые жилы в верной последовательности.</p>
         </div>
 
         <div class="trap-layout">
@@ -62,14 +66,14 @@ export class TrapGame {
           <div class="trap-scroll-panel" id="trapRulesPanel">
             <div class="scroll-header">
               <span class="scroll-icon">📜</span>
-              <h3 class="scroll-title">Памятка вора: Схема механизма</h3>
+              <h3 class="scroll-title">Памятка вора: Схема ловушки</h3>
             </div>
             <div class="scroll-clues" id="trapCluesList">
               <!-- Генерируется динамически -->
             </div>
             <div class="thief-intuition" id="thiefIntuitionBox">
               <span class="intuition-icon">💡</span>
-              <span class="intuition-text" id="intuitionText">Воровское чутье: оцениваем натяжение...</span>
+              <span class="intuition-text" id="intuitionText">Воровское чутьё: прислушиваемся к храповику...</span>
             </div>
           </div>
 
@@ -77,11 +81,11 @@ export class TrapGame {
           <div class="trap-canvas-wrapper">
             <div class="trap-manometer-hud">
               <div class="manometer-label-row">
-                <span>Индикатор натяжения / давления:</span>
-                <span class="manometer-val" id="pressureVal">65% (Взведено)</span>
+                <span>Индикатор натяжения пружин:</span>
+                <span class="manometer-val" id="pressureVal">70% (Взведено)</span>
               </div>
               <div class="pressure-track">
-                <div class="pressure-fill" id="pressureBar" style="width: 65%;"></div>
+                <div class="pressure-fill" id="pressureBar" style="width: 70%;"></div>
                 <div class="pressure-safe-zone" title="Безопасная зона со стопорным клином"></div>
               </div>
             </div>
@@ -90,7 +94,7 @@ export class TrapGame {
 
             <!-- Переключаемый стопорный клин (Toggle) -->
             <div class="trap-controls-row">
-              <button type="button" class="btn fantasy-btn secondary" id="btnPressureBypass" style="min-width: 320px; padding: 10px 18px;">
+              <button type="button" class="btn fantasy-btn secondary" id="btnPressureBypass" style="min-width: 340px; padding: 10px 20px;">
                 <span id="bypassIcon">🔓</span>
                 <span id="bypassText">Вставить стопорный клин (ПРОБЕЛ)</span>
               </button>
@@ -105,11 +109,11 @@ export class TrapGame {
           </div>
           <div class="guide-pill">
             <span class="guide-key">Клик по кнопке / ПРОБЕЛ</span>
-            <span>Вставить/вынуть стопорный клин</span>
+            <span>Зафиксировать стопорный клин</span>
           </div>
           <div class="guide-pill">
             <span class="guide-key">Зелёная зона</span>
-            <span>Безопасный срез ядовитых трубок</span>
+            <span>Безопасный срез трубок яда и натяжителей</span>
           </div>
         </div>
       </div>
@@ -129,8 +133,8 @@ export class TrapGame {
 
   setupCanvas() {
     if (!this.canvas) return;
-    const width = Math.min(520, Math.min(window.innerWidth - 48, 520));
-    const height = 360;
+    const width = Math.min(540, Math.min(window.innerWidth - 48, 540));
+    const height = 370;
     const dpr = window.devicePixelRatio || 1;
 
     this.canvas.width = width * dpr;
@@ -168,7 +172,7 @@ export class TrapGame {
 
     if (this.isBypassActive) {
       audio.playSteamHiss(0.35);
-      audio.playTumblerClick(0.9);
+      audio.playTumblerClick(0.8);
     } else {
       audio.playTumblerClick(1.2);
     }
@@ -219,19 +223,19 @@ export class TrapGame {
     this.disarmedWiresCount = 0;
     this.particles = [];
     this.hoveredWire = null;
-    this.pressure = 65;
-    this.pressureTarget = 65;
+    this.pressure = 70;
+    this.pressureTarget = 70;
     this.isBypassActive = false;
     this.updateBypassButtonUI();
 
     // Аутентичные компоненты ловушек D&D
     const availableLines = [
-      { id: 'steel_tension', name: 'Стальной натяжной трос (Пружина бойка)', hex: '#ef4444', rune: '⚙️', typeName: 'Натяжитель' },
-      { id: 'copper_trip', name: 'Медная струна-растяжка (Сенсор пола)', hex: '#3b82f6', rune: '💧', typeName: 'Растяжка' },
+      { id: 'steel_tension', name: 'Стальной натяжной трос (Пружина бойка)', hex: '#e2e8f0', rune: '⚙️', typeName: 'Натяжитель' },
+      { id: 'copper_trip', name: 'Медная струна-растяжка (Сенсор плиты)', hex: '#f59e0b', rune: '💧', typeName: 'Растяжка' },
       { id: 'gas_siphon', name: 'Трубка ядовитого газа (Клапан давления)', hex: '#10b981', rune: '🌿', typeName: 'Газовый сифон' },
-      { id: 'counterweight', name: 'Балансировочная жила (Противовес лезвия)', hex: '#f59e0b', rune: '⚡', typeName: 'Противовес' },
-      { id: 'arcane_thread', name: 'Руническая нить эфира (Магический взрыватель)', hex: '#a855f7', rune: '🔮', typeName: 'Арканный контур' },
-      { id: 'death_core', name: 'Детонационная нить Смерти (Критический капсюль)', hex: '#475569', rune: '💀', typeName: 'Капсюль' }
+      { id: 'counterweight', name: 'Балансировочная жила (Противовес лезвия)', hex: '#64748b', rune: '⚡', typeName: 'Противовес' },
+      { id: 'arcane_thread', name: 'Руническая нить эфира (Магический контур)', hex: '#c084fc', rune: '🔮', typeName: 'Арканный контур' },
+      { id: 'death_core', name: 'Капсюль Смерти (Взрывная спусковая нить)', hex: '#ef4444', rune: '💀', typeName: 'Капсюль' }
     ];
 
     // Число компонентов зависит от DC (от 4 до 6)
@@ -261,70 +265,85 @@ export class TrapGame {
     // Правило 1: Первичная деактивация
     if (ids.includes('copper_trip')) {
       this.rules.push({
-        text: 'Сперва обезопасьте напольный триггер: перекусите <strong>Медную струну-растяжку (💧)</strong>.',
+        text: 'Сперва обезопасьте напольный триггер: срежьте <strong>Медную струну-растяжку (💧)</strong>.',
         targetId: 'copper_trip'
       });
       cutOrder.push('copper_trip');
     } else if (ids.includes('counterweight')) {
       this.rules.push({
-        text: 'Ослабьте подвес качающегося лезвия: первым снимите <strong>Балансировочную жилу (⚡)</strong>.',
+        text: 'Ослабьте подвес качающегося лезвия: снимите <strong>Балансировочную жилу (⚡)</strong>.',
         targetId: 'counterweight'
       });
       cutOrder.push('counterweight');
     } else {
       const first = this.wires[0].id;
       this.rules.push({
-        text: `Начните с разблокировки левого затвора: <strong>${this.wires[0].name} (${this.wires[0].rune})</strong>.`,
+        text: `Начните со снятия левого затвора: <strong>${this.wires[0].name} (${this.wires[0].rune})</strong>.`,
         targetId: first
       });
       cutOrder.push(first);
     }
 
-    // Правило 2: Опасный компонент под давлением (требует стопорного клина!)
-    if (ids.includes('death_core')) {
-      const deathWire = this.wires.find(w => w.id === 'death_core');
-      deathWire.requiresLowPressure = true;
+    // Правило 2: Работа под давлением (требует стопорного клина)
+    if (ids.includes('gas_siphon')) {
       this.rules.push({
-        text: 'ОПАСНО: Капсюль Смерти (💀) сдетонирует при натяжении! Режьте Детонационную нить <strong>СТРОГО со вставленным стопорным клином [🔒]</strong> (натяжение ниже 35%).',
-        targetId: 'death_core'
-      });
-      cutOrder.push('death_core');
-    } else if (ids.includes('gas_siphon')) {
-      const gasWire = this.wires.find(w => w.id === 'gas_siphon');
-      gasWire.requiresLowPressure = true;
-      this.rules.push({
-        text: 'Газовый сифон (🌿) удерживает удушающий яд под давлением: <strong>вставьте стопорный клин [🔒]</strong> перед перекусыванием трубки.',
-        targetId: 'gas_siphon'
+        text: '<strong>ВНИМАНИЕ:</strong> Зафиксируйте стопорный клин (зелёная зона), чтобы перекусить <strong>Трубку ядовитого газа (🌿)</strong> без утечки!',
+        targetId: 'gas_siphon',
+        requiresLowPressure: true
       });
       cutOrder.push('gas_siphon');
     } else if (ids.includes('steel_tension')) {
       this.rules.push({
-        text: 'Сбросьте натяжение боевой пружины: перекусите <strong>Стальной трос (⚙️)</strong> вторым шагом.',
-        targetId: 'steel_tension'
+        text: '<strong>ОПАСНОСТЬ:</strong> Пружина взведена! Вставьте стопорный клин перед срезом <strong>Стального натяжного троса (⚙️)</strong>!',
+        targetId: 'steel_tension',
+        requiresLowPressure: true
       });
       cutOrder.push('steel_tension');
     }
 
-    // Правило 3: Финальный заземляющий контур
-    const remaining = this.wires.filter(w => !cutOrder.includes(w.id));
-    if (remaining.length > 0) {
-      const finalWire = remaining[remaining.length - 1];
+    // Правило 3: Финальный замок
+    const remaining = ids.filter(id => !cutOrder.includes(id));
+    if (remaining.includes('arcane_thread')) {
       this.rules.push({
-        text: `Финальный фиксатор: завершите обезвреживание, перекусив <strong>${finalWire.name} (${finalWire.rune})</strong>.`,
-        targetId: finalWire.id
+        text: 'Завершите нейтрализацией арканного контура: перекусите <strong>Руническую нить эфира (🔮)</strong>.',
+        targetId: 'arcane_thread'
       });
-      cutOrder.push(finalWire.id);
+      cutOrder.push('arcane_thread');
+    } else if (remaining.includes('death_core')) {
+      this.rules.push({
+        text: 'Финальный шаг: перекусите <strong>Капсюль Смерти (💀)</strong>, пока стопор удерживает механизм.',
+        targetId: 'death_core',
+        requiresLowPressure: true
+      });
+      cutOrder.push('death_core');
+    } else if (remaining.length > 0) {
+      const last = remaining[remaining.length - 1];
+      const wireObj = this.wires.find(w => w.id === last);
+      this.rules.push({
+        text: `Для окончательного спуска нейтрализуйте: <strong>${wireObj.name} (${wireObj.rune})</strong>.`,
+        targetId: last
+      });
+      cutOrder.push(last);
     }
 
     this.solutionOrder = cutOrder;
     this.targetCutsRequired = cutOrder.length;
+
+    // Проставляем метки
+    this.rules.forEach(rule => {
+      const wire = this.wires.find(w => w.id === rule.targetId);
+      if (wire && rule.requiresLowPressure) {
+        wire.requiresLowPressure = true;
+      }
+    });
+
     this.updateNextExpectedWire();
   }
 
   updateNextExpectedWire() {
-    const nextTargetId = this.solutionOrder[this.disarmedWiresCount];
+    const nextExpectedId = this.solutionOrder[this.disarmedWiresCount];
     this.wires.forEach(w => {
-      w.isCorrectNext = (w.id === nextTargetId && !w.isCut);
+      w.isCorrectNext = (w.id === nextExpectedId);
     });
   }
 
@@ -345,7 +364,7 @@ export class TrapGame {
       const nextTargetId = this.solutionOrder[this.disarmedWiresCount];
       const nextWire = this.wires.find(w => w.id === nextTargetId);
       if (nextWire) {
-        let hint = `Ваш острый слух улавливает щелчок храповика: безопасен для среза <strong>${nextWire.name}</strong>.`;
+        let hint = `Острый слух улавливает щелчок храповика: безопасен для среза <strong>${nextWire.name}</strong>.`;
         if (nextWire.requiresLowPressure && !this.isBypassActive) {
           hint += ` <em>(Не забудьте вставить стопорный клин!)</em>`;
         }
@@ -353,7 +372,7 @@ export class TrapGame {
         this.intuitionBox.style.display = 'flex';
       }
     } else if (dnd.bonus >= 2) {
-      this.intuitionText.textContent = 'Опыт подсказывает проверять манометр перед каждым перекусыванием.';
+      this.intuitionText.textContent = 'Опыт подсказывает проверять натяжение пружин перед каждым перекусыванием.';
       this.intuitionBox.style.display = 'flex';
     } else {
       this.intuitionBox.style.display = 'none';
@@ -362,23 +381,23 @@ export class TrapGame {
 
   recalculateWireGeometry() {
     if (!this.logicalWidth || !this.logicalHeight) return;
-    const topY = 65;
+    const topY = 60;
     const bottomY = this.logicalHeight - 65;
     const count = this.wires.length;
-    const margin = 48;
+    const margin = 50;
     const step = (this.logicalWidth - margin * 2) / Math.max(1, count - 1);
 
     this.wires.forEach((wire, i) => {
       const x1 = margin + i * step;
-      const x2 = margin + i * step + (Math.sin(i * 1.4) * 22);
+      const x2 = margin + i * step + (Math.sin(i * 1.5) * 20);
       wire.x1 = x1;
       wire.y1 = topY;
       wire.x2 = x2;
       wire.y2 = bottomY;
-      wire.cp1x = x1 + (i % 2 === 0 ? 28 : -28);
-      wire.cp1y = topY + 75;
-      wire.cp2x = x2 + (i % 2 === 0 ? -28 : 28);
-      wire.cp2y = bottomY - 75;
+      wire.cp1x = x1 + (i % 2 === 0 ? 25 : -25);
+      wire.cp1y = topY + 70;
+      wire.cp2x = x2 + (i % 2 === 0 ? -25 : 25);
+      wire.cp2y = bottomY - 70;
     });
   }
 
@@ -386,13 +405,13 @@ export class TrapGame {
   onMouseMove(e) {
     if (this.isDisarmed || this.isDetonated) return;
     const rect = this.canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
+    this.mouseX = e.clientX - rect.left;
+    this.mouseY = e.clientY - rect.top;
 
     let found = null;
     for (const wire of this.wires) {
       if (wire.isCut) continue;
-      if (this.isPointNearWire(mouseX, mouseY, wire, 15)) {
+      if (this.isPointNearWire(this.mouseX, this.mouseY, wire, 16)) {
         found = wire;
         break;
       }
@@ -441,12 +460,11 @@ export class TrapGame {
   cutWire(wire, atX, atY) {
     wire.isCut = true;
     const isCorrect = wire.isCorrectNext;
-    const pressureViolated = wire.requiresLowPressure && this.pressure > 38;
+    const pressureViolated = wire.requiresLowPressure && this.pressure > 35;
 
     if (isCorrect && !pressureViolated) {
       // Верный перерез троса!
       audio.playWireCut(false);
-      audio.playMagicChime(1.1);
       this.spawnSparks(atX, atY, '#22c55e', 25);
       this.disarmedWiresCount++;
 
@@ -461,41 +479,38 @@ export class TrapGame {
         this.updateIntuition();
       }
     } else {
-      // Ошибка! Срабатывание бойка или выброс газа
-      audio.playWireCut(true);
-      audio.playExplosion();
-      this.shakeAmount = 14;
-      this.spawnSparks(atX, atY, '#ed4245', 45);
-      this.spawnSmoke(atX, atY, 20);
-
-      this.app.recordMistake();
-      this.app.addNoise(30);
-
-      this.pressure = Math.min(100, this.pressure + 25);
-
-      if (this.app.mistakesCount >= dnd.maxAttempts) {
-        this.triggerDetonation();
-      } else {
-        this.updateNextExpectedWire();
-        this.updateIntuition();
-      }
+      // Ошибка! Срыв бойка / спуск ловушки
+      this.triggerDetonation(atX, atY);
     }
   }
 
   triggerDisarmSuccess() {
     this.isDisarmed = true;
-    this.hoveredWire = null;
-    audio.playSuccess();
+    audio.playLockOpen();
+    this.pressureTarget = 0;
+
+    for (let i = 0; i < 40; i++) {
+      this.spawnSparks(this.logicalWidth / 2, this.logicalHeight / 2, '#22c55e', 1);
+    }
+
     setTimeout(() => {
       this.app.finishGame(true);
-    }, 900);
+    }, 850);
   }
 
-  triggerDetonation() {
+  triggerDetonation(atX, atY) {
     this.isDetonated = true;
-    this.hoveredWire = null;
-    audio.playFailure();
-    this.shakeAmount = 25;
+    audio.playWireCut(true);
+    audio.playExplosion();
+    this.shakeAmount = 24;
+    this.spawnSparks(atX, atY, '#ef4444', 50);
+    this.spawnSmoke(atX, atY, 30);
+
+    this.app.recordMistake();
+    if (this.app.stealthNoiseEnabled) {
+      this.app.addNoise(50);
+    }
+
     setTimeout(() => {
       this.app.finishGame(false, { reason: 'trap_triggered' });
     }, 1000);
@@ -503,31 +518,34 @@ export class TrapGame {
 
   // --- АНИМАЦИОННЫЙ ЦИКЛ ---
   startAnimationLoop() {
-    const loop = (timestamp) => {
-      this.update(timestamp);
+    const loop = () => {
+      this.update();
       this.draw();
       this.animationFrameId = requestAnimationFrame(loop);
     };
     this.animationFrameId = requestAnimationFrame(loop);
   }
 
-  update(timestamp) {
-    // Давление / натяжение
+  update() {
+    // Вращение шестерни храповика
+    this.gearAngle += this.isBypassActive ? 0.002 : 0.015;
+
+    // Плавное стравливание давления при установке клина
     if (this.isBypassActive) {
-      this.pressureTarget = 18; // безопасное сброшенное натяжение со шплинтом
-    } else {
-      this.pressureTarget = 62 + Math.sin(timestamp * 0.002) * 12;
+      this.pressureTarget = 18;
+    } else if (!this.isDisarmed) {
+      this.pressureTarget = 70;
     }
-    this.pressure += (this.pressureTarget - this.pressure) * 0.08;
+    this.pressure += (this.pressureTarget - this.pressure) * 0.12;
 
     if (this.pressureBar && this.pressureVal) {
-      const rounded = Math.round(this.pressure);
-      this.pressureBar.style.width = `${rounded}%`;
-      let desc = rounded <= 35 ? 'Безопасно (Шплинт зафиксирован)' : rounded <= 70 ? 'Взведено' : 'ОПАСНОСТЬ СРАБАТЫВАНИЯ!';
-      this.pressureVal.textContent = `${rounded}% (${desc})`;
-      this.pressureVal.style.color = rounded <= 35 ? '#22c55e' : rounded <= 70 ? '#f59e0b' : '#ed4245';
+      const p = Math.round(this.pressure);
+      this.pressureBar.style.width = `${p}%`;
+      this.pressureVal.textContent = `${p}% ${p < 30 ? '(Безопасно / Клин в пазу)' : '(Взведено)'}`;
+      this.pressureVal.style.color = p < 30 ? '#22c55e' : '#f59e0b';
     }
 
+    // Тряска экрана при детонации
     if (this.shakeAmount > 0) {
       this.shakeAmount *= 0.9;
       if (this.shakeAmount < 0.2) this.shakeAmount = 0;
@@ -535,6 +553,7 @@ export class TrapGame {
 
     this.corePulse += 0.05;
 
+    // Физика искр и дыма
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx;
@@ -562,75 +581,150 @@ export class TrapGame {
       ctx.translate(sx, sy);
     }
 
-    // 1. Кованая стальная плита ловушки
+    // 1. Кованая каменная/железная основа ловушки
     this.drawChassis(ctx, w, h);
 
-    // 2. Верхняя и нижняя балки фиксации тросов
-    this.drawTerminalRails(ctx, w, h);
+    // 2. Механические шестерни храповика в углах
+    this.drawCornerGears(ctx, w, h);
 
-    // 3. Тросы, жилы и трубки
+    // 3. Верхняя балка натяжителей и нижний спусковой затвор
+    this.drawMountingRails(ctx, w, h);
+
+    // 4. Тросы, растяжки и трубки
     this.wires.forEach(wire => this.drawWire(ctx, wire));
 
-    // 4. Центральный спусковой механизм / капсюль
-    this.drawDetonatorCore(ctx, w / 2, h / 2);
+    // 5. Центральный храповой стопорный механизм с клином
+    this.drawRatchetMechanism(ctx, w / 2, h / 2);
 
-    // 5. Искры и дым
+    // 6. Курсор-кусачки при наведении
+    if (this.hoveredWire && !this.isDisarmed && !this.isDetonated) {
+      this.drawPliersCursor(ctx, this.mouseX, this.mouseY);
+    }
+
+    // 7. Искры и дым
     this.drawParticles(ctx);
 
     ctx.restore();
   }
 
   drawChassis(ctx, w, h) {
-    const grad = ctx.createLinearGradient(0, 0, w, h);
-    grad.addColorStop(0, '#15171e');
-    grad.addColorStop(0.5, '#1e212b');
-    grad.addColorStop(1, '#111218');
+    // Тёмный гранит подземелья с трещинами и патиной
+    const grad = ctx.createRadialGradient(w / 2, h / 2, 40, w / 2, h / 2, w * 0.7);
+    grad.addColorStop(0, '#1c1e26');
+    grad.addColorStop(0.7, '#13151b');
+    grad.addColorStop(1, '#0b0c10');
 
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, w, h);
 
-    // Заклёпки
-    ctx.fillStyle = '#64748b';
+    // Железная рама с заклёпками
+    ctx.strokeStyle = '#2b2e3b';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(6, 6, w - 12, h - 12);
+
+    ctx.strokeStyle = '#181a22';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(10, 10, w - 20, h - 20);
+
+    // Бронзовые заклёпки по периметру
+    ctx.fillStyle = '#85642a';
     const rivets = [
       [14, 14], [w - 14, 14], [14, h - 14], [w - 14, h - 14],
-      [w / 2, 14], [w / 2, h - 14]
+      [w / 2, 12], [w / 2, h - 12], [12, h / 2], [w - 12, h / 2]
     ];
     rivets.forEach(([rx, ry]) => {
       ctx.beginPath();
-      ctx.arc(rx, ry, 3.5, 0, Math.PI * 2);
+      ctx.arc(rx, ry, 4, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = '#382b14';
+      ctx.lineWidth = 1;
+      ctx.stroke();
     });
   }
 
-  drawTerminalRails(ctx, w, h) {
-    ctx.fillStyle = '#262936';
-    ctx.fillRect(18, 16, w - 36, 48);
-    ctx.strokeStyle = '#3f4147';
-    ctx.strokeRect(18, 16, w - 36, 48);
-
-    ctx.fillRect(18, h - 64, w - 36, 48);
-    ctx.strokeRect(18, h - 64, w - 36, 48);
-
-    this.wires.forEach(wire => {
-      this.drawTerminal(ctx, wire.x1, 40, wire);
-      this.drawTerminal(ctx, wire.x2, h - 40, wire);
-    });
-  }
-
-  drawTerminal(ctx, x, y, wire) {
+  drawCornerGears(ctx, w, h) {
     ctx.save();
+    // Две декоративные вращающиеся шестерни в верхних углах
+    this.drawSingleGear(ctx, 35, 35, 22, this.gearAngle, '#3b4052');
+    this.drawSingleGear(ctx, w - 35, 35, 22, -this.gearAngle, '#3b4052');
+    ctx.restore();
+  }
+
+  drawSingleGear(ctx, x, y, r, angle, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = '#1b1d26';
+    ctx.lineWidth = 1.5;
+
+    const teeth = 8;
     ctx.beginPath();
-    ctx.arc(x, y, 15, 0, Math.PI * 2);
-    ctx.fillStyle = '#1c1f28';
+    for (let i = 0; i < teeth; i++) {
+      const a = (i / teeth) * Math.PI * 2;
+      const na = ((i + 0.5) / teeth) * Math.PI * 2;
+      ctx.lineTo(Math.cos(a) * (r + 4), Math.sin(a) * (r + 4));
+      ctx.lineTo(Math.cos(na) * r, Math.sin(na) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = '#111318';
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawMountingRails(ctx, w, h) {
+    // Верхняя стальная траверса
+    ctx.fillStyle = '#21242f';
+    ctx.fillRect(20, 18, w - 40, 42);
+    ctx.strokeStyle = '#3f4458';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(20, 18, w - 40, 42);
+
+    // Нижняя балка спускового механизма
+    ctx.fillRect(20, h - 58, w - 40, 42);
+    ctx.strokeRect(20, h - 58, w - 40, 42);
+
+    // Клеммы фиксации тросов
+    this.wires.forEach(wire => {
+      this.drawTerminal(ctx, wire.x1, 38, wire, true);
+      this.drawTerminal(ctx, wire.x2, h - 38, wire, false);
+    });
+  }
+
+  drawTerminal(ctx, x, y, wire, isTop) {
+    ctx.save();
+    // Стальной фланец
+    ctx.beginPath();
+    ctx.arc(x, y, 14, 0, Math.PI * 2);
+    ctx.fillStyle = '#181a24';
     ctx.fill();
     ctx.strokeStyle = wire.hex;
     ctx.lineWidth = 2.5;
     ctx.stroke();
 
+    // Иконка компонента
     ctx.font = '13px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(wire.rune, x, y + 1);
+    ctx.fillText(wire.rune, x, y);
+
+    // Пружина натяжения под верхним анкером
+    if (isTop && !wire.isCut) {
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, y + 14);
+      ctx.lineTo(x - 3, y + 18);
+      ctx.lineTo(x + 3, y + 22);
+      ctx.lineTo(x, y + 26);
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
@@ -639,36 +733,38 @@ export class TrapGame {
     const isHovered = (this.hoveredWire === wire && !wire.isCut);
 
     if (wire.isCut) {
-      // Перекусанная жила: концы обвисли
-      this.drawCutSegment(ctx, wire, wire.x1, wire.y1, wire.cp1x, wire.cp1y);
-      this.drawCutSegment(ctx, wire, wire.x2, wire.y2, wire.cp2x, wire.cp2y);
+      // Перекусанная обвисшая жила
+      this.drawCutSegment(ctx, wire, wire.x1, wire.y1 + 24, wire.cp1x, wire.cp1y);
+      this.drawCutSegment(ctx, wire, wire.x2, wire.y2 - 14, wire.cp2x, wire.cp2y);
     } else {
       ctx.beginPath();
-      ctx.moveTo(wire.x1, wire.y1);
-      ctx.bezierCurveTo(wire.cp1x, wire.cp1y, wire.cp2x, wire.cp2y, wire.x2, wire.y2);
+      ctx.moveTo(wire.x1, wire.y1 + 24);
+      ctx.bezierCurveTo(wire.cp1x, wire.cp1y, wire.cp2x, wire.cp2y, wire.x2, wire.y2 - 14);
 
       if (isHovered) {
         ctx.shadowColor = wire.hex;
-        ctx.shadowBlur = 14;
+        ctx.shadowBlur = 18;
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 8;
         ctx.stroke();
       }
 
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 6;
-      ctx.strokeStyle = '#0e1017';
-      ctx.lineWidth = 6.5;
+      // Тень троса
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+      ctx.shadowBlur = 8;
+      ctx.strokeStyle = '#0a0c10';
+      ctx.lineWidth = 6;
       ctx.stroke();
 
+      // Тело троса/жилы
       ctx.shadowBlur = 0;
       ctx.strokeStyle = wire.hex;
-      ctx.lineWidth = 4.5;
+      ctx.lineWidth = wire.id === 'gas_siphon' ? 6 : wire.id === 'copper_trip' ? 2.5 : 4.5;
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      // Тонкая текстура витого троса
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      // Текстура витого стального троса или медной струны
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
       ctx.lineWidth = 1.2;
       ctx.stroke();
     }
@@ -681,45 +777,69 @@ export class TrapGame {
     ctx.moveTo(xEnd, yEnd);
     ctx.quadraticCurveTo(cpx, cpy, (xEnd + cpx) / 2, (yEnd + cpy) / 2);
     ctx.strokeStyle = wire.hex;
-    ctx.lineWidth = 4.5;
+    ctx.lineWidth = wire.id === 'gas_siphon' ? 5.5 : 4;
     ctx.lineCap = 'round';
     ctx.stroke();
   }
 
-  drawDetonatorCore(ctx, cx, cy) {
+  drawRatchetMechanism(ctx, cx, cy) {
     ctx.save();
-    const pulse = Math.sin(this.corePulse) * 3;
-    const radius = 36 + pulse;
 
+    // 1. Задняя круглая бронзовая плита храповика
     ctx.beginPath();
-    ctx.arc(cx, cy, 48, 0, Math.PI * 2);
-    ctx.fillStyle = '#14161f';
+    ctx.arc(cx, cy, 46, 0, Math.PI * 2);
+    ctx.fillStyle = '#171922';
     ctx.fill();
-    ctx.strokeStyle = this.isBypassActive ? '#22c55e' : 'rgba(207, 168, 50, 0.7)';
+    ctx.strokeStyle = this.isBypassActive ? '#22c55e' : 'rgba(212, 175, 55, 0.7)';
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    const coreGrad = ctx.createRadialGradient(cx, cy, 4, cx, cy, radius);
-    if (this.isDisarmed) {
-      coreGrad.addColorStop(0, '#334155');
-      coreGrad.addColorStop(1, '#0f172a');
-    } else if (this.isDetonated) {
-      coreGrad.addColorStop(0, '#ffffff');
-      coreGrad.addColorStop(0.5, '#ef4444');
-      coreGrad.addColorStop(1, '#7f1d1d');
+    // 2. Зубчатый храповик
+    this.drawSingleGear(ctx, cx, cy, 32, this.gearAngle, '#2a2e3d');
+
+    // 3. Стопорный клин (БРОНЗОВЫЙ КЛИН/ШПЛИНТ В ПАЗУ)
+    if (this.isBypassActive) {
+      // Клин вбит между зубьями: ярко-зелёная фиксация
+      ctx.save();
+      ctx.shadowColor = '#22c55e';
+      ctx.shadowBlur = 12;
+
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      // Клин
+      ctx.moveTo(cx - 8, cy - 38);
+      ctx.lineTo(cx + 8, cy - 38);
+      ctx.lineTo(cx + 3, cy - 12);
+      ctx.lineTo(cx - 3, cy - 12);
+      ctx.closePath();
+      ctx.fill();
+
+      // Кольцо клина для выдёргивания
+      ctx.beginPath();
+      ctx.arc(cx, cy - 44, 9, 0, Math.PI * 2);
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
     } else {
-      const isDangerous = this.pressure > 70;
-      coreGrad.addColorStop(0, isDangerous ? '#fee2e2' : '#e0e7ff');
-      coreGrad.addColorStop(0.4, isDangerous ? '#ef4444' : '#6366f1');
-      coreGrad.addColorStop(1, isDangerous ? '#7f1d1d' : '#312e81');
+      // Клин вынут: боёк взведён, индикатор готовности к спуску
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(cx, cy - 28, 4, 0, Math.PI * 2);
+      ctx.fill();
     }
 
+    // 4. Центральная ступица храповика
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.fillStyle = coreGrad;
+    ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+    ctx.fillStyle = this.isDisarmed ? '#10b981' : this.isDetonated ? '#ef4444' : '#101217';
     ctx.fill();
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-    ctx.font = '20px sans-serif';
+    // Иконка статуса механизма
+    ctx.font = '16px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(this.isDisarmed ? '🔒' : this.isDetonated ? '💥' : this.isBypassActive ? '🛡️' : '⚙️', cx, cy);
@@ -727,37 +847,13 @@ export class TrapGame {
     ctx.restore();
   }
 
-  spawnSparks(x, y, color, count = 20) {
-    for (let i = 0; i < count; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 5;
-      this.particles.push({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        color,
-        size: 2 + Math.random() * 3,
-        life: 1,
-        decay: 0.03 + Math.random() * 0.04,
-        gravity: 0.12
-      });
-    }
-  }
-
-  spawnSmoke(x, y, count = 15) {
-    for (let i = 0; i < count; i++) {
-      this.particles.push({
-        x: x + (Math.random() - 0.5) * 20,
-        y: y + (Math.random() - 0.5) * 20,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: -1 - Math.random() * 2,
-        color: 'rgba(148, 163, 184, 0.4)',
-        size: 10 + Math.random() * 15,
-        life: 1,
-        decay: 0.02
-      });
-    }
+  drawPliersCursor(ctx, x, y) {
+    ctx.save();
+    ctx.font = '20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✂️', x + 10, y - 10);
+    ctx.restore();
   }
 
   drawParticles(ctx) {
@@ -772,8 +868,39 @@ export class TrapGame {
     });
   }
 
-  reset() {
-    this.generateTrapPuzzle();
+  spawnSparks(x, y, color = '#ffd666', count = 18) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 1.5 + Math.random() * 5;
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s,
+        color,
+        size: 1.5 + Math.random() * 3,
+        life: 1,
+        decay: 0.03 + Math.random() * 0.04,
+        gravity: 0.15
+      });
+    }
+  }
+
+  spawnSmoke(x, y, count = 15) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 0.5 + Math.random() * 2;
+      this.particles.push({
+        x,
+        y,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s - 1,
+        color: 'rgba(148, 163, 184, 0.45)',
+        size: 8 + Math.random() * 16,
+        life: 1,
+        decay: 0.02
+      });
+    }
   }
 
   onParametersChanged() {

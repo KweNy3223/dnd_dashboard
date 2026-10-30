@@ -28,6 +28,10 @@ export class PickpocketGame {
     this.isCaught = false;
     this.isStolen = false;
 
+    // Таймер непрерывного натяжения (нельзя зажимать кнопку без пауз!)
+    this.continuousPullTimer = 0;
+    this.heartbeatTimer = 0;
+
     // Позиция руки / захвата
     this.handY = 0;
     this.pullSpeed = 0;
@@ -282,49 +286,80 @@ export class PickpocketGame {
   update(dt) {
     if (this.isCaught || this.isStolen) return;
 
-    // 1. Смена фаз внимания жертвы
+    // 1. Смена фаз внимания жертвы (непредсказуемый тайминг)
     this.stateTimer += dt;
     if (this.stateTimer >= this.stateDuration) {
       this.stateTimer = 0;
       this.advanceTargetState();
     }
 
-    // 2. Обработка вытягивания предмета
-    const baseSpeed = (12 + dnd.bonus * 1.5) * dt; // скорость извлечения в %
-    if (this.isExtracting) {
-      if (this.targetState === 'DISTRACTED') {
-        // Безопасное вытягивание
-        this.progress = Math.min(100, this.progress + baseSpeed);
-        // Звон монет с вероятностью
-        if (Math.random() < 0.08) {
-          audio.playTumblerClick(1.5 + Math.random() * 0.5);
-          this.spawnCoinSparkle();
-        }
-      } else if (this.targetState === 'SUSPICIOUS') {
-        // Опасно: тянем, когда жертва насторожилась!
-        this.progress = Math.min(100, this.progress + baseSpeed * 0.7);
-        this.suspicion = Math.min(100, this.suspicion + 40 * dt);
-        audio.playCoinJingle();
-      } else if (this.targetState === 'ALERT') {
-        // КАТАСТРОФА: тянем прямо под взглядом жертвы!
-        this.suspicion = Math.min(100, this.suspicion + 120 * dt);
-        audio.playCoinJingle();
-        this.app.addNoise(20 * dt);
-      }
-    } else {
-      // Если игрок замер, подозрение медленно спадает
-      if (this.suspicion > 0 && this.targetState !== 'ALERT') {
-        this.suspicion = Math.max(0, this.suspicion - 25 * dt);
+    // 2. Звук стука сердца при высоком риске
+    if (this.suspicion >= 40) {
+      this.heartbeatTimer += dt;
+      const beatInterval = this.suspicion >= 75 ? 0.6 : 0.9;
+      if (this.heartbeatTimer >= beatInterval) {
+        this.heartbeatTimer = 0;
+        audio.playHeartbeat();
       }
     }
 
-    // 3. Проверка провала (подозрение 100%)
+    // 3. Обработка вытягивания предмета
+    // Скорость умеренная: требует 4-6 точных аккуратных рывков
+    const baseSpeed = (14 + dnd.bonus * 1.2) * dt;
+
+    if (this.isExtracting) {
+      this.continuousPullTimer += dt;
+
+      // ШТРАФ ЗА ЖАДНОСТЬ: Нельзя просто тупо зажать кнопку!
+      // Если тянуть непрерывно дольше 0.75 сек — кошель натягивается и монеты предательски звенят!
+      if (this.continuousPullTimer >= 0.75) {
+        this.suspicion = Math.min(100, this.suspicion + 35 * dt);
+        if (Math.random() < 0.2) {
+          audio.playCoinJingle();
+          this.spawnCoinSparkle();
+          if (this.app.stealthNoiseEnabled) {
+            this.app.addNoise(12);
+          }
+        }
+      }
+
+      if (this.targetState === 'DISTRACTED') {
+        // Безопасное аккуратное вытягивание
+        this.progress = Math.min(100, this.progress + baseSpeed);
+        if (Math.random() < 0.04) {
+          audio.playCoinJingle();
+          this.spawnCoinSparkle();
+        }
+      } else if (this.targetState === 'SUSPICIOUS') {
+        // Опасно: жертва насторожилась, подозрение растёт стремительно!
+        this.progress = Math.min(100, this.progress + baseSpeed * 0.5);
+        this.suspicion = Math.min(100, this.suspicion + 140 * dt);
+        audio.playCoinJingle();
+        if (this.app.stealthNoiseEnabled) {
+          this.app.addNoise(25 * dt);
+        }
+      } else if (this.targetState === 'ALERT') {
+        // КАТАСТРОФА: попытка тянуть прямо под пристальным взглядом жертвы = МГНОВЕННЫЙ ЗАХВАТ!
+        this.suspicion = 100;
+        audio.playCoinJingle();
+      }
+    } else {
+      // Игрок отпустил кнопку и замер: таймер непрерывности сбрасывается
+      this.continuousPullTimer = 0;
+
+      // Медленное затухание подозрения в тени
+      if (this.suspicion > 0 && this.targetState !== 'ALERT') {
+        this.suspicion = Math.max(0, this.suspicion - 12 * dt);
+      }
+    }
+
+    // 4. Проверка провала (подозрение 100%)
     if (this.suspicion >= 100) {
       this.triggerCaught();
       return;
     }
 
-    // 4. Проверка победы (извлечение 100%)
+    // 5. Проверка победы (извлечение 100%)
     if (this.progress >= 100) {
       this.triggerStolenSuccess();
       return;
@@ -345,26 +380,32 @@ export class PickpocketGame {
   }
 
   advanceTargetState() {
-    const states = ['DISTRACTED', 'SUSPICIOUS', 'ALERT'];
+    // Высокая вариативность поведения жертвы
     if (this.targetState === 'DISTRACTED') {
-      // Из отвлеченного переходит в подозрительное
-      this.targetState = 'SUSPICIOUS';
-      this.stateDuration = 1.0 + Math.random() * 0.8;
-      audio.playTick(false);
-    } else if (this.targetState === 'SUSPICIOUS') {
-      // Из подозрительного может обернуться (ALERT) или успокоиться обратно
-      if (Math.random() > 0.4) {
+      // Из отвлечённого может насторожиться или резко оглянуться (25% шанс)
+      const roll = Math.random();
+      if (roll < 0.25) {
         this.targetState = 'ALERT';
-        this.stateDuration = 1.5 + Math.random() * 1.0;
-        audio.playTick(true);
+        this.stateDuration = 0.8 + Math.random() * 0.7; // быстрый внезапный оборот!
+        audio.playHeartbeat();
+      } else {
+        this.targetState = 'SUSPICIOUS';
+        this.stateDuration = 0.9 + Math.random() * 0.8;
+      }
+    } else if (this.targetState === 'SUSPICIOUS') {
+      // Из подозрительного оборачивается либо успокаивается
+      if (Math.random() > 0.45) {
+        this.targetState = 'ALERT';
+        this.stateDuration = 1.0 + Math.random() * 0.9;
+        audio.playHeartbeat();
       } else {
         this.targetState = 'DISTRACTED';
-        this.stateDuration = 3.0 + Math.random() * 1.5;
+        this.stateDuration = 1.4 + Math.random() * 1.2;
       }
     } else {
-      // Из тревоги успокаивается обратно в отвлеченное
+      // Из тревоги успокаивается обратно
       this.targetState = 'DISTRACTED';
-      this.stateDuration = 3.0 + Math.random() * 2.0;
+      this.stateDuration = 1.5 + Math.random() * 1.2;
     }
   }
 

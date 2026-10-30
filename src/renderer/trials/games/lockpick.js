@@ -216,13 +216,15 @@ export class LockpickGame {
       // Идеально в зоне — замок может повернуться на все 90 градусов!
       this.maxRotationPossible = 90;
     } else {
-      // Вне зоны: чем ближе к зоне, тем дальше повернется замок перед упором
-      const maxMiss = 65; // предел чувствительности
+      // Вне зоны (Skyrim style):
+      const maxMiss = 45; // предел чувствительности
       if (angleDiff >= maxMiss) {
-        this.maxRotationPossible = 5; // едва дернулся
+        // Сильно мимо: едва дёргается (2-3 градуса)
+        this.maxRotationPossible = 2.5;
       } else {
-        const closeness = 1 - (angleDiff - this.tolerance) / (maxMiss - this.tolerance);
-        this.maxRotationPossible = 5 + Math.max(0, closeness) * 80;
+        // Чем ближе, тем дальше проворачивается перед жестким упором в штифт
+        const closeness = Math.pow(1 - (angleDiff - this.tolerance) / (maxMiss - this.tolerance), 2.2);
+        this.maxRotationPossible = 2.5 + closeness * 75;
       }
     }
   }
@@ -264,11 +266,15 @@ export class LockpickGame {
   }
 
   onParametersChanged(advantage) {
-    // Базовая ширина допуска (Skyrim style):
-    // DC 10 -> ~16 градусов, DC 15 -> ~11 градусов, DC 25 -> ~5 градусов
-    const baseTol = Math.max(4, 22 - (dnd.dc * 0.7));
-    this.tolerance = baseTol * advantage.toleranceFactor;
-    this.durabilityMult = 1.0 + advantage.extraDurability * 0.25;
+    // Настоящий Skyrim / Gothic хардкор:
+    // DC 10 (Новичок): ±3.8°
+    // DC 15 (Ученик/Адепт): ±2.5°
+    // DC 20 (Эксперт): ±1.6°
+    // DC 25+ (Мастер): ±1.0°
+    const baseTol = Math.max(1.0, 6.5 - (dnd.dc * 0.22));
+    const bonusMod = Math.max(0, dnd.bonus) * 0.14;
+    this.tolerance = (baseTol + bonusMod) * advantage.toleranceFactor;
+    this.durabilityMult = 1.0 + advantage.extraDurability * 0.2;
   }
 
   start() {
@@ -328,21 +334,22 @@ export class LockpickGame {
         if (this.cylinderAngle >= 89.5) {
           this.cylinderAngle = 90;
           this.isTurning = false;
-          audio.playTumblerClick(1.5);
+          audio.playLockOpen();
           setTimeout(() => {
             this.app.finishGame(true);
-          }, 300);
+          }, 350);
           return;
         }
       } else {
-        // Замок уперся в штифт! Skyrim-напряжение и износ отмычки
-        const strain = 50 * dt * (1 / this.durabilityMult);
+        // Замок упёрся в штифт! Непреклонное сопротивление и быстрый слом (Skyrim)
+        // ~0.45 секунды упора или 2-3 грубых тычка = хруст и поломка!
+        const strain = 230 * dt * (1 / this.durabilityMult);
         this.pickHealth -= strain;
         const stress = 1 - Math.max(0, this.pickHealth / 100);
 
-        // Интенсивность вибрации и изгиб растут по мере износа
-        this.pickShake = (Math.random() - 0.5) * (4 + stress * 12);
-        this.strainBend = (Math.random() - 0.5) * (stress * 8);
+        // Интенсивная дрожь отмычки при упоре
+        this.pickShake = (Math.random() - 0.5) * (7 + stress * 16);
+        this.strainBend = (Math.random() - 0.5) * (stress * 10);
 
         // Обновляем шкалу прочности в HUD
         this.app.setPickDurability(this.pickHealth);
@@ -350,11 +357,11 @@ export class LockpickGame {
         // Звук металлического скрипа / напряжения
         this.creakSoundCooldown -= dt;
         if (this.creakSoundCooldown <= 0) {
-          audio.playTensionCreak(0.4 + stress * 0.6);
+          audio.playTensionCreak(0.5 + stress * 0.5);
           if (this.app.stealthNoiseEnabled) {
-            this.app.addNoise(2.0);
+            this.app.addNoise(4.0);
           }
-          this.creakSoundCooldown = 0.1;
+          this.creakSoundCooldown = 0.08;
         }
 
         // Поломка отмычки!
@@ -363,14 +370,12 @@ export class LockpickGame {
         }
       }
     } else {
-      // Игрок отпустил натяжитель — цилиндр возвращается в исходное положение
+      // Игрок отпустил натяжитель — цилиндр быстро возвращается в исходное положение
       if (this.cylinderAngle > 0) {
-        this.cylinderAngle -= this.turnSpeed * 1.5 * dt;
+        this.cylinderAngle -= this.turnSpeed * 2.2 * dt;
         if (this.cylinderAngle < 0) this.cylinderAngle = 0;
       }
-      // Восстановление здоровья отмычки при снятии нагрузки
-      this.pickHealth = Math.min(100, this.pickHealth + 35 * dt);
-      this.app.setPickDurability(this.pickHealth);
+      // В Скайриме отмычка НЕ регенерирует прочность! Накопленная усталость остаётся
       this.pickShake = 0;
       this.strainBend = 0;
     }

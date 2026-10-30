@@ -44,9 +44,6 @@ export default function TrialsTab() {
   const [dc, setDc] = useState(dnd.dc);
   const [bonus, setBonus] = useState(dnd.bonus);
   const [tier, setTier] = useState(2);
-  const [mode, setMode] = useState('realtime');
-  const [timeLimit, setTimeLimit] = useState(35);
-  const [maxAttempts, setMaxAttempts] = useState(3);
   const [stealthNoise, setStealthNoise] = useState(false);
   const [lockTheme, setLockTheme] = useState('auto');
   const [maxPicks, setMaxPicks] = useState(5);
@@ -58,10 +55,8 @@ export default function TrialsTab() {
   const [challengeDesc, setChallengeDesc] = useState('Грубый навесной замок со следами ржавчины и царапин от ножа.');
 
   // Состояние активного раунда
-  const [timeLeft, setTimeLeft] = useState(35);
   const [noiseLevel, setNoiseLevel] = useState(0);
   const [mistakesCount, setMistakesCount] = useState(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
 
   // Кубик d20 для Мастера
   const [d20Result, setD20Result] = useState(null);
@@ -75,15 +70,12 @@ export default function TrialsTab() {
   // Ссылки
   const arenaRef = useRef(null);
   const activeGameInstanceRef = useRef(null);
-  const timerIntervalRef = useRef(null);
-  const timeSpentRef = useRef(0);
+  const sessionStartTimeRef = useRef(performance.now());
   const stateRef = useRef({
     mistakesCount: 0,
     noiseLevel: 0,
     currentPicks: 5,
     maxPicks: 5,
-    timeSpent: 0,
-    timeLimit: 35,
     lockTheme: 'auto',
     stealthNoise: false,
     challengeName: 'Тяжёлый кованый сундук бандитов'
@@ -93,19 +85,9 @@ export default function TrialsTab() {
   stateRef.current.noiseLevel = noiseLevel;
   stateRef.current.currentPicks = currentPicks;
   stateRef.current.maxPicks = maxPicks;
-  stateRef.current.timeLimit = timeLimit;
   stateRef.current.lockTheme = lockTheme;
   stateRef.current.stealthNoise = stealthNoise;
   stateRef.current.challengeName = challengeName;
-
-  // Остановка таймера
-  const stopTimer = useCallback(() => {
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-    setIsTimerRunning(false);
-  }, []);
 
   // Генерация испытания
   const generateNewChallenge = useCallback((gameId = currentGame, currentTier = tier) => {
@@ -113,30 +95,28 @@ export default function TrialsTab() {
     setChallengeName(ch.name);
     setChallengeDesc(ch.desc);
     setDc(dnd.dc);
-    setTimeLimit(dnd.timeLimit);
-    setTimeLeft(dnd.timeLimit);
-    setMaxAttempts(dnd.maxAttempts);
   }, [currentGame, tier]);
 
   // Завершение испытания
   const finishGame = useCallback((success, extraData = {}) => {
-    stopTimer();
     if (success) {
       audio.playSuccess();
     } else {
       audio.playFailure();
     }
 
+    const elapsed = Math.max(1, Math.round((performance.now() - sessionStartTimeRef.current) / 100) / 10);
+
     const res = dnd.evaluateOutcome({
       success,
-      timeSpent: timeSpentRef.current,
+      timeSpent: elapsed,
       mistakes: stateRef.current.mistakesCount,
       noiseLevel: stateRef.current.noiseLevel,
       gameType: currentGame
     });
 
     setOutcome(res);
-  }, [currentGame, stopTimer]);
+  }, [currentGame]);
 
   // Контроллер для мини-игр
   const appController = useRef({
@@ -145,9 +125,6 @@ export default function TrialsTab() {
       setMistakesCount(prev => {
         const next = prev + 1;
         stateRef.current.mistakesCount = next;
-        if (dnd.mode === 'turnbased' && next >= dnd.maxAttempts) {
-          finishGame(false, { reason: 'attempts_exhausted' });
-        }
         return next;
       });
       setNoiseLevel(n => Math.min(100, n + 25));
@@ -214,45 +191,22 @@ export default function TrialsTab() {
     }
   });
 
-  // Запуск сессии с таймером
+  // Запуск сессии
   const startSession = useCallback(() => {
-    stopTimer();
-    setTimeLeft(dnd.timeLimit);
-    timeSpentRef.current = 0;
+    sessionStartTimeRef.current = performance.now();
     setMistakesCount(0);
     setNoiseLevel(0);
     setCurrentPicks(maxPicks);
     setPickDurability(100);
 
-    if (dnd.mode === 'realtime') {
-      setIsTimerRunning(true);
-      timerIntervalRef.current = setInterval(() => {
-        timeSpentRef.current += 0.5;
-        setTimeLeft(prev => {
-          const next = prev - 0.5;
-          if (Math.floor(timeSpentRef.current * 2) % 2 === 0) {
-            audio.playTick(next <= 10);
-          }
-          if (next <= 0) {
-            stopTimer();
-            finishGame(false, { reason: 'time_up' });
-            return 0;
-          }
-          return next;
-        });
-      }, 500);
-    }
-
     if (activeGameInstanceRef.current && typeof activeGameInstanceRef.current.start === 'function') {
       activeGameInstanceRef.current.start();
     }
-  }, [finishGame, maxPicks, stopTimer]);
+  }, [maxPicks]);
 
   // Сброс игры
   const resetGame = useCallback(() => {
-    stopTimer();
-    setTimeLeft(dnd.timeLimit);
-    timeSpentRef.current = 0;
+    sessionStartTimeRef.current = performance.now();
     setMistakesCount(0);
     setNoiseLevel(0);
     setCurrentPicks(maxPicks);
@@ -262,11 +216,11 @@ export default function TrialsTab() {
     if (activeGameInstanceRef.current && typeof activeGameInstanceRef.current.reset === 'function') {
       activeGameInstanceRef.current.reset();
     }
-  }, [maxPicks, stopTimer]);
+  }, [maxPicks]);
 
   // Инициализация / смена мини-игры
   useEffect(() => {
-    stopTimer();
+    sessionStartTimeRef.current = performance.now();
     setOutcome(null);
 
     if (activeGameInstanceRef.current && typeof activeGameInstanceRef.current.destroy === 'function') {
@@ -289,7 +243,6 @@ export default function TrialsTab() {
     }
 
     return () => {
-      stopTimer();
       if (activeGameInstanceRef.current && typeof activeGameInstanceRef.current.destroy === 'function') {
         try {
           activeGameInstanceRef.current.destroy();
@@ -299,7 +252,7 @@ export default function TrialsTab() {
         activeGameInstanceRef.current = null;
       }
     };
-  }, [currentGame, generateNewChallenge, stopTimer, tier]);
+  }, [currentGame, generateNewChallenge, tier]);
 
   // Бросок d20
   const handleRollD20 = () => {
@@ -411,60 +364,9 @@ export default function TrialsTab() {
             )}
           </div>
 
-          {/* Колонка 2: Темп и режим */}
+          {/* Колонка 2: Снаряжение и Стелс */}
           <div className="curtain-box">
-            <h4 className="curtain-box-title">⏳ Темп и Режим</h4>
-
-            <div className="curtain-segmented">
-              <button 
-                type="button" 
-                className={`segmented-btn ${mode === 'realtime' ? 'active' : ''}`}
-                onClick={() => { setMode('realtime'); dnd.setMode('realtime'); }}
-              >
-                ⏱️ Таймер
-              </button>
-              <button 
-                type="button" 
-                className={`segmented-btn ${mode === 'turnbased' ? 'active' : ''}`}
-                onClick={() => { setMode('turnbased'); dnd.setMode('turnbased'); }}
-              >
-                🛡️ Пошаговый
-              </button>
-            </div>
-
-            {mode === 'realtime' ? (
-              <div className="curtain-row">
-                <label>Лимит времени: <strong>{timeLimit} сек</strong></label>
-                <input 
-                  type="range" 
-                  min="15" 
-                  max="90" 
-                  step="5"
-                  value={timeLimit} 
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    setTimeLimit(val);
-                    dnd.setTimeLimit(val);
-                    setTimeLeft(val);
-                  }} 
-                />
-              </div>
-            ) : (
-              <div className="curtain-row">
-                <label>Лимит ошибок: <strong>{maxAttempts} шт</strong></label>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="6" 
-                  value={maxAttempts} 
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    setMaxAttempts(val);
-                    dnd.setAttempts(val);
-                  }} 
-                />
-              </div>
-            )}
+            <h4 className="curtain-box-title">🛡️ Снаряжение и Стелс</h4>
 
             {currentGame === 'lockpick' && (
               <div className="curtain-row">
@@ -491,6 +393,10 @@ export default function TrialsTab() {
                 onChange={(e) => setStealthNoise(e.target.checked)} 
               />
             </div>
+
+            <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+              ℹ️ В испытаниях действуют естественные правила: отмычки ломаются при сильном упоре, ловушки взводят боёк при ошибке, а карманная кража зависит от бдительности жертвы.
+            </p>
           </div>
 
           {/* Колонка 3: Генератор испытаний и кубик */}
@@ -658,27 +564,6 @@ export default function TrialsTab() {
             </div>
           </div>
         )}
-
-        <div className="hud-tension-box">
-          {mode === 'realtime' ? (
-            <div className={`timer-box ${timeLeft <= 10 ? 'danger' : ''}`}>
-              <span className="timer-icon">⏳</span>
-              <span className="timer-digits">
-                {String(Math.floor(Math.ceil(timeLeft) / 60)).padStart(2, '0')}:
-                {String(Math.ceil(timeLeft) % 60).padStart(2, '0')}
-              </span>
-            </div>
-          ) : (
-            <div className="attempts-box">
-              <span className="hud-label">Запас:</span>
-              <span className="attempts-hearts">
-                {Array.from({ length: maxAttempts }).map((_, i) => (
-                  i < (maxAttempts - mistakesCount) ? '❤️' : '🖤'
-                ))}
-              </span>
-            </div>
-          )}
-        </div>
 
         {stealthNoise && (
           <div className="hud-noise-box">
