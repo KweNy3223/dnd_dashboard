@@ -221,12 +221,12 @@ export class TrapGame {
     this.plate.pourRate = 52 + (this.bonus * 1.8);
     this.plate.maxDangerTime = Math.max(0.48, 0.62 - (this.dc - 15) * 0.02);
 
-    // 4. Газ: стабильная калибровка от DC (без случайных скачков!)
-    this.gas.safeZoneMax = Math.max(32, Math.min(42, 38 - (this.dc - 15) * 0.6 + (this.bonus * 0.4)));
+    // 4. Газ: стабильная калибровка от DC (чем выше DC — тем быстрее накапливается давление!)
+    this.gas.safeZoneMax = Math.max(30, Math.min(42, 38 - (this.dc - 15) * 0.5 + (this.bonus * 0.4)));
     this.gas.dangerZoneMin = 75;
-    this.gas.riseRate = Math.max(16, 20 + (this.dc - 15) * 1.2 - (this.bonus * 0.4));
-    this.gas.neutralizeSpeed = Math.max(14, 18 - (this.dc - 15) * 0.3 + (this.bonus * 0.3));
-    this.gas.reactionHeat = Math.max(8, 10 + (this.dc - 15) * 0.4);
+    this.gas.riseRate = Math.max(12, 22 + (this.dc - 15) * 2.4 - (this.bonus * 0.5));
+    this.gas.neutralizeSpeed = Math.max(16, 20 - (this.dc - 15) * 0.3 + (this.bonus * 0.4));
+    this.gas.reactionHeat = Math.max(6, 9 + (this.dc - 15) * 0.4);
   }
 
   reset() {
@@ -681,17 +681,17 @@ export class TrapGame {
     let dropAmount = 38;
     if (this.gas.ventHeat > 1.6) {
       dropAmount = 28;
-      this.gas.ventCooldown = 0.75;
+      this.gas.ventCooldown = 0.70;
       this.statusMessage = '⚠️ Клапан перегрет! Стравливание слегка замедлено';
       this.statusTimer = 1.0;
     } else {
-      dropAmount = 38 + Math.random() * 4;
-      this.gas.ventCooldown = 0.55;
+      dropAmount = 40 + Math.random() * 4;
+      this.gas.ventCooldown = 0.48;
       this.statusMessage = '💨 Пар стравлен! Зажимайте впрыск, пока манометр в зелёной зоне!';
       this.statusTimer = 1.0;
     }
 
-    this.gas.ventHeat += 0.8;
+    this.gas.ventHeat += 0.65;
     audio.playSteamHiss(0.35);
 
     this.gas.pressure = Math.max(6, this.gas.pressure - dropAmount);
@@ -1561,7 +1561,7 @@ export class TrapGame {
     ctx.fillText('ВЗРЫВ', gaugeX + gr - 5, gaugeY + 28);
 
     // Стрелка манометра (с реалистичной вибрацией)
-    const jitter = (Math.random() - 0.5) * (this.gas.surgeWarning ? 0.08 : (this.gas.pressure > 60 ? 0.04 : 0.02));
+    const jitter = (Math.random() - 0.5) * (this.gas.pressure > 60 ? 0.04 : 0.02);
     const gAngle = startA + (this.gas.pressure / 100) * totalA + jitter;
 
     ctx.save();
@@ -1643,7 +1643,7 @@ export class TrapGame {
     ctx.font = 'bold 9px "Segoe UI", sans-serif';
     ctx.fillStyle = isOverheated ? '#fdba74' : '#94a3b8';
     ctx.textAlign = 'center';
-    ctx.fillText(isOverheated ? 'ГОРЯЧИЙ' : 'СБРОС [E]', ventX + 18, ventY + 24);
+    ctx.fillText(isOverheated ? 'ГОРЯЧИЙ' : 'СБРОС [ПРОБЕЛ]', ventX + 18, ventY + 24);
   }
 
   // --- ЧАСТИЦЫ И ЭФФЕКТЫ ---
