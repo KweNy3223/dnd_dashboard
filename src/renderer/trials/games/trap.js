@@ -225,17 +225,26 @@ export class TrapGame {
     // 4. Газ: двустороннее рабочее окно давления (safeZoneMin ... safeZoneMax)
     // Чем выше DC, тем уже рабочий коридор и тем быстрее растет давление!
     const dcDiff = this.dc - 15;
-    const windowHalfWidth = Math.max(5.5, Math.min(13, 9.5 - dcDiff * 0.45 + (this.bonus * 0.25)));
+    const windowHalfWidth = Math.max(5.0, Math.min(13, 9.5 - dcDiff * 0.45 + (this.bonus * 0.25)));
     const centerPressure = 36;
     this.gas.safeZoneMin = Math.round(centerPressure - windowHalfWidth);
     this.gas.safeZoneMax = Math.round(centerPressure + windowHalfWidth);
     this.gas.dangerZoneMin = 75;
-    this.gas.riseRate = Math.max(16, 24 + dcDiff * 2.5 - (this.bonus * 0.5));
+
+    // ЯВНАЯ, МОЩНАЯ ЗАВИСИМОСТЬ СКОРОСТИ ДАВЛЕНИЯ ОТ DC:
+    // DC 10: ~10%/с | DC 15: ~22%/с | DC 20: ~40%/с | DC 25: ~58%/с | DC 28: ~68%/с
+    this.gas.riseRate = Math.max(8, 22 + dcDiff * 3.5 - (this.bonus * 0.5));
     this.gas.neutralizeSpeed = Math.max(16, 20 - dcDiff * 0.2 + (this.bonus * 0.4));
-    this.gas.reactionHeat = Math.max(9, 13 + dcDiff * 0.4);
+    this.gas.reactionHeat = Math.max(6, 12 + dcDiff * 0.8);
+  }
+
+  onParametersChanged() {
+    this.calculateDndParams();
+    this.updateHUD();
   }
 
   reset() {
+    this.calculateDndParams();
     this.strikerStage = 0;
     this.isDisarmed = false;
     this.isDetonated = false;
@@ -277,6 +286,7 @@ export class TrapGame {
   }
 
   start() {
+    this.calculateDndParams();
     this.reset();
   }
 
