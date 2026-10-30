@@ -63,15 +63,15 @@ export const TRAP_CONFIGS = {
     id: 'gas',
     name: 'Ядовитый распылитель',
     icon: '🧪',
-    subtitle: 'Сбрасывайте пар клавишей ПРОБЕЛ, а в зелёной зоне (<38%) зажимайте впрыск нейтрализатора',
+    subtitle: 'Удерживайте давление в зелёном коридоре: сбрасывайте пар (ПРОБЕЛ) и зажимайте впрыск',
     actionBtnText: 'Впрыск нейтрализатора (Зажать ЛКМ / кнопку)',
     actionBtnIcon: '💉',
     guide1Key: 'Сброс пара',
-    guide1Desc: 'Клавиша ПРОБЕЛ сбивает напор пара в зелёную зону',
-    guide2Key: 'Впрыск',
-    guide2Desc: 'Вводите реагент только пока манометр в ЗЕЛЁНОМ секторе (<38%)',
-    guide3Key: 'Гидроудар',
-    guide3Desc: 'Впрыск в жёлтой зоне или рост давления до 100% сорвут затвор!'
+    guide1Desc: 'ПРОБЕЛ сбивает напор пара (~25%)',
+    guide2Key: 'Зелёный сектор',
+    guide2Desc: 'Вводите реагент строго в рабочей зоне давления',
+    guide3Key: 'Осечки',
+    guide3Desc: 'Впрыск выше границы сорвёт шприц, а 100% перегреет котёл!'
   }
 };
 
@@ -147,13 +147,14 @@ export class TrapGame {
 
     // --- 4. Газовый распылитель ---
     this.gas = {
-      pressure: 18,         // 0..100%
-      riseRate: 20,         // % в секунду (стабильный предсказуемый рост от DC)
-      safeZoneMax: 38,      // граница зеленой зоны
-      dangerZoneMin: 75,    // граница красной зоны
+      pressure: 20,         // 0..100%
+      riseRate: 24,         // % в секунду (от DC)
+      safeZoneMin: 25,      // нижняя граница рабочей зоны
+      safeZoneMax: 45,      // верхняя граница рабочей зоны
+      dangerZoneMin: 75,    // граница красной зоны (перегрев)
       neutralizeProgress: 0,// 0..100%
-      neutralizeSpeed: 16,  // скорость очистки
-      reactionHeat: 10,     // подогрев от реакции впрыска
+      neutralizeSpeed: 20,  // скорость очистки в рабочей зоне
+      reactionHeat: 11,     // подогрев при впрыске
       ventCooldown: 0,
       ventHeat: 0
     };
@@ -221,12 +222,17 @@ export class TrapGame {
     this.plate.pourRate = 52 + (this.bonus * 1.8);
     this.plate.maxDangerTime = Math.max(0.48, 0.62 - (this.dc - 15) * 0.02);
 
-    // 4. Газ: стабильная калибровка от DC (чем выше DC — тем быстрее накапливается давление!)
-    this.gas.safeZoneMax = Math.max(30, Math.min(42, 38 - (this.dc - 15) * 0.5 + (this.bonus * 0.4)));
+    // 4. Газ: двустороннее рабочее окно давления (safeZoneMin ... safeZoneMax)
+    // Чем выше DC, тем уже рабочий коридор и тем быстрее растет давление!
+    const dcDiff = this.dc - 15;
+    const windowHalfWidth = Math.max(7, Math.min(15, 11 - dcDiff * 0.45 + (this.bonus * 0.3)));
+    const centerPressure = 36;
+    this.gas.safeZoneMin = Math.round(centerPressure - windowHalfWidth);
+    this.gas.safeZoneMax = Math.round(centerPressure + windowHalfWidth);
     this.gas.dangerZoneMin = 75;
-    this.gas.riseRate = Math.max(12, 22 + (this.dc - 15) * 2.4 - (this.bonus * 0.5));
-    this.gas.neutralizeSpeed = Math.max(16, 20 - (this.dc - 15) * 0.3 + (this.bonus * 0.4));
-    this.gas.reactionHeat = Math.max(6, 9 + (this.dc - 15) * 0.4);
+    this.gas.riseRate = Math.max(14, 22 + dcDiff * 2.2 - (this.bonus * 0.5));
+    this.gas.neutralizeSpeed = Math.max(16, 20 - dcDiff * 0.2 + (this.bonus * 0.4));
+    this.gas.reactionHeat = Math.max(8, 11 + dcDiff * 0.3);
   }
 
   reset() {
@@ -264,7 +270,7 @@ export class TrapGame {
     this.plate.stabilizeProgress = 0;
     this.plate.dangerAccumulator = 0;
 
-    this.gas.pressure = 18;
+    this.gas.pressure = 20;
     this.gas.neutralizeProgress = 0;
     this.gas.ventCooldown = 0;
     this.gas.ventHeat = 0;
@@ -677,25 +683,23 @@ export class TrapGame {
   ventGasPressure() {
     if (this.gas.ventCooldown > 0) return;
 
-    // Четкий, стабильный сброс давления
-    let dropAmount = 38;
+    let dropAmount = 24 + Math.random() * 4;
     if (this.gas.ventHeat > 1.6) {
-      dropAmount = 28;
-      this.gas.ventCooldown = 0.70;
-      this.statusMessage = '⚠️ Клапан перегрет! Стравливание слегка замедлено';
+      dropAmount = 16;
+      this.gas.ventCooldown = 0.55;
+      this.statusMessage = '⚠️ Клапан перегрет! Стравливание замедлено';
       this.statusTimer = 1.0;
     } else {
-      dropAmount = 40 + Math.random() * 4;
-      this.gas.ventCooldown = 0.48;
-      this.statusMessage = '💨 Пар стравлен! Зажимайте впрыск, пока манометр в зелёной зоне!';
-      this.statusTimer = 1.0;
+      this.gas.ventCooldown = 0.38;
+      this.statusMessage = '💨 Пар стравлен! Ловите стрелку в зелёном коридоре!';
+      this.statusTimer = 0.8;
     }
 
-    this.gas.ventHeat += 0.65;
+    this.gas.ventHeat += 0.55;
     audio.playSteamHiss(0.35);
 
-    this.gas.pressure = Math.max(6, this.gas.pressure - dropAmount);
-    this.spawnSteam(this.logicalWidth / 2 + 75, this.logicalHeight * 0.45, 28);
+    this.gas.pressure = Math.max(8, this.gas.pressure - dropAmount);
+    this.spawnSteam(this.logicalWidth / 2 + 75, this.logicalHeight * 0.45, 26);
     this.updateHUD();
   }
 
@@ -709,18 +713,24 @@ export class TrapGame {
       this.gas.ventHeat = Math.max(0, this.gas.ventHeat - dt * 0.8);
     }
 
-    // Стабильный, предсказуемый рост давления кипящего яда
+    // Постоянный рост давления кипящего яда
     this.gas.pressure += this.gas.riseRate * dt;
 
     // Впрыск нейтрализатора
     if (this.isHoldingAction) {
-      // Экзотермическая реакция нейтрализатора подогревает смесь
-      const heatRate = this.gas.reactionHeat || 10;
-      this.gas.pressure += heatRate * dt;
+      const p = this.gas.pressure;
+      const minSafe = this.gas.safeZoneMin;
+      const maxSafe = this.gas.safeZoneMax;
 
-      if (this.gas.pressure <= this.gas.safeZoneMax) {
-        // ЗЕЛЕНАЯ ЗОНА: стабильный прогресс нейтрализации
-        const neutRate = this.gas.neutralizeSpeed || 16;
+      if (p < minSafe) {
+        // СИНЯЯ ЗОНА: недостаточно давления для диффузии реагента
+        this.gas.pressure += (this.gas.reactionHeat * 0.4) * dt;
+        this.statusMessage = `❄️ Давление мало (${Math.round(p)}% < ${minSafe}%). Ждите зелёный коридор!`;
+        this.statusTimer = 0.5;
+      } else if (p <= maxSafe) {
+        // ЗЕЛЕНЫЙ КОРИДОР: активная реакция нейтрализации!
+        this.gas.pressure += this.gas.reactionHeat * dt;
+        const neutRate = this.gas.neutralizeSpeed || 20;
         this.gas.neutralizeProgress = Math.min(100, this.gas.neutralizeProgress + neutRate * dt);
         audio.playChemicalFizz();
         audio.playNeedleInsert();
@@ -729,7 +739,7 @@ export class TrapGame {
           this.triggerVictory();
         }
       } else {
-        // ЖЕЛТАЯ/КРАСНАЯ ЗОНА: ОБРАТНЫЙ ГИДРОУДАР!
+        // ЖЕЛТО-КРАСНАЯ ЗОНА: ОБРАТНЫЙ ГИДРОУДАР!
         this.isHoldingAction = false;
         this.advanceStriker('Обратное давление яда вышибло шприц! Боёк сорван!');
       }
@@ -796,11 +806,26 @@ export class TrapGame {
     } else if (this.trapType === 'gas') {
       const p = Math.round(this.gas.pressure);
       const neut = Math.round(this.gas.neutralizeProgress);
-      const isSafe = p <= this.gas.safeZoneMax;
+      const minSafe = this.gas.safeZoneMin;
+      const maxSafe = this.gas.safeZoneMax;
+      const inZone = p >= minSafe && p <= maxSafe;
+      const isUnder = p < minSafe;
       const isDanger = p >= this.gas.dangerZoneMin;
-      this.trapHudLabel.textContent = `Давление: ${p}% | Нейтрализация:`;
-      this.trapHudValue.textContent = `${neut}% ${isSafe ? '(🟢 Зажимайте впрыск!)' : isDanger ? '(🔴 СРОЧНО СБРОСЬТЕ ПАР!)' : '(🟡 Высокое давление — сбросьте пар)'}`;
-      this.trapHudValue.style.color = isSafe ? '#22c55e' : isDanger ? '#ed4245' : '#f59e0b';
+
+      this.trapHudLabel.textContent = `Давление: ${p}% (Коридор: ${minSafe}–${maxSafe}%) | Нейтрализация:`;
+      if (inZone) {
+        this.trapHudValue.textContent = `${neut}% (🟢 ВПРЫСК! Рабочее давление!)`;
+        this.trapHudValue.style.color = '#22c55e';
+      } else if (isUnder) {
+        this.trapHudValue.textContent = `${neut}% (🔵 Давление мало — ждите коридор)`;
+        this.trapHudValue.style.color = '#38bdf8';
+      } else if (isDanger) {
+        this.trapHudValue.textContent = `${neut}% (🔴 КРИТИЧЕСКИЙ ПЕРЕГРЕВ! СБРОСЬТЕ ПАР!)`;
+        this.trapHudValue.style.color = '#ed4245';
+      } else {
+        this.trapHudValue.textContent = `${neut}% (🟡 Опасно! Выше нормы — сбросьте пар)`;
+        this.trapHudValue.style.color = '#f59e0b';
+      }
       this.trapProgressFill.style.width = `${neut}%`;
     }
   }
@@ -1526,24 +1551,32 @@ export class TrapGame {
 
     const startA = -Math.PI * 0.75;
     const totalA = Math.PI * 1.5;
-    const safeF = (this.gas.safeZoneMax || 38) / 100;
+    const safeMinF = (this.gas.safeZoneMin || 25) / 100;
+    const safeMaxF = (this.gas.safeZoneMax || 45) / 100;
     const dangerF = (this.gas.dangerZoneMin || 75) / 100;
 
-    // Зелёный безопасный сектор: РАЗРЕШЕН ВПРЫСК
+    // 1. Синий сектор (0% ... safeMin): НЕДОБОР ДАВЛЕНИЯ
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 6, startA, startA + totalA * safeF);
-    ctx.strokeStyle = '#22c55e';
+    ctx.arc(gaugeX, gaugeY, gr - 6, startA, startA + totalA * safeMinF);
+    ctx.strokeStyle = '#0284c7';
     ctx.lineWidth = 7;
     ctx.stroke();
 
-    // Жёлтый сектор: ОПАСНОСТЬ ГИДРОУДАРА
+    // 2. Зелёный безопасный сектор (safeMin ... safeMax): РАБОЧИЙ ВПРЫСК
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * safeF, startA + totalA * dangerF);
+    ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * safeMinF, startA + totalA * safeMaxF);
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    // 3. Жёлтый сектор: ОПАСНОСТЬ ГИДРОУДАРА
+    ctx.beginPath();
+    ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * safeMaxF, startA + totalA * dangerF);
     ctx.strokeStyle = '#f59e0b';
     ctx.lineWidth = 7;
     ctx.stroke();
 
-    // Красный сектор: ВЗРЫВ КОТЛА
+    // 4. Красный сектор: ВЗРЫВ КОТЛА
     ctx.beginPath();
     ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * dangerF, startA + totalA);
     ctx.strokeStyle = '#ef4444';
@@ -1552,9 +1585,13 @@ export class TrapGame {
 
     // Подписи секторов на циферблате
     ctx.font = 'bold 8px "Segoe UI", sans-serif';
-    ctx.fillStyle = '#4ade80';
+    ctx.fillStyle = '#38bdf8';
     ctx.textAlign = 'left';
-    ctx.fillText('ВПРЫСК', gaugeX - gr + 5, gaugeY + 28);
+    ctx.fillText('НИЗКО', gaugeX - gr + 5, gaugeY + 28);
+
+    ctx.fillStyle = '#4ade80';
+    ctx.textAlign = 'center';
+    ctx.fillText('ВПРЫСК', gaugeX, gaugeY - gr + 16);
 
     ctx.fillStyle = '#ef4444';
     ctx.textAlign = 'right';
@@ -1573,7 +1610,10 @@ export class TrapGame {
     ctx.lineTo(0, -(gr - 8));
     ctx.lineTo(3, 0);
     ctx.closePath();
-    ctx.fillStyle = this.gas.pressure <= this.gas.safeZoneMax ? '#22c55e' : (this.gas.pressure >= this.gas.dangerZoneMin ? '#ef4444' : '#f59e0b');
+    const inZone = this.gas.pressure >= this.gas.safeZoneMin && this.gas.pressure <= this.gas.safeZoneMax;
+    const isUnder = this.gas.pressure < this.gas.safeZoneMin;
+    const isOver = this.gas.pressure >= this.gas.dangerZoneMin;
+    ctx.fillStyle = inZone ? '#22c55e' : (isUnder ? '#38bdf8' : (isOver ? '#ef4444' : '#f59e0b'));
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 1;
@@ -1588,7 +1628,7 @@ export class TrapGame {
 
     // Текущее числовое давление под манометром
     ctx.font = 'bold 10px "Segoe UI", sans-serif';
-    ctx.fillStyle = this.gas.pressure <= this.gas.safeZoneMax ? '#4ade80' : '#f87171';
+    ctx.fillStyle = inZone ? '#4ade80' : (isUnder ? '#38bdf8' : '#f87171');
     ctx.textAlign = 'center';
     ctx.fillText(`ДАВЛЕНИЕ: ${Math.round(this.gas.pressure)}%`, gaugeX, gaugeY + gr + 16);
 
