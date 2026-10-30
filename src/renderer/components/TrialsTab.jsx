@@ -46,6 +46,8 @@ export default function TrialsTab({ onOpenSidebar }) {
   const [stealthNoise, setStealthNoise] = useState(false);
   const [lockTheme, setLockTheme] = useState('auto');
   const [lootType, setLootType] = useState('auto');
+  const [trapType, setTrapType] = useState('tripwire');
+  const [strikerStage, setStrikerStage] = useState(0);
   const [maxPicks, setMaxPicks] = useState(5);
   const [currentPicks, setCurrentPicks] = useState(5);
   const [pickDurability, setPickDurability] = useState(100);
@@ -77,6 +79,8 @@ export default function TrialsTab({ onOpenSidebar }) {
     maxPicks: 5,
     lockTheme: 'auto',
     lootType: 'auto',
+    trapType: 'tripwire',
+    strikerStage: 0,
     stealthNoise: false,
     challengeName: 'Тяжёлый кованый сундук бандитов'
   });
@@ -87,6 +91,8 @@ export default function TrialsTab({ onOpenSidebar }) {
   stateRef.current.maxPicks = maxPicks;
   stateRef.current.lockTheme = lockTheme;
   stateRef.current.lootType = lootType;
+  stateRef.current.trapType = trapType;
+  stateRef.current.strikerStage = strikerStage;
   stateRef.current.stealthNoise = stealthNoise;
   stateRef.current.challengeName = challengeName;
 
@@ -185,6 +191,17 @@ export default function TrialsTab({ onOpenSidebar }) {
       if (objName.includes('амулет') || objName.includes('око') || objName.includes('камен') || objName.includes('реликв')) return 'amulet';
       return 'pouch';
     },
+    getTrapType: () => {
+      return stateRef.current.trapType || 'tripwire';
+    },
+    setStrikerStage: (stage) => {
+      const s = Math.max(0, Math.min(3, stage));
+      stateRef.current.strikerStage = s;
+      setStrikerStage(s);
+    },
+    get strikerStage() {
+      return stateRef.current.strikerStage;
+    },
     get stealthNoiseEnabled() {
       return stateRef.current.stealthNoise;
     },
@@ -204,6 +221,8 @@ export default function TrialsTab({ onOpenSidebar }) {
     sessionStartTimeRef.current = performance.now();
     setMistakesCount(0);
     setNoiseLevel(0);
+    setStrikerStage(0);
+    stateRef.current.strikerStage = 0;
     setCurrentPicks(maxPicks);
     stateRef.current.currentPicks = maxPicks;
     setPickDurability(100);
@@ -218,6 +237,8 @@ export default function TrialsTab({ onOpenSidebar }) {
     sessionStartTimeRef.current = performance.now();
     setMistakesCount(0);
     setNoiseLevel(0);
+    setStrikerStage(0);
+    stateRef.current.strikerStage = 0;
     setCurrentPicks(maxPicks);
     stateRef.current.currentPicks = maxPicks;
     setPickDurability(100);
@@ -468,6 +489,29 @@ export default function TrialsTab({ onOpenSidebar }) {
                 </select>
               </div>
             )}
+
+            {currentGame === 'trap' && (
+              <div className="curtain-row">
+                <label>Тип механизма ловушки:</label>
+                <select 
+                  className="curtain-select"
+                  value={trapType}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setTrapType(next);
+                    stateRef.current.trapType = next;
+                    if (activeGameInstanceRef.current?.setTrapType) {
+                      activeGameInstanceRef.current.setTrapType(next);
+                    }
+                  }}
+                >
+                  <option value="tripwire">🏹 Арбалетная растяжка (нить и боёк)</option>
+                  <option value="gears">⚙️ Зубчатый часовой механизм (шестерня)</option>
+                  <option value="plate">⚖️ Плита-противовес (давление и вес)</option>
+                  <option value="gas">🧪 Ядовитый распылитель (газ и клапаны)</option>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Колонка 2: Снаряжение и Стелс */}
@@ -619,6 +663,17 @@ export default function TrialsTab({ onOpenSidebar }) {
           </div>
         )}
 
+        {currentGame === 'trap' && (
+          <div className="hud-striker-box">
+            <span className="hud-label">Боёк ловушки:</span>
+            <div className="striker-indicators" title="Шкала взвода бойка: 3 щелчка до детонации!">
+              <span className={`striker-pip ${strikerStage >= 1 ? 'active warning' : ''}`}>1</span>
+              <span className={`striker-pip ${strikerStage >= 2 ? 'active alert' : ''}`}>2</span>
+              <span className={`striker-pip ${strikerStage >= 3 ? 'active danger' : ''}`}>3 💥</span>
+            </div>
+          </div>
+        )}
+
         {stealthNoise && (
           <div className="hud-noise-box">
             <div className="noise-header">
@@ -706,9 +761,15 @@ export default function TrialsTab({ onOpenSidebar }) {
               )}
               {currentGame === 'trap' && (
                 <>
-                  <p><strong>Цель:</strong> Обезвредить спусковой механизм ловушки, перекусив натянутые жилы в верной последовательности согласно памятке вора.</p>
-                  <p><strong>Управление:</strong> Кликайте <code>ЛКМ</code> по жиле для среза. Для взведённых жил высокого натяжения или ядовитых трубок предварительно вставьте <strong>стопорный клин</strong> (клик по кнопке или клавиша <code>ПРОБЕЛ</code>).</p>
-                  <p><strong>Подсказка:</strong> Стопорный клин переключается в режим фиксации (зелёная подсветка). Пока клин зафиксирован, натяжение безопасно снижено!</p>
+                  <p><strong>Цель:</strong> Обезвредить один из 4 аутентичных механизмов D&D (выбирается Мастером) до 3-го щелчка бойка.</p>
+                  <p><strong>4 типа ловушек:</strong></p>
+                  <ul style={{ margin: '4px 0 8px 16px', padding: 0, fontSize: '12px', lineHeight: '1.5' }}>
+                    <li>🏹 <strong>Арбалетная растяжка:</strong> Направьте штифт в шептало бойка (удерживайте в целевой щели), затем перекусите нить кусачками в момент низкого натяжения (зелёная зона).</li>
+                    <li>⚙️ <strong>Зубчатый часовой механизм:</strong> Вбивайте стопорный клин клавишей <code>ПРОБЕЛ</code> или кликом точно в стопорные пазы вращающегося колеса.</li>
+                    <li>⚖️ <strong>Плита-противовес:</strong> Зажимайте <code>ПРОБЕЛ / ЛКМ</code>, чтобы подсыпать песок в чашу и удерживать стрелку в зелёной зоне равновесия, пока штифты стабилизируются на 100%.</li>
+                    <li>🧪 <strong>Ядовитый распылитель:</strong> Стравливайте избыточное давление клавишей <code>ПРОБЕЛ</code> и зажимайте впрыск нейтрализатора только при безопасном давлении (&lt;50%).</li>
+                  </ul>
+                  <p><strong>Шкала бойка:</strong> При критических ошибках боёк сдвигается на 1 зуб. После 3-го щелчка ловушка немедленно срабатывает!</p>
                 </>
               )}
               {currentGame === 'runes' && (

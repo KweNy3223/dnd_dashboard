@@ -270,6 +270,344 @@ class AudioEngine {
     thump.stop(t + 0.1);
   }
 
+  // 5.1. Шаг взвода бойка ловушки (1-й, 2-й и 3-й щелчок до детонации)
+  playStrikerStep(step = 1) {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+
+    if (step === 1) {
+      // 1-й щелчок: чёткий храповой металлический зацеп
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(480, t);
+      osc.frequency.exponentialRampToValueAtTime(180, t + 0.06);
+      gain.gain.setValueAtTime(0.5, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.07);
+
+      // Высокий металлический клик
+      const click = this.ctx.createBufferSource();
+      click.buffer = this.createNoiseBuffer(0.03);
+      if (click.buffer) {
+        const f = this.ctx.createBiquadFilter();
+        f.type = 'bandpass';
+        f.frequency.setValueAtTime(3200, t);
+        f.Q.setValueAtTime(8, t);
+        const g = this.ctx.createGain();
+        g.gain.setValueAtTime(0.4, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+        click.connect(f);
+        f.connect(g);
+        g.connect(this.masterGain);
+        click.start(t);
+      }
+    } else if (step === 2) {
+      // 2-й щелчок: угрожающий двойной лязг, пружина натянута до предела!
+      [0, 0.04].forEach((d, idx) => {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(idx === 0 ? 320 : 220, t + d);
+        osc.frequency.exponentialRampToValueAtTime(90, t + d + 0.08);
+        gain.gain.setValueAtTime(0.55, t + d);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + d + 0.09);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start(t + d);
+        osc.stop(t + d + 0.09);
+      });
+
+      // Гул натянутой пружины бойка
+      const hum = this.ctx.createOscillator();
+      const humGain = this.ctx.createGain();
+      hum.type = 'sine';
+      hum.frequency.setValueAtTime(140, t);
+      humGain.gain.setValueAtTime(0.3, t);
+      humGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+      hum.connect(humGain);
+      humGain.connect(this.masterGain);
+      hum.start(t);
+      hum.stop(t + 0.2);
+    } else {
+      // 3-й щелчок: срыв бойка и детонация
+      this.playExplosion();
+    }
+  }
+
+  // 5.2. Установка клина в шептало арбалета (Sear Pin Click)
+  playSearClick() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(820, t);
+    osc.frequency.exponentialRampToValueAtTime(320, t + 0.08);
+
+    gain.gain.setValueAtTime(0.45, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.08);
+  }
+
+  // 5.3. Вибрация натянутой нити-растяжки (Wire Hum)
+  playWireHum(pitch = 1.0) {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(240 * pitch, t);
+    osc.frequency.linearRampToValueAtTime(220 * pitch, t + 0.18);
+
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.2, t + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.18);
+  }
+
+  // 5.4. Удар стопорного клина в часовой механизм (Wedge Strike)
+  playWedgeStrike() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    // Глухой удар молота по клину
+    const thud = this.ctx.createOscillator();
+    const thudGain = this.ctx.createGain();
+    thud.type = 'triangle';
+    thud.frequency.setValueAtTime(260, t);
+    thud.frequency.exponentialRampToValueAtTime(70, t + 0.1);
+    thudGain.gain.setValueAtTime(0.65, t);
+    thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    thud.connect(thudGain);
+    thudGain.connect(this.masterGain);
+    thud.start(t);
+    thud.stop(t + 0.1);
+
+    // Звон латунных шестерней
+    const ring = this.ctx.createOscillator();
+    const ringGain = this.ctx.createGain();
+    ring.type = 'sine';
+    ring.frequency.setValueAtTime(1450, t);
+    ring.frequency.exponentialRampToValueAtTime(950, t + 0.22);
+    ringGain.gain.setValueAtTime(0.35, t);
+    ringGain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+    ring.connect(ringGain);
+    ringGain.connect(this.masterGain);
+    ring.start(t);
+    ring.stop(t + 0.22);
+  }
+
+  // 5.5. Скрежет шестерен при промахе клина (Gear Grind)
+  playGearGrind() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const dur = 0.22;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(dur);
+    if (!noise.buffer) return;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1800, t);
+    filter.frequency.linearRampToValueAtTime(900, t + dur);
+    filter.Q.setValueAtTime(5, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.6, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    noise.start(t);
+  }
+
+  // 5.6. Тиканье часового анкерного механизма (Gear Tick)
+  playGearTick(pitch = 1.0) {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1800 * pitch, t);
+    osc.frequency.exponentialRampToValueAtTime(600 * pitch, t + 0.025);
+
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.025);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.025);
+  }
+
+  // 5.7. Шелест и пересыпание песка противовеса (Sand Pour)
+  playSandPour() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    if (this._lastSandTime && t - this._lastSandTime < 0.12) return;
+    this._lastSandTime = t;
+
+    const dur = 0.16;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(dur);
+    if (!noise.buffer) return;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(950 + Math.random() * 200, t);
+    filter.Q.setValueAtTime(2.0, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.15, t + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    noise.start(t);
+  }
+
+  // 5.8. Гармоничный звон идеального равновесия плиты (Balance Chime)
+  playBalanceChime() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    if (this._lastBalanceTime && t - this._lastBalanceTime < 0.35) return;
+    this._lastBalanceTime = t;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, t); // A5
+    osc.frequency.exponentialRampToValueAtTime(1174.66, t + 0.25); // D6
+
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.18, t + 0.03);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.3);
+  }
+
+  // 5.9. Скрежет каменной плиты (Stone Grind)
+  playStoneGrind() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    if (this._lastStoneTime && t - this._lastStoneTime < 0.3) return;
+    this._lastStoneTime = t;
+
+    const dur = 0.28;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(dur);
+    if (!noise.buffer) return;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(320, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.4, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    noise.start(t);
+  }
+
+  // 5.10. Введение иглы/нейтрализатора в ядовитый распылитель (Needle Insert)
+  playNeedleInsert() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1600, t);
+    osc.frequency.exponentialRampToValueAtTime(2400, t + 0.05);
+
+    gain.gain.setValueAtTime(0.3, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(t);
+    osc.stop(t + 0.06);
+  }
+
+  // 5.11. Шипение химической реакции нейтрализатора (Chemical Fizz)
+  playChemicalFizz() {
+    if (this.muted) return;
+    this.ensureContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    if (this._lastFizzTime && t - this._lastFizzTime < 0.15) return;
+    this._lastFizzTime = t;
+
+    const dur = 0.18;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = this.createNoiseBuffer(dur);
+    if (!noise.buffer) return;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(3400 + Math.random() * 600, t);
+    filter.Q.setValueAtTime(3, t);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+    noise.start(t);
+  }
+
   // 6. Срабатывание взведённой пружины ловушки (тяжёлый железный ЛЯЗГ)
   playExplosion() {
     if (this.muted) return;
