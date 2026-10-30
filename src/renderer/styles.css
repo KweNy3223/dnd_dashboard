@@ -1877,6 +1877,39 @@ canvas.game-canvas:active {
   font-weight: 600;
 }
 
+/* Легенда магических элементов */
+.runes-elements-legend {
+  border-top: 1px solid var(--border-color);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legend-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.legend-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.legend-icon {
+  font-size: 13px;
+}
+
 /* --- 3. КАРМАННАЯ КРАЖА (PICKPOCKET) --- */
 .pickpocket-layout {
   display: flex;

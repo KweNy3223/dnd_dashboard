@@ -54,19 +54,13 @@ export class RunesGame {
     this.selectedRingIndex = 0;
     this.isSolved = false;
     this.isFailed = false;
-    this.mistakes = 0;
 
-    // Шкала эфирной нестабильности (0..100%)
-    this.instability = 0;
+    // Потоки маны и частицы
     this.activeBeams = [];
     this.impactPoints = [];
     this.particles = [];
     this.manaFlowTime = 0;
     this.activeEntropyHit = false;
-
-    // Способность "Арканный фокус" (стабилизация маны)
-    this.focusCooldown = 0;
-    this.focusMaxCooldown = 18;
 
     // Взаимодействие
     this.draggedRing = null;
@@ -116,23 +110,6 @@ export class RunesGame {
 
           <!-- Панель управления и статус печати -->
           <div class="runes-controls-panel">
-            <!-- Шкала эфирной нестабильности -->
-            <div class="instability-hud-card">
-              <div class="hud-header-row">
-                <span class="hud-label">⚡ Эфирная нестабильность:</span>
-                <span class="instability-value" id="instabilityValue">0%</span>
-              </div>
-              <div class="instability-bar-track">
-                <div class="instability-bar-fill" id="instabilityBarFill"></div>
-              </div>
-              <div class="instability-warning-text" id="instabilityWarn">Печать стабильна</div>
-            </div>
-
-            <!-- Способность персонажа: Арканный фокус -->
-            <button type="button" class="btn fantasy-btn secondary focus-btn" id="btnArcaneFocus">
-              <span>✦</span> Арканная стабилизация
-            </button>
-
             <!-- Селектор колец -->
             <div class="ring-selector-hud">
               <span class="hud-label">Выбор кольца печати:</span>
@@ -148,13 +125,24 @@ export class RunesGame {
               </button>
             </div>
 
-            <!-- Статус стихийных якорей -->
+            <!-- Статус стихийных алтарей -->
             <div class="anchors-status-card" id="anchorsStatusBox">
               <div class="hud-header-row" style="margin-bottom: 6px;">
                 <span class="anchors-title">Стихийные алтари печати:</span>
                 <span class="anchors-count-badge" id="anchorsCountBadge">0 / 0</span>
               </div>
               <div class="anchors-list" id="anchorsList"></div>
+            </div>
+
+            <!-- Легенда магических элементов -->
+            <div class="runes-elements-legend">
+              <span class="legend-title">Магические фокусы в цепи:</span>
+              <div class="legend-items-list">
+                <div class="legend-item"><span class="legend-icon">💎</span><span>Призма: меняет цвет маны под алтарь</span></div>
+                <div class="legend-item"><span class="legend-icon">🌀</span><span>Портал: телепортирует луч через кольца</span></div>
+                <div class="legend-item"><span class="legend-icon">☀️</span><span>Резонатор: заряжает луч маны</span></div>
+                <div class="legend-item"><span class="legend-icon">💀</span><span>Тёмный глиф: тупик, поглощает луч</span></div>
+              </div>
             </div>
           </div>
         </div>
@@ -166,15 +154,11 @@ export class RunesGame {
           </div>
           <div class="guide-pill">
             <span class="guide-key">A / D или ← / →</span>
-            <span>Поворот кольца</span>
+            <span>Поворот выбранного кольца</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">Пробел</span>
-            <span>Стабилизация маны</span>
-          </div>
-          <div class="guide-pill">
-            <span class="guide-key">ЛКМ перетаскивание</span>
-            <span>Плавное вращение</span>
+            <span class="guide-key">ЛКМ / Свайп</span>
+            <span>Плавное вращение мышью</span>
           </div>
         </div>
       </div>
@@ -187,10 +171,6 @@ export class RunesGame {
     this.anchorsCountBadge = this.container.querySelector('#anchorsCountBadge');
     this.btnRotateCCW = this.container.querySelector('#btnRotateCCW');
     this.btnRotateCW = this.container.querySelector('#btnRotateCW');
-    this.btnArcaneFocus = this.container.querySelector('#btnArcaneFocus');
-    this.instabilityValue = this.container.querySelector('#instabilityValue');
-    this.instabilityBarFill = this.container.querySelector('#instabilityBarFill');
-    this.instabilityWarn = this.container.querySelector('#instabilityWarn');
   }
 
   setupCanvas() {
@@ -246,9 +226,6 @@ export class RunesGame {
     } else if (e.code === 'Digit4') {
       this.selectRing(3);
       e.preventDefault();
-    } else if (e.code === 'Space') {
-      this.activateArcaneFocus();
-      e.preventDefault();
     }
   }
 
@@ -282,10 +259,7 @@ export class RunesGame {
     this.isFailed = false;
     this.particles = [];
     this.selectedRingIndex = 0;
-    this.instability = 0;
-    this.mistakes = 0;
     this.startTime = Date.now();
-    this.focusCooldown = 0;
 
     const dc = dnd.dc || 15;
 
@@ -508,7 +482,6 @@ export class RunesGame {
 
     this.renderRingSelectors();
     this.renderAnchorsHUD();
-    this.updateInstabilityUI();
   }
 
   // Вращение кольца с учетом сцепки
@@ -527,11 +500,8 @@ export class RunesGame {
       coupled.currentAngle = Math.round(coupled.angle / 45) * 45;
     }
 
-    // Эфирный шум от вращения (+к нестабильности)
+    // Звук вращения древнего кольца
     if (playSound) {
-      const heatGain = Math.max(0.3, 1.0 - (dnd.bonus || 0) * 0.1);
-      this.addInstability(heatGain);
-
       const pitch = 260 + ringIdx * 110;
       audio.playRuneHum(pitch, 0.24);
       audio.playTumblerClick(1.15);
@@ -543,26 +513,6 @@ export class RunesGame {
     this.applyRingRotation(this.selectedRingIndex, degDelta, true);
     this.traceManaBeams();
     this.checkWinCondition(true);
-  }
-
-  // =========================================================================
-  // --- СПОСОБНОСТЬ: АРКАННАЯ СТАБИЛИЗАЦИЯ (ФОКУС) ---
-  // =========================================================================
-  activateArcaneFocus() {
-    if (this.focusCooldown > 0 || this.isSolved || this.isFailed) return;
-
-    // Снимает 35% нестабильности
-    this.instability = Math.max(0, this.instability - 35);
-    this.focusCooldown = this.focusMaxCooldown;
-    this.updateInstabilityUI();
-
-    audio.playResonanceSurge();
-    this.spawnManaSparkles(0, 25, '#c084fc');
-
-    if (this.instabilityWarn) {
-      this.instabilityWarn.textContent = '✨ Эфирный поток стабилизирован!';
-      this.instabilityWarn.style.color = '#c084fc';
-    }
   }
 
   // =========================================================================
@@ -892,8 +842,6 @@ export class RunesGame {
         matchedAnchor.connected = true;
         audio.playBalanceChime();
         this.spawnManaSparkles(matchedAnchor.angle, 25, matchedAnchor.defaultColor);
-        // Замыкание стабилизирует печать (-20% нестабильности)
-        this.addInstability(-20);
       } else {
         matchedAnchor.connected = true;
       }
@@ -901,7 +849,7 @@ export class RunesGame {
   }
 
   // =========================================================================
-  // --- ПРОВЕРКА УСЛОВИЯ ПОБЕДЫ ИЛИ НЕСТАБИЛЬНОСТИ ---
+  // --- ПРОВЕРКА УСЛОВИЯ ПОБЕДЫ ---
   // =========================================================================
   checkWinCondition(triggerSounds = true) {
     const allConnected = this.anchors.every(a => a.connected);
@@ -921,87 +869,13 @@ export class RunesGame {
       setTimeout(() => {
         this.app.finishGame(true, {
           timeSpent,
-          mistakes: this.mistakes,
-          noiseLevel: Math.round(this.instability * 0.5)
+          mistakes: 0,
+          noiseLevel: 0
         });
       }, 1300);
       return true;
     }
     return false;
-  }
-
-  addInstability(amount) {
-    if (this.isSolved || this.isFailed) return;
-    this.instability = Math.max(0, Math.min(100, this.instability + amount));
-    this.updateInstabilityUI();
-
-    if (this.instability >= 100) {
-      this.triggerBacklash();
-    }
-  }
-
-  triggerBacklash() {
-    this.mistakes++;
-    audio.playBacklash();
-    this.instability = 55; // Сброс до половины
-    this.updateInstabilityUI();
-
-    if (this.instabilityWarn) {
-      this.instabilityWarn.textContent = '💥 ЭФИРНЫЙ СРЫВ! Ошибка резонанса!';
-      this.instabilityWarn.style.color = '#ef4444';
-    }
-
-    // Проверяем лимит попыток D&D
-    if (this.mistakes >= dnd.maxAttempts) {
-      this.isFailed = true;
-      audio.playFailure();
-      const timeSpent = Math.max(1, Math.round((Date.now() - this.startTime) / 1000));
-      setTimeout(() => {
-        this.app.finishGame(false, {
-          timeSpent,
-          mistakes: this.mistakes,
-          noiseLevel: 95
-        });
-      }, 1200);
-    }
-  }
-
-  updateInstabilityUI() {
-    if (!this.instabilityValue || !this.instabilityBarFill) return;
-    const rounded = Math.round(this.instability);
-    this.instabilityValue.textContent = `${rounded}%`;
-    this.instabilityBarFill.style.width = `${rounded}%`;
-
-    if (rounded < 40) {
-      this.instabilityBarFill.style.background = 'linear-gradient(90deg, #38bdf8, #06b6d4)';
-      if (this.instabilityWarn) {
-        this.instabilityWarn.textContent = 'Поток маны устойчив';
-        this.instabilityWarn.style.color = '#38bdf8';
-      }
-    } else if (rounded < 75) {
-      this.instabilityBarFill.style.background = 'linear-gradient(90deg, #f59e0b, #f97316)';
-      if (this.instabilityWarn) {
-        this.instabilityWarn.textContent = '⚠ Нарастает эфирное напряжение';
-        this.instabilityWarn.style.color = '#f59e0b';
-      }
-    } else {
-      this.instabilityBarFill.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
-      if (this.instabilityWarn) {
-        this.instabilityWarn.textContent = '⚡ КРИТИЧЕСКАЯ НЕСТАБИЛЬНОСТЬ!';
-        this.instabilityWarn.style.color = '#ef4444';
-      }
-    }
-
-    // Обновляем кнопку фокуса
-    if (this.btnArcaneFocus) {
-      if (this.focusCooldown > 0) {
-        this.btnArcaneFocus.disabled = true;
-        this.btnArcaneFocus.innerHTML = `<span>⏳</span> Фокус (${Math.ceil(this.focusCooldown)}с)`;
-      } else {
-        this.btnArcaneFocus.disabled = false;
-        this.btnArcaneFocus.innerHTML = `<span>✦</span> Арканная стабилизация`;
-      }
-    }
   }
 
   renderRingSelectors() {
@@ -1105,7 +979,6 @@ export class RunesGame {
         coupled.angle = (coupled.angle + coupledDelta + 720) % 360;
         coupled.currentAngle = Math.round(coupled.angle / 45) * 45;
       }
-      this.addInstability(1.0);
       audio.playRuneHum(300 + this.draggedRing.index * 120, 0.2);
     }
 
@@ -1143,22 +1016,9 @@ export class RunesGame {
       });
     }
 
-    // Кулдаун способности
-    if (this.focusCooldown > 0) {
-      this.focusCooldown = Math.max(0, this.focusCooldown - dt);
-      this.updateInstabilityUI();
-    }
-
-    // Если луч попадает в Глиф Энтропии — нагнетаем нестабильность непрерывно
-    if (this.activeEntropyHit && !this.isSolved && !this.isFailed) {
-      this.addInstability(8 * dt);
-      if (Math.random() < 0.1) {
-        audio.playEntropyHiss();
-      }
-    } else if (this.instability > 0 && !this.isSolved && !this.isFailed) {
-      // Медленное естественное рассеивание тепла
-      this.instability = Math.max(0, this.instability - 1.2 * dt);
-      this.updateInstabilityUI();
+    // Звук при блокировке луча темной руной
+    if (this.activeEntropyHit && !this.isSolved && Math.random() < 0.03) {
+      audio.playEntropyHiss();
     }
 
     // Частицы
