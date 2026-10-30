@@ -612,3 +612,1486 @@ input[type="number"] {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted); /* Чуть светлеет при наведении */
 }
+
+
+/* =========================================
+   7. ВЫДВИЖНОЙ САЙДБАР (SIDEBAR DRAWER)
+   ========================================= */
+
+.sidebar-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.sidebar-toggle-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-title);
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.sidebar-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.app-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 270px;
+  background-color: var(--bg-header);
+  border-right: 1px solid var(--border-color);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.45);
+  z-index: 2000;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  height: 60px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebar-crest {
+  font-size: 22px;
+}
+
+.sidebar-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-title);
+  line-height: 1.2;
+}
+
+.sidebar-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.sidebar-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.sidebar-close-btn:hover {
+  color: var(--text-title);
+  background-color: var(--bg-hover);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  padding: 12px 10px 4px 10px;
+  text-transform: uppercase;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.15s, color 0.15s;
+  position: relative;
+}
+
+.sidebar-link:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-title);
+}
+
+.sidebar-link.active {
+  background-color: var(--bg-module);
+  color: var(--text-title);
+  border-left: 3px solid var(--accent-gold);
+  font-weight: 600;
+}
+
+.sidebar-icon {
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+
+.sidebar-link:hover .sidebar-icon,
+.sidebar-link.active .sidebar-icon {
+  color: var(--accent-gold);
+}
+
+.sidebar-badge {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background-color: rgba(207, 168, 50, 0.2);
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+
+.sidebar-footer {
+  padding: 14px 16px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.sidebar-theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--bg-module);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.sidebar-theme-toggle:hover {
+  background-color: var(--bg-hover);
+}
+
+
+/* =========================================
+   8. СТИЛИ МАСТЕРСКОЙ ИСПЫТАНИЙ (TRIALS TAB)
+   ========================================= */
+
+.trials-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  position: relative;
+}
+
+/* ШТОРКА МАСТЕРА */
+.trials-curtain {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  background-color: var(--bg-header);
+  border-bottom: 2px solid var(--border-color);
+  transition: max-height 0.35s ease, opacity 0.25s ease, padding 0.25s ease;
+  padding: 0 20px;
+  z-index: 50;
+}
+
+.trials-curtain.open {
+  max-height: 600px;
+  opacity: 1;
+  padding: 18px 20px 14px 20px;
+  overflow-y: auto;
+}
+
+.trials-curtain-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.curtain-box {
+  background-color: var(--bg-module);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.curtain-box-title {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-title);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+}
+
+.curtain-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+}
+
+.curtain-row label {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-primary);
+}
+
+.curtain-row input[type="range"] {
+  accent-color: var(--accent-gold);
+  cursor: pointer;
+}
+
+.curtain-select {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.curtain-segmented {
+  display: flex;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.segmented-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.segmented-btn.active {
+  background-color: var(--bg-module);
+  color: var(--text-title);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.curtain-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-primary);
+}
+
+.d20-roller-box {
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.d20-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.d20-val {
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.curtain-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+.hand-off-btn {
+  min-width: 340px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* КНОПКИ */
+.trials-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.trials-btn.primary {
+  background-color: #3f4147;
+  color: #ffffff;
+}
+
+.trials-btn.primary:hover {
+  background-color: #55575e;
+}
+
+.trials-btn.secondary {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.trials-btn.secondary:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-title);
+}
+
+/* НАВИГАЦИОННАЯ ПОЛОСА МИНИ-ИГР */
+.trials-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-module);
+  border-bottom: 1px solid var(--border-color);
+  padding: 6px 16px;
+  min-height: 48px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trials-tabs-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.trials-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.trials-tab-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.trials-tab-btn.active {
+  background-color: var(--bg-app);
+  border-color: var(--border-color);
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+.trials-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trials-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.trials-action-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-title);
+}
+
+.trials-action-btn.active {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.trials-icon-btn {
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.trials-icon-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+/* СЕССИОННЫЙ HUD */
+.trials-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-header);
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 20px;
+  font-size: 13px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.hud-target-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 320px;
+}
+
+.hud-label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.hud-value {
+  color: var(--text-title);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-dnd-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-badge {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.dc-badge {
+  background-color: rgba(237, 66, 69, 0.15);
+  color: #ed4245;
+  border: 1px solid rgba(237, 66, 69, 0.3);
+}
+
+.bonus-badge {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.hud-picks-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.picks-badge {
+  font-weight: 600;
+  color: var(--accent-gold);
+}
+
+.durability-track {
+  width: 70px;
+  height: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.durability-fill {
+  height: 100%;
+  background-color: #22c55e;
+  transition: width 0.1s linear, background-color 0.2s;
+}
+
+.durability-fill.warning { background-color: #f59e0b; }
+.durability-fill.critical { background-color: #ed4245; }
+
+.timer-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-gold);
+}
+
+.timer-box.danger {
+  color: #ed4245;
+  border-color: #ed4245;
+  animation: pulse-danger 0.5s infinite alternate;
+}
+
+@keyframes pulse-danger {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.05); }
+}
+
+.hud-noise-box {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 140px;
+}
+
+.noise-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.noise-val.safe { color: #22c55e; }
+.noise-val.warning { color: #f59e0b; }
+.noise-val.danger { color: #ed4245; font-weight: 700; }
+
+.noise-track {
+  width: 100%;
+  height: 5px;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.noise-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 60%, #ed4245 100%);
+  transition: width 0.15s ease;
+}
+
+/* ИГРОВАЯ АРЕНА */
+.trials-arena-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.trials-canvas-stage {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stage-container {
+  width: 100%;
+  background-color: var(--bg-module);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+.stage-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.stage-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-title);
+}
+
+.stage-subtitle {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.canvas-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+canvas.game-canvas {
+  background: #0d0f14;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+  touch-action: none;
+  cursor: grab;
+}
+
+canvas.game-canvas:active {
+  cursor: grabbing;
+}
+
+.lock-controls-guide {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.guide-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.guide-key {
+  background-color: var(--bg-hover);
+  color: var(--text-title);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* МОДАЛЬНЫЕ ОКНА ИТОГОВ И СПРАВКИ */
+.trials-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(5px);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.trials-modal-card {
+  width: 100%;
+  max-width: 520px;
+  background-color: var(--bg-module);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 26px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+
+.result-crest {
+  font-size: 42px;
+  margin-bottom: 6px;
+}
+
+.result-title {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text-title);
+}
+
+.result-subtitle {
+  margin: 4px 0 16px 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.result-details-grid {
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 5px;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.detail-label {
+  color: var(--text-muted);
+}
+
+.detail-val {
+  color: var(--text-title);
+  font-weight: 600;
+}
+
+.narrative-item {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-narrative {
+  margin: 0;
+  color: var(--accent-gold);
+  font-style: italic;
+  line-height: 1.45;
+  font-size: 12.5px;
+}
+
+.modal-actions-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* СПРАВКА */
+.help-card {
+  max-width: 580px;
+  text-align: left;
+}
+
+.help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+
+.help-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-title);
+}
+
+.help-close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.help-close-btn:hover {
+  color: var(--text-title);
+}
+
+.help-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.help-content p {
+  margin: 0;
+}
+
+.help-content code {
+  background-color: var(--bg-app);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  font-family: inherit;
+}
+
+
+/* =========================================
+   9. СТИЛИ ПОД-ИГР (TRAP, RUNES, PICKPOCKET, ALCHEMY)
+   ========================================= */
+
+/* --- 1. ОБЕЗВРЕЖИВАНИЕ ЛОВУШКИ (TRAP) --- */
+.trap-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+}
+
+.trap-scroll-panel {
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.scroll-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.scroll-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-title);
+}
+
+.scroll-clues {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.clue-item {
+  display: flex;
+  gap: 8px;
+  background: var(--bg-module);
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-gold);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.clue-item.completed {
+  opacity: 0.45;
+  text-decoration: line-through;
+  border-left-color: #22c55e;
+}
+
+.clue-num {
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.thief-intuition {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #c084fc;
+}
+
+.trap-canvas-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.trap-manometer-hud {
+  width: 100%;
+  max-width: 520px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.manometer-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.manometer-val {
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.pressure-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.pressure-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e 0%, #f59e0b 60%, #ed4245 100%);
+  border-radius: 4px;
+  transition: width 0.1s linear;
+}
+
+.pressure-safe-zone {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 35%;
+  height: 100%;
+  border-right: 2px dashed #22c55e;
+  pointer-events: none;
+}
+
+.trap-controls-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* --- 2. МАГИЧЕСКИЕ РУНЫ (RUNES) --- */
+.runes-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+  align-items: center;
+  width: 100%;
+}
+
+.runes-canvas-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.runes-controls-panel {
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ring-selector-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ring-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ring-btn {
+  flex: 1;
+  min-width: 65px;
+  background: var(--bg-module);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ring-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.ring-btn.active {
+  background: rgba(207, 168, 50, 0.2);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  font-weight: 700;
+}
+
+.ring-turn-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.turn-btn {
+  font-size: 12px !important;
+  padding: 8px 10px !important;
+}
+
+.anchors-status-card {
+  border-top: 1px solid var(--border-color);
+  padding-top: 10px;
+}
+
+.anchors-title {
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.anchors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.anchor-status-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-module);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  opacity: 0.5;
+  transition: all 0.25s;
+}
+
+.anchor-status-item.active {
+  opacity: 1;
+  border-left: 3px solid #22c55e;
+}
+
+.anchor-rune {
+  font-size: 14px;
+}
+
+.anchor-name {
+  flex: 1;
+  margin-left: 8px;
+  color: var(--text-primary);
+}
+
+.anchor-badge {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* --- 3. КАРМАННАЯ КРАЖА (PICKPOCKET) --- */
+.pickpocket-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.npc-awareness-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.awareness-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.awareness-icon {
+  font-size: 24px;
+}
+
+.awareness-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.awareness-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.awareness-status {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.suspicion-bar-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.suspicion-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.suspicion-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.suspicion-fill {
+  height: 100%;
+  background: #22c55e;
+  transition: width 0.1s linear, background 0.2s;
+}
+
+.pickpocket-canvas-wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.extraction-progress-overlay {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 300px;
+  background: rgba(17, 18, 20, 0.9);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progress-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--accent-gold);
+  font-weight: 600;
+}
+
+.extraction-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.extraction-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-gold), #ffd666);
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+/* --- 4. ЗЕЛЬЕВАРЕНИЕ (ALCHEMY) --- */
+.alchemy-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr 220px;
+  gap: 16px;
+  align-items: start;
+  width: 100%;
+}
+
+.alchemy-recipe-panel {
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.recipe-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+}
+
+.recipe-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-title);
+}
+
+.recipe-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.recipe-step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-module);
+  padding: 6px 10px;
+  border-radius: 4px;
+  border-left: 3px solid transparent;
+  font-size: 12px;
+  opacity: 0.6;
+  transition: all 0.15s;
+}
+
+.recipe-step-item.active {
+  opacity: 1;
+  border-left-color: var(--accent-gold);
+}
+
+.recipe-step-item.completed {
+  opacity: 0.45;
+  text-decoration: line-through;
+  border-left-color: #22c55e;
+}
+
+.step-num {
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+.step-desc {
+  display: flex;
+  flex-direction: column;
+}
+
+.step-range {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.current-target-card {
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  padding: 8px 10px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.target-label {
+  font-size: 10px;
+  color: #06b6d4;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.target-val {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #e0f2fe;
+}
+
+.alchemy-cauldron-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.thermometer-hud {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 12px;
+}
+
+.thermometer-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.thermometer-val {
+  font-weight: 700;
+}
+
+.thermometer-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.thermometer-zone {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: rgba(34, 197, 94, 0.35);
+  border-left: 2px solid #22c55e;
+  border-right: 2px solid #22c55e;
+  pointer-events: none;
+}
+
+.thermometer-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 4px;
+  transition: width 0.08s linear;
+}
+
+.bellows-control-row {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.alchemy-shelf-panel {
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shelf-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-title);
+}
+
+.reagents-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reagent-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-module);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.reagent-btn:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--accent-gold);
+}
+
+.reagent-icon {
+  font-size: 16px;
+}

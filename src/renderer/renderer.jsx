@@ -4,7 +4,18 @@ import { HashRouter, Routes, Route, NavLink } from 'react-router-dom'; // Имп
 import './styles.css';
 
 // Иконки
-import { LayoutDashboard, Coins, Settings, BookOpen, Plus, Trash2, Store, Calculator } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Coins, 
+  Settings, 
+  BookOpen, 
+  Plus, 
+  Trash2, 
+  Store, 
+  Calculator,
+  Menu,
+  Swords
+} from 'lucide-react';
 
 // Компоненты
 import DiceRoller from './components/DiceRoller.jsx';
@@ -17,12 +28,15 @@ import BossTracker from './components/BossTracker.jsx';
 import PricesTab from './components/PricesTab.jsx';
 import CalculatorTab from './components/CalculatorTab.jsx';
 import RulesTab from './components/RulesTab.jsx';
+import Sidebar from './components/Sidebar.jsx';
+import TrialsTab from './components/TrialsTab.jsx';
 
 function App() {
   // 1. ПАМЯТЬ ПРИЛОЖЕНИЯ
   const [modules, setModules] = useState([]);
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false); // Для кастомного окна очистки стола
@@ -119,9 +133,25 @@ function App() {
     <HashRouter>
       <div className='app-container' data-theme={isDarkTheme ? 'dark' : 'light'}>
         
+        {/* Боковая шторка навигации */}
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          onClose={() => setIsSidebarOpen(false)}
+          isDarkTheme={isDarkTheme}
+          onToggleTheme={() => setIsDarkTheme(!isDarkTheme)}
+        />
+
         {/* --- ВЕРХНЯЯ ПАНЕЛЬ НАВИГАЦИИ --- */}
         <header className='top-navbar'>
-          <div className="navbar-left">
+          <div className="navbar-left" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              type="button" 
+              className="sidebar-toggle-btn"
+              onClick={() => setIsSidebarOpen(true)}
+              title="Открыть меню разделов"
+            >
+              <Menu size={20} />
+            </button>
             <h2 className="app-title">DnD Dashboard</h2>
           </div>
 
@@ -130,12 +160,14 @@ function App() {
               <LayoutDashboard size={18} /> Стол
             </NavLink>
 
-            {/* Новая кнопка справочника */}
+            <NavLink to="/trials" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Swords size={18} /> Испытания
+            </NavLink>
+
             <NavLink to="/prices" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Store size={18} /> Справочник цен
             </NavLink>
 
-            {/* Новая кнопка калькулятора */}
             <NavLink to="/calculator" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Calculator size={18} /> Калькулятор лута
             </NavLink>
@@ -199,13 +231,16 @@ function App() {
               </>
             } />
 
+            {/* СТРАНИЦА: МАСТЕРСКАЯ ИСПЫТАНИЙ */}
+            <Route path="/trials" element={<TrialsTab />} />
+
             {/* СТРАНИЦА 2: СПРАВОЧНИК ЦЕН */}
             <Route path="/prices" element={<PricesTab />} />
 
             {/* СТРАНИЦА 3: КАЛЬКУЛЯТОР ЛУТА */}
             <Route path="/calculator" element={<CalculatorTab />} />
 
-            {/* СТРАНИЦА 3: СПРАВОЧНИК */}
+            {/* СТРАНИЦА 4: СПРАВОЧНИК */}
             <Route path="/rules" element={<RulesTab />} />
 
             {/* СТРАНИЦА 5: НАСТРОЙКИ */}
