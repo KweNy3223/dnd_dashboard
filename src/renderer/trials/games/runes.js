@@ -59,6 +59,7 @@ export class RunesGame {
     // Шкала эфирной нестабильности (0..100%)
     this.instability = 0;
     this.activeBeams = [];
+    this.impactPoints = [];
     this.particles = [];
     this.manaFlowTime = 0;
     this.activeEntropyHit = false;
@@ -96,7 +97,15 @@ export class RunesGame {
       <div class="stage-container runes-stage">
         <div class="stage-header">
           <h2 class="stage-title">🔮 Магические руны: Арканная Цепь</h2>
-          <p class="stage-subtitle">Направьте живой поток маны из центрального ядра к стихийным алтарям, используя призмы, порталы и руны резонанса.</p>
+          <p class="stage-subtitle">Вращайте кольца, совмещая золотые желоба со светящимися лучами из центрального ядра, чтобы замкнуть алтари стихий.</p>
+        </div>
+
+        <!-- Подсказка для понимания правил -->
+        <div class="runes-hint-banner">
+          <span class="hint-icon">💡</span>
+          <span class="hint-text">
+            <strong>Как играть:</strong> Мана бьёт из центрального ядра. Совмещайте золотые желоба на кольцах с сияющими точками удара маны, чтобы провести ток к цветным алтарям стихий на внешнем круге.
+          </span>
         </div>
 
         <div class="runes-layout">
@@ -472,8 +481,8 @@ export class RunesGame {
     });
 
     // --- КИНЕМАТИЧЕСКАЯ / РЕЗОНАНСНАЯ СЦЕПКА КОЛЕЦ ---
-    // При DC >= 15 включается сцепка двух соседних колец
-    if (dc >= 15 && numRings >= 3) {
+    // Сцепка колец активна только на легендарном DC >= 24 (Тир 4)
+    if (dc >= 24 && numRings >= 3) {
       const ringA = 1;
       const ringB = 2;
       this.rings[ringA].coupledRing = ringB;
@@ -520,8 +529,7 @@ export class RunesGame {
 
     // Эфирный шум от вращения (+к нестабильности)
     if (playSound) {
-      const bonusAdv = dnd.getEffectiveAdvantage();
-      const heatGain = Math.max(1.2, 3.4 - (dnd.bonus || 0) * 0.2);
+      const heatGain = Math.max(0.3, 1.0 - (dnd.bonus || 0) * 0.1);
       this.addInstability(heatGain);
 
       const pitch = 260 + ringIdx * 110;
@@ -562,6 +570,7 @@ export class RunesGame {
   // =========================================================================
   traceManaBeams() {
     this.activeBeams = [];
+    this.impactPoints = [];
     this.activeEntropyHit = false;
 
     // Сбрасываем статус якорей
@@ -619,13 +628,25 @@ export class RunesGame {
 
     if (!node || node.type === NODE_TYPES.EMPTY) {
       // Пустой сектор: луч упирается в камень и рассеивается
+      const impactX = center + Math.cos(currentRad) * rIn;
+      const impactY = center + Math.sin(currentRad) * rIn;
+
       beam.path.push({
         type: 'line',
-        x1: center + Math.cos(currentRad) * rIn,
-        y1: center + Math.sin(currentRad) * rIn,
-        x2: center + Math.cos(currentRad) * (rIn + 8),
-        y2: center + Math.sin(currentRad) * (rIn + 8)
+        x1: center + Math.cos(currentRad) * (rIn - 2),
+        y1: center + Math.sin(currentRad) * (rIn - 2),
+        x2: impactX,
+        y2: impactY
       });
+
+      this.impactPoints.push({
+        x: impactX,
+        y: impactY,
+        angle: currentRad,
+        ringIdx: beam.ringIdx,
+        color: beam.isOvercharged ? '#e879f9' : (SPECTRA[beam.spectrum]?.color || '#38bdf8')
+      });
+
       this.activeBeams.push(beam);
       return;
     }
@@ -1084,7 +1105,7 @@ export class RunesGame {
         coupled.angle = (coupled.angle + coupledDelta + 720) % 360;
         coupled.currentAngle = Math.round(coupled.angle / 45) * 45;
       }
-      this.addInstability(2.5);
+      this.addInstability(1.0);
       audio.playRuneHum(300 + this.draggedRing.index * 120, 0.2);
     }
 
@@ -1170,6 +1191,9 @@ export class RunesGame {
 
     // 3. Живые светящиеся потоки маны
     this.drawActiveBeams(ctx);
+
+    // 3.1. Маяки точек удара маны (показывают, куда направить желоб)
+    this.drawImpactBeacons(ctx);
 
     // 4. Пульсирующее арканное ядро
     this.drawCentralCore(ctx, cx, cy);
@@ -1260,51 +1284,80 @@ export class RunesGame {
 
     if (node.type === NODE_TYPES.EMPTY) return;
 
-    // Базовый цвет желоба (медь/латунь)
-    ctx.strokeStyle = 'rgba(212, 175, 55, 0.4)';
-    ctx.lineWidth = 3;
+    // Вспомогательная функция для отрисовки пути желоба (подложка + бортики)
+    const renderGroovePath = () => {
+      ctx.beginPath();
+      if (node.type === NODE_TYPES.STRAIGHT || node.type === NODE_TYPES.PRISM || node.type === NODE_TYPES.RESONATOR) {
+        ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
+        ctx.lineTo(Math.cos(rad) * rOut, Math.sin(rad) * rOut);
+      } else if (node.type === NODE_TYPES.TURN_CW) {
+        const nextRad = ((s + 1) * 45 * Math.PI) / 180;
+        ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
+        ctx.lineTo(Math.cos(rad) * rMid, Math.sin(rad) * rMid);
+        ctx.arc(0, 0, rMid, rad, rad + (Math.PI / 4), false);
+        ctx.lineTo(Math.cos(nextRad) * rOut, Math.sin(nextRad) * rOut);
+      } else if (node.type === NODE_TYPES.TURN_CCW) {
+        const nextRad = ((s - 1) * 45 * Math.PI) / 180;
+        ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
+        ctx.lineTo(Math.cos(rad) * rMid, Math.sin(rad) * rMid);
+        ctx.arc(0, 0, rMid, rad, rad - (Math.PI / 4), true);
+        ctx.lineTo(Math.cos(nextRad) * rOut, Math.sin(nextRad) * rOut);
+      } else if (node.type === NODE_TYPES.FORK) {
+        const nextRad = ((s + 1) * 45 * Math.PI) / 180;
+        ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
+        ctx.lineTo(Math.cos(rad) * rOut, Math.sin(rad) * rOut);
+        ctx.moveTo(Math.cos(rad) * rMid, Math.sin(rad) * rMid);
+        ctx.arc(0, 0, rMid, rad, rad + (Math.PI / 4), false);
+        ctx.lineTo(Math.cos(nextRad) * rOut, Math.sin(nextRad) * rOut);
+      }
+    };
+
+    // Вспомогательная функция для контактного узла (порта) на ободе
+    const drawPort = (radius, angle) => {
+      const px = Math.cos(angle) * radius;
+      const py = Math.sin(angle) * radius;
+      ctx.beginPath();
+      ctx.arc(px, py, 3.2, 0, Math.PI * 2);
+      ctx.fillStyle = '#d4af37';
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    };
+
+    // 1. Глубокая темная канавка желоба
+    renderGroovePath();
+    ctx.strokeStyle = 'rgba(10, 12, 18, 0.95)';
+    ctx.lineWidth = 6;
     ctx.lineCap = 'round';
+    ctx.stroke();
 
-    if (node.type === NODE_TYPES.STRAIGHT) {
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
-      ctx.lineTo(Math.cos(rad) * rOut, Math.sin(rad) * rOut);
-      ctx.stroke();
+    // 2. Золотистые металлические бортики
+    renderGroovePath();
+    ctx.strokeStyle = 'rgba(212, 175, 55, 0.65)';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // 3. Золотые контактные порты на краях кольца
+    if (node.type === NODE_TYPES.STRAIGHT || node.type === NODE_TYPES.PRISM || node.type === NODE_TYPES.RESONATOR) {
+      drawPort(rIn, rad);
+      drawPort(rOut, rad);
     } else if (node.type === NODE_TYPES.TURN_CW) {
-      const nextRad = ((s + 1) * 45 * Math.PI) / 180;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
-      ctx.lineTo(Math.cos(rad) * rMid, Math.sin(rad) * rMid);
-      ctx.arc(0, 0, rMid, rad, rad + (Math.PI / 4), false);
-      ctx.lineTo(Math.cos(nextRad) * rOut, Math.sin(nextRad) * rOut);
-      ctx.stroke();
+      drawPort(rIn, rad);
+      drawPort(rOut, ((s + 1) * 45 * Math.PI) / 180);
     } else if (node.type === NODE_TYPES.TURN_CCW) {
-      const nextRad = ((s - 1) * 45 * Math.PI) / 180;
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
-      ctx.lineTo(Math.cos(rad) * rMid, Math.sin(rad) * rMid);
-      ctx.arc(0, 0, rMid, rad, rad - (Math.PI / 4), true);
-      ctx.lineTo(Math.cos(nextRad) * rOut, Math.sin(nextRad) * rOut);
-      ctx.stroke();
+      drawPort(rIn, rad);
+      drawPort(rOut, ((s - 1) * 45 * Math.PI) / 180);
     } else if (node.type === NODE_TYPES.FORK) {
-      const nextRad = ((s + 1) * 45 * Math.PI) / 180;
-      // Прямой канал
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
-      ctx.lineTo(Math.cos(rad) * rOut, Math.sin(rad) * rOut);
-      ctx.stroke();
-      // Дуговое ответвление
-      ctx.beginPath();
-      ctx.arc(0, 0, rMid, rad, rad + (Math.PI / 4), false);
-      ctx.lineTo(Math.cos(nextRad) * rOut, Math.sin(nextRad) * rOut);
-      ctx.stroke();
-    } else if (node.type === NODE_TYPES.PRISM) {
-      // Астральная Призма: граненый кристалл
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
-      ctx.lineTo(Math.cos(rad) * rOut, Math.sin(rad) * rOut);
-      ctx.stroke();
+      drawPort(rIn, rad);
+      drawPort(rOut, rad);
+      drawPort(rOut, ((s + 1) * 45 * Math.PI) / 180);
+    }
 
+    // 4. Отрисовка магических вставок
+    if (node.type === NODE_TYPES.PRISM) {
       const px = Math.cos(rad) * rMid;
       const py = Math.sin(rad) * rMid;
       const spec = SPECTRA[node.spectrum] || SPECTRA.FIRE;
@@ -1314,75 +1367,95 @@ export class RunesGame {
       ctx.rotate(rad);
       ctx.fillStyle = spec.color;
       ctx.shadowColor = spec.color;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 10;
       ctx.beginPath();
-      ctx.moveTo(0, -6);
-      ctx.lineTo(6, 0);
-      ctx.lineTo(0, 6);
-      ctx.lineTo(-6, 0);
+      ctx.moveTo(0, -7);
+      ctx.lineTo(7, 0);
+      ctx.lineTo(0, 7);
+      ctx.lineTo(-7, 0);
       ctx.closePath();
       ctx.fill();
       ctx.restore();
     } else if (node.type === NODE_TYPES.RESONATOR) {
-      // Руна Резонанса: солярный символ
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
-      ctx.lineTo(Math.cos(rad) * rOut, Math.sin(rad) * rOut);
-      ctx.stroke();
-
       const rx = Math.cos(rad) * rMid;
       const ry = Math.sin(rad) * rMid;
       ctx.save();
       ctx.beginPath();
-      ctx.arc(rx, ry, 5, 0, Math.PI * 2);
+      ctx.arc(rx, ry, 6, 0, Math.PI * 2);
       ctx.fillStyle = '#ffd666';
       ctx.shadowColor = '#ffd666';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 12;
       ctx.fill();
       ctx.restore();
     } else if (node.type === NODE_TYPES.ENTROPY) {
-      // Глиф Энтропии: тёмное фиолетовое око
       const ex = Math.cos(rad) * rMid;
       const ey = Math.sin(rad) * rMid;
       ctx.save();
       ctx.beginPath();
-      ctx.arc(ex, ey, 7, 0, Math.PI * 2);
-      ctx.fillStyle = '#4a044e';
+      ctx.arc(ex, ey, 8, 0, Math.PI * 2);
+      ctx.fillStyle = '#3b0764';
       ctx.strokeStyle = '#c026d3';
       ctx.lineWidth = 1.5;
       ctx.shadowColor = '#c026d3';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 12;
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = '#fdf4ff';
-      ctx.font = '10px sans-serif';
+      ctx.font = '11px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('💀', ex, ey);
       ctx.restore();
     } else if (node.type === NODE_TYPES.PORTAL) {
-      // Фазовый Разлом: спираль воронки
       const pox = Math.cos(rad) * rMid;
       const poy = Math.sin(rad) * rMid;
       ctx.save();
       ctx.beginPath();
-      ctx.arc(pox, poy, 6, 0, Math.PI * 2);
-      ctx.fillStyle = '#312e81';
+      ctx.arc(pox, poy, 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#1e1b4b';
       ctx.strokeStyle = '#818cf8';
       ctx.lineWidth = 1.5;
       ctx.shadowColor = '#818cf8';
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 10;
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = '9px sans-serif';
+      ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('🌀', pox, poy);
       ctx.restore();
     }
+  }
+
+  // Отрисовка маяков точек удара маны (куда бьёт луч)
+  drawImpactBeacons(ctx) {
+    if (!this.impactPoints || this.impactPoints.length === 0) return;
+    const pulse = Math.sin(this.manaFlowTime * 6) * 2.5;
+
+    this.impactPoints.forEach(pt => {
+      ctx.save();
+
+      // Пульсирующий внешний ореол
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 7 + pulse, 0, Math.PI * 2);
+      ctx.fillStyle = pt.color;
+      ctx.shadowColor = pt.color;
+      ctx.shadowBlur = 14;
+      ctx.globalAlpha = 0.55;
+      ctx.fill();
+
+      // Яркий концентрический ободок
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.globalAlpha = 0.95;
+      ctx.fill();
+
+      ctx.restore();
+    });
   }
 
   drawActiveBeams(ctx) {
@@ -1432,6 +1505,23 @@ export class RunesGame {
     ctx.save();
     const pulse = Math.sin(this.manaFlowTime * 2.5) * 3.5;
     const r = 26 + pulse;
+
+    // 4 Выходных сопла эмиттеров маны
+    [0, 90, 180, 270].forEach(deg => {
+      const rad = (deg * Math.PI) / 180;
+      const ex = cx + Math.cos(rad) * (r + 4);
+      const ey = cy + Math.sin(rad) * (r + 4);
+      ctx.beginPath();
+      ctx.arc(ex, ey, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#38bdf8';
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(ex, ey, 2, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    });
 
     ctx.shadowColor = '#8b5cf6';
     ctx.shadowBlur = 22;
