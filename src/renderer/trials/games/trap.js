@@ -223,19 +223,18 @@ export class TrapGame {
     this.plate.maxDangerTime = Math.max(0.48, 0.62 - (this.dc - 15) * 0.02);
 
     // 4. Газ: двустороннее рабочее окно давления (safeZoneMin ... safeZoneMax)
-    // Чем выше DC, тем уже рабочий коридор и тем быстрее растет давление!
     const dcDiff = this.dc - 15;
-    const windowHalfWidth = Math.max(5.0, Math.min(13, 9.5 - dcDiff * 0.45 + (this.bonus * 0.25)));
+    const windowHalfWidth = Math.max(5.5, Math.min(13, 9.5 - dcDiff * 0.40 + (this.bonus * 0.25)));
     const centerPressure = 36;
     this.gas.safeZoneMin = Math.round(centerPressure - windowHalfWidth);
     this.gas.safeZoneMax = Math.round(centerPressure + windowHalfWidth);
     this.gas.dangerZoneMin = 75;
 
-    // ЯВНАЯ, МОЩНАЯ ЗАВИСИМОСТЬ СКОРОСТИ ДАВЛЕНИЯ ОТ DC:
-    // DC 10: ~10%/с | DC 15: ~22%/с | DC 20: ~40%/с | DC 25: ~58%/с | DC 28: ~68%/с
-    this.gas.riseRate = Math.max(8, 22 + dcDiff * 3.5 - (this.bonus * 0.5));
+    // Плавная, честная прогрессия скорости нагнетания давления от DC:
+    // DC 10: ~10%/с | DC 15: ~18%/с | DC 20: ~26%/с | DC 25: ~34%/с | DC 28: ~38%/с
+    this.gas.riseRate = Math.max(9, 18 + dcDiff * 1.6 - (this.bonus * 0.4));
     this.gas.neutralizeSpeed = Math.max(16, 20 - dcDiff * 0.2 + (this.bonus * 0.4));
-    this.gas.reactionHeat = Math.max(6, 12 + dcDiff * 0.8);
+    this.gas.reactionHeat = Math.max(6, 10 + dcDiff * 0.4);
   }
 
   onParametersChanged() {
@@ -695,19 +694,12 @@ export class TrapGame {
   ventGasPressure() {
     if (this.gas.ventCooldown > 0) return;
 
-    let dropAmount = 22 + Math.random() * 4;
-    if (this.gas.ventHeat > 1.6) {
-      dropAmount = 15;
-      this.gas.ventCooldown = 0.55;
-      this.statusMessage = '⚠️ Клапан перегрет! Стравливание замедлено';
-      this.statusTimer = 1.0;
-    } else {
-      this.gas.ventCooldown = 0.38;
-      this.statusMessage = '💨 Пар стравлен! Ловите стрелку в зелёном коридоре!';
-      this.statusTimer = 0.8;
-    }
+    // Мощный и надёжный сброс: сбивает давление на ~36-40% с быстрым кулдауном 0.28с
+    const dropAmount = 36 + Math.random() * 4;
+    this.gas.ventCooldown = 0.28;
+    this.statusMessage = '💨 Пар стравлен! Ловите стрелку в зелёном коридоре!';
+    this.statusTimer = 0.8;
 
-    this.gas.ventHeat += 0.55;
     audio.playSteamHiss(0.32);
 
     this.gas.pressure = Math.max(8, this.gas.pressure - dropAmount);
