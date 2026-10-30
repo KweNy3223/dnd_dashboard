@@ -152,7 +152,10 @@ export class TrapGame {
       safeZoneMax: 38,      // строгая граница зеленой зоны
       dangerZoneMin: 75,    // граница красной зоны
       neutralizeProgress: 0,// 0..100%
-      ventCooldown: 0
+      ventCooldown: 0,
+      ventHeat: 0,          // защита от спама стравливания
+      surgeTimer: 1.4,      // таймер внезапного резкого скачка давления
+      surgeWarning: false   // бурление перед скачком
     };
 
     // Привязанные события
@@ -260,6 +263,9 @@ export class TrapGame {
     this.gas.pressure = 20;
     this.gas.neutralizeProgress = 0;
     this.gas.ventCooldown = 0;
+    this.gas.ventHeat = 0;
+    this.gas.surgeTimer = 1.0 + Math.random() * 1.5;
+    this.gas.surgeWarning = false;
   }
 
   start() {
@@ -648,18 +654,18 @@ export class TrapGame {
   }
 
   spawnSandGrains() {
-    const cx = this.logicalWidth / 2 + 140;
-    const cy = 160;
+    const cx = this.logicalWidth / 2 + 105;
+    const cy = 98;
     for (let i = 0; i < 3; i++) {
       this.particles.push({
         type: 'sand',
         x: cx + (Math.random() - 0.5) * 6,
         y: cy + (Math.random() - 0.5) * 4,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: 3 + Math.random() * 3,
-        color: '#d97706',
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: 3.5 + Math.random() * 3,
+        color: '#fbbf24',
         size: 2 + Math.random() * 1.5,
-        life: 0.5,
+        life: 0.45,
         decay: 0.05
       });
     }
@@ -668,14 +674,26 @@ export class TrapGame {
   // --- ПОД-ИГРА 4: ЯДОВИТЫЙ РАСПЫЛИТЕЛЬ ---
   ventGasPressure() {
     if (this.gas.ventCooldown > 0) return;
-    this.gas.ventCooldown = 0.55;
-    audio.playSteamHiss(0.35);
 
-    // Сбрасываем 36% давления
-    this.gas.pressure = Math.max(10, this.gas.pressure - 36);
-    this.spawnSteam(this.logicalWidth * 0.8, this.logicalHeight * 0.42, 25);
-    this.statusMessage = '💨 Пар стравлен! Зажимайте впрыск пока манометр зелёный!';
-    this.statusTimer = 1.3;
+    let dropAmount = 35;
+    if (this.gas.ventHeat > 1.2) {
+      // Клапан перегрет частым стравливанием!
+      dropAmount = 20;
+      this.gas.ventCooldown = 1.05;
+      this.statusMessage = '⚠️ Клапан перегрет частым сбросом! Стравливание ослаблено!';
+      this.statusTimer = 1.4;
+    } else {
+      dropAmount = 33 + Math.random() * 6;
+      this.gas.ventCooldown = 0.85;
+      this.statusMessage = '💨 Пар стравлен! Зажимайте впрыск пока манометр зелёный!';
+      this.statusTimer = 1.2;
+    }
+
+    this.gas.ventHeat += 1.3;
+    audio.playSteamHiss(0.38);
+
+    this.gas.pressure = Math.max(8, this.gas.pressure - dropAmount);
+    this.spawnSteam(this.logicalWidth / 2 + 75, this.logicalHeight * 0.45, 30);
     this.updateHUD();
   }
 
@@ -685,18 +703,35 @@ export class TrapGame {
     if (this.gas.ventCooldown > 0) {
       this.gas.ventCooldown = Math.max(0, this.gas.ventCooldown - dt);
     }
+    if (this.gas.ventHeat > 0) {
+      this.gas.ventHeat = Math.max(0, this.gas.ventHeat - dt * 0.7);
+    }
 
-    // Быстрое нарастание давления
+    // Фоновое нарастание давления
     this.gas.pressure += this.gas.riseRate * dt;
 
-    // Взрыв котла при 100%
-    if (this.gas.pressure >= 100) {
-      this.gas.pressure = 60;
-      this.advanceStriker('Критический перегрев котла — гидроудар сорвал затвор!');
+    // СЛУЧАЙНЫЕ РЕЗКИЕ СКАЧКИ ДАВЛЕНИЯ (вскипания яда)
+    this.gas.surgeTimer -= dt;
+    if (this.gas.surgeTimer <= 0.35 && !this.gas.surgeWarning) {
+      this.gas.surgeWarning = true;
+    }
+
+    if (this.gas.surgeTimer <= 0) {
+      // Резкий гидродинамический толчок давления!
+      const jump = 14 + Math.random() * (12 + (this.dc - 15) * 0.8);
+      this.gas.pressure = Math.min(100, this.gas.pressure + jump);
+      this.gas.surgeTimer = 0.9 + Math.random() * 1.7;
+      this.gas.surgeWarning = false;
+      this.shakeAmount = 4.5;
+      audio.playSteamHiss(0.18);
+      this.spawnSparks(this.logicalWidth / 2, this.logicalHeight * 0.5, '#a855f7', 18);
     }
 
     // Впрыск нейтрализатора
     if (this.isHoldingAction) {
+      // Экзотермическая реакция нейтрализатора ускоряет рост давления!
+      this.gas.pressure += (15 + (this.dc - 15) * 0.5) * dt;
+
       if (this.gas.pressure <= this.gas.safeZoneMax) {
         // ЗЕЛЕНАЯ ЗОНА (<38%): впрыск работает
         this.gas.neutralizeProgress = Math.min(100, this.gas.neutralizeProgress + 18 * dt);
@@ -707,10 +742,16 @@ export class TrapGame {
           this.triggerVictory();
         }
       } else {
-        // ЖЕЛТАЯ/КРАСНАЯ ЗОНА: обратный удар вышибает шприц и взводит боёк!
+        // ЖЕЛТАЯ/КРАСНАЯ ЗОНА: ОБРАТНЫЙ ГИДРОУДАР!
         this.isHoldingAction = false;
         this.advanceStriker('Обратное давление яда вышибло шприц! Боёк сорван!');
       }
+    }
+
+    // Взрыв котла при 100%
+    if (this.gas.pressure >= 100) {
+      this.gas.pressure = 60;
+      this.advanceStriker('Критический перегрев котла — гидроудар сорвал затвор!');
     }
 
     this.updateHUD();
@@ -899,7 +940,7 @@ export class TrapGame {
     }
 
     this.drawParticles(ctx);
-    this.drawStrikerRatchet(ctx, w - 85, 45);
+    this.drawStrikerRatchet(ctx, w - 62, 30);
 
     if (this.statusMessage) {
       this.drawStatusBanner(ctx, w, h);
@@ -1180,142 +1221,318 @@ export class TrapGame {
     ctx.restore();
   }
 
-  // --- МЕХАНИЗМ 3: ПЛИТА-ПРОТИВОВЕС (ПОЛНОСТЬЮ ПЕРЕРАБОТАННЫЙ ИНТЕРФЕЙС) ---
+  // --- МЕХАНИЗМ 3: ПЛИТА-ПРОТИВОВЕС (ПОЛНОСТЬЮ ПЕРЕРАБОТАННЫЙ МЕХАНИЧЕСКИЙ ИНТЕРФЕЙС) ---
   drawPlateMechanism(ctx, w, h) {
     const cx = w / 2;
 
-    // 1. Гранитная плита сверху
+    // 1. СТЕНЫ СКЛЕПА И ГРАНИТНАЯ НАЖИМНАЯ ПЛИТА (ВВЕРХУ)
     const plateShiftY = (this.plate.weight - 50) * 0.45;
-    const slabY = 46 + plateShiftY;
+    const slabY = 44 + plateShiftY;
+    const slabW = 250;
+    const slabH = 24;
 
-    ctx.fillStyle = '#374151';
-    ctx.fillRect(cx - 150, slabY, 300, 22);
-    ctx.strokeStyle = '#6b7280';
+    // Каменные стеновые упоры слева и справа
+    ctx.fillStyle = '#1e2430';
+    ctx.fillRect(cx - 175, slabY - 4, 50, 32);
+    ctx.fillRect(cx + 125, slabY - 4, 50, 32);
+    ctx.strokeStyle = '#334155';
     ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 150, slabY, 300, 22);
+    ctx.strokeRect(cx - 175, slabY - 4, 50, 32);
+    ctx.strokeRect(cx + 125, slabY - 4, 50, 32);
 
+    // Замковые пазы в упорах
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(cx - 138, slabY + 3, 16, 18);
+    ctx.fillRect(cx + 122, slabY + 3, 16, 18);
+
+    // Гранитная плита
+    const slabGrad = ctx.createLinearGradient(0, slabY, 0, slabY + slabH);
+    slabGrad.addColorStop(0, '#475569');
+    slabGrad.addColorStop(0.5, '#334155');
+    slabGrad.addColorStop(1, '#1e293b');
+    ctx.fillStyle = slabGrad;
+    ctx.fillRect(cx - slabW / 2, slabY, slabW, slabH);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx - slabW / 2, slabY, slabW, slabH);
+
+    // Замковые отверстия на торцах плиты
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(cx - slabW / 2, slabY + 3, 14, 18);
+    ctx.fillRect(cx + slabW / 2 - 14, slabY + 3, 14, 18);
+
+    // Название на плите
     ctx.font = 'bold 11px "Segoe UI", sans-serif';
-    ctx.fillStyle = '#9ca3af';
+    ctx.fillStyle = '#cbd5e1';
     ctx.textAlign = 'center';
-    ctx.fillText('ГРАНИТНАЯ НАЖИМНАЯ ПЛИТА', cx, slabY + 15);
+    ctx.fillText('НАЖИМНАЯ ПЛИТА ЛОВУШКИ', cx, slabY + 16);
 
-    // Выдвижные стопорные штифты в стенах (анимируются от 0% до 100%)
-    const pinProgress = this.plate.stabilizeProgress / 100;
-    const boltWidth = 32 * pinProgress;
+    // Выдвижные стальные ригели/штифты (выезжают из стен в пазы плиты)
+    const pinProgress = Math.min(1, this.plate.stabilizeProgress / 100);
+    const maxBoltReach = 32; // глубина захода болта
+    const currentBolt = maxBoltReach * pinProgress;
 
-    // Левый штифт
+    // Левый ригель (выдвигается вправо из стены в плиту)
+    ctx.fillStyle = pinProgress >= 1 ? '#22c55e' : (pinProgress > 0.4 ? '#f59e0b' : '#64748b');
+    ctx.fillRect(cx - 150, slabY + 4, currentBolt, 16);
+    ctx.strokeStyle = pinProgress >= 1 ? '#86efac' : '#d97706';
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(cx - 150, slabY + 4, currentBolt, 16);
+
+    // Правый ригель (выдвигается влево из стены в плиту)
+    ctx.fillRect(cx + 150 - currentBolt, slabY + 4, currentBolt, 16);
+    ctx.strokeRect(cx + 150 - currentBolt, slabY + 4, currentBolt, 16);
+
+    // Индикатор фиксации штифтов прямо под плитой
+    const barW = 180;
+    const barH = 8;
+    const barY = slabY + 32;
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+    ctx.fillRect(cx - barW / 2, barY, barW, barH);
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(cx - barW / 2, barY, barW, barH);
+
     ctx.fillStyle = pinProgress >= 1 ? '#22c55e' : '#f59e0b';
-    ctx.fillRect(cx - 180, slabY + 3, boltWidth, 16);
-    ctx.strokeStyle = '#d97706';
-    ctx.strokeRect(cx - 180, slabY + 3, boltWidth, 16);
+    ctx.fillRect(cx - barW / 2 + 1, barY + 1, (barW - 2) * pinProgress, barH - 2);
 
-    // Правый штифт
-    ctx.fillRect(cx + 180 - boltWidth, slabY + 3, boltWidth, 16);
-    ctx.strokeRect(cx + 180 - boltWidth, slabY + 3, boltWidth, 16);
+    ctx.font = 'bold 9px "Segoe UI", sans-serif';
+    ctx.fillStyle = pinProgress >= 1 ? '#4ade80' : '#cbd5e1';
+    ctx.textAlign = 'center';
+    ctx.fillText(`БЛОКИРОВКА РИГЕЛЕЙ: ${Math.round(pinProgress * 100)}%`, cx, barY - 3);
 
-    // 2. Циферблат весов (индикатор равновесия)
-    const dialX = cx - 35;
-    const dialY = 210;
-    const dialRadius = 66;
+    // 2. МЕХАНИЧЕСКОЕ КОРОМЫСЛО И ОПОРА (В ЦЕНТРЕ)
+    const pivotX = cx;
+    const pivotY = 195;
+    const armL = 105;
 
-    // Базовый корпус циферблата
+    // Опорная колонка-тренога
     ctx.beginPath();
-    ctx.arc(dialX, dialY, dialRadius, Math.PI, 0);
-    ctx.fillStyle = '#0f172a';
+    ctx.moveTo(pivotX, pivotY);
+    ctx.lineTo(pivotX - 35, 280);
+    ctx.lineTo(pivotX + 35, 280);
+    ctx.closePath();
+    ctx.fillStyle = '#1e293b';
     ctx.fill();
     ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Основание опоры
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(pivotX - 45, 276, 90, 8);
+    ctx.strokeStyle = '#64748b';
+    ctx.strokeRect(pivotX - 45, 276, 90, 8);
+
+    // Угол наклона коромысла
+    const tilt = ((this.plate.weight - 50) / 50) * 0.20;
+
+    const leftX = pivotX - Math.cos(tilt) * armL;
+    const leftY = pivotY - Math.sin(tilt) * armL;
+    const rightX = pivotX + Math.cos(tilt) * armL;
+    const rightY = pivotY + Math.sin(tilt) * armL;
+
+    // Железная тяга от левого плеча коромысла к нажимной плите
+    ctx.beginPath();
+    ctx.moveTo(cx - 100, slabY + slabH);
+    ctx.lineTo(leftX, leftY);
+    ctx.strokeStyle = '#64748b';
     ctx.lineWidth = 3;
     ctx.stroke();
 
-    // Шкала 3 секторов:
-    // Левый красный сектор (недобор веса: 0 .. safeMin)
+    // Шарнир на плите
+    ctx.beginPath();
+    ctx.arc(cx - 100, slabY + slabH, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fill();
+
+    // Коромысло (бронзовая балка)
+    ctx.save();
+    ctx.translate(pivotX, pivotY);
+    ctx.rotate(tilt);
+
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(-armL, -5, armL * 2, 10);
+    ctx.strokeStyle = '#f59e0b';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-armL, -5, armL * 2, 10);
+
+    // Заклёпки на балке
+    [-armL + 15, -40, 0, 40, armL - 15].forEach(bx => {
+      ctx.beginPath();
+      ctx.arc(bx, 0, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fill();
+    });
+    ctx.restore();
+
+    // 3. ПОДВЕСНАЯ ЧАША ПРОТИВОВЕСА С ПЕСКОМ (СПРАВА)
+    const cupW = 54;
+    const cupH = 26;
+    const cupY = rightY + 45;
+
+    // Цепи подвеса чаши
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(rightX - 14, rightY);
+    ctx.lineTo(rightX - 22, cupY);
+    ctx.moveTo(rightX + 14, rightY);
+    ctx.lineTo(rightX + 22, cupY);
+    ctx.stroke();
+
+    // Чаша противовеса
+    ctx.beginPath();
+    ctx.ellipse(rightX, cupY + cupH, cupW / 2, cupH * 0.75, 0, 0, Math.PI);
+    ctx.fillStyle = '#451a03';
+    ctx.fill();
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Песок в чаше (заполнение зависит от веса 0..100)
+    const sandFill = Math.min(1, Math.max(0.05, this.plate.weight / 100));
+    ctx.beginPath();
+    ctx.ellipse(rightX, cupY + cupH - 2, (cupW / 2 - 4) * sandFill, 6 * sandFill, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fill();
+
+    // Утечка песка снизу (показывает, почему вес уходит)
+    if (this.plate.weight > 5) {
+      for (let i = 0; i < 2; i++) {
+        const lx = rightX + (Math.random() - 0.5) * 4;
+        const ly = cupY + cupH + 4 + Math.random() * 20;
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.6)';
+        ctx.fillRect(lx, ly, 1.5, 2);
+      }
+    }
+
+    // 4. ДОЗАТОР ПЕСКА (ВОРОНКА СВЕРХУ)
+    const hopperX = cx + 105;
+    const hopperY = 85;
+
+    // Воронка из бронзы/кожи
+    ctx.beginPath();
+    ctx.moveTo(hopperX - 22, hopperY - 20);
+    ctx.lineTo(hopperX + 22, hopperY - 20);
+    ctx.lineTo(hopperX + 7, hopperY + 12);
+    ctx.lineTo(hopperX - 7, hopperY + 12);
+    ctx.closePath();
+    ctx.fillStyle = '#78350f';
+    ctx.fill();
+    ctx.strokeStyle = '#b45309';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.font = 'bold 9px "Segoe UI", sans-serif';
+    ctx.fillStyle = '#fde68a';
+    ctx.textAlign = 'center';
+    ctx.fillText('ПЕСОК', hopperX, hopperY - 5);
+
+    // Заслонка дозатора
+    const isPouring = this.isHoldingAction;
+    ctx.fillStyle = isPouring ? '#22c55e' : '#94a3b8';
+    ctx.fillRect(hopperX - (isPouring ? 12 : 8), hopperY + 13, (isPouring ? 24 : 16), 4);
+
+    // Струя песка при зажатии
+    if (isPouring) {
+      ctx.beginPath();
+      ctx.moveTo(hopperX - 3, hopperY + 17);
+      ctx.lineTo(hopperX + 3, hopperY + 17);
+      ctx.lineTo(rightX + 4, cupY + 6);
+      ctx.lineTo(rightX - 4, cupY + 6);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.75)';
+      ctx.fill();
+    }
+
+    // 5. ШКАЛА-ЦИФЕРБЛАТ РАВНОВЕСИЯ (НА ОСИ КОРОМЫСЛА)
+    const dialR = 64;
+    const inSafe = this.plate.weight >= this.plate.safeMin && this.plate.weight <= this.plate.safeMax;
+
+    // Полукруглый щит шкалы
+    ctx.beginPath();
+    ctx.arc(pivotX, pivotY, dialR, Math.PI, 0);
+    ctx.fillStyle = '#090d16';
+    ctx.fill();
+    ctx.strokeStyle = '#475569';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
     const startA = Math.PI;
     const safeMinA = Math.PI + (this.plate.safeMin / 100) * Math.PI;
     const safeMaxA = Math.PI + (this.plate.safeMax / 100) * Math.PI;
     const endA = Math.PI * 2;
 
-    // Левый красный
+    // Левый сектор (НЕДОБОР)
     ctx.beginPath();
-    ctx.arc(dialX, dialY, dialRadius - 4, startA, safeMinA);
+    ctx.arc(pivotX, pivotY, dialR - 6, startA, safeMinA);
     ctx.strokeStyle = '#ef4444';
     ctx.lineWidth = 8;
     ctx.stroke();
 
-    // Центральный яркий зелёный (РАВНОВЕСИЕ)
+    // Центральный сектор (РАВНОВЕСИЕ)
     ctx.beginPath();
-    ctx.arc(dialX, dialY, dialRadius - 4, safeMinA, safeMaxA);
+    ctx.arc(pivotX, pivotY, dialR - 6, safeMinA, safeMaxA);
     ctx.strokeStyle = '#22c55e';
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 11;
     ctx.stroke();
 
-    // Правый красный (перевес)
+    // Правый сектор (ПЕРЕВЕС)
     ctx.beginPath();
-    ctx.arc(dialX, dialY, dialRadius - 4, safeMaxA, endA);
+    ctx.arc(pivotX, pivotY, dialR - 6, safeMaxA, endA);
     ctx.strokeStyle = '#ef4444';
     ctx.lineWidth = 8;
     ctx.stroke();
 
-    // Подписи секторов на циферблате
-    ctx.font = 'bold 9px "Segoe UI", sans-serif';
+    // Текстовые метки без наложений
+    ctx.font = 'bold 8.5px "Segoe UI", sans-serif';
     ctx.fillStyle = '#f87171';
     ctx.textAlign = 'left';
-    ctx.fillText('◄ НЕДОБОР', dialX - dialRadius + 4, dialY - 14);
+    ctx.fillText('◄ НЕДОБОР', pivotX - dialR + 4, pivotY - 12);
 
-    ctx.fillStyle = '#4ade80';
+    ctx.fillStyle = inSafe ? '#4ade80' : '#94a3b8';
     ctx.textAlign = 'center';
-    ctx.fillText('⚖ РАВНОВЕСИЕ', dialX, dialY - dialRadius + 14);
+    ctx.fillText('⚖ БАЛАНС', pivotX, pivotY - dialR + 15);
 
     ctx.fillStyle = '#f87171';
     ctx.textAlign = 'right';
-    ctx.fillText('ПЕРЕВЕС ►', dialX + dialRadius - 4, dialY - 14);
+    ctx.fillText('ПЕРЕВЕС ►', pivotX + dialR - 4, pivotY - 12);
 
-    // Стрелка циферблата
-    const needleAngle = Math.PI + (this.plate.weight / 100) * Math.PI;
-    const inSafe = this.plate.weight >= this.plate.safeMin && this.plate.weight <= this.plate.safeMax;
+    // Стрелка-указатель (жестко связана с наклоном коромысла)
+    // Когда tilt = 0 (баланс), стрелка строго вертикальна
+    const pointerAngle = (Math.PI * 1.5) + (tilt * 2.4);
 
     ctx.save();
-    ctx.translate(dialX, dialY);
-    ctx.rotate(needleAngle);
+    ctx.translate(pivotX, pivotY);
+    ctx.rotate(pointerAngle);
+
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(dialRadius - 8, 0);
-    ctx.strokeStyle = inSafe ? '#22c55e' : '#ef4444';
-    ctx.lineWidth = 3.5;
+    ctx.moveTo(-4, 0);
+    ctx.lineTo(0, -(dialR - 9));
+    ctx.lineTo(4, 0);
+    ctx.closePath();
+    ctx.fillStyle = inSafe ? '#22c55e' : '#ef4444';
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
     ctx.stroke();
     ctx.restore();
 
+    // Центральная бронзовая бобышка оси
     ctx.beginPath();
-    ctx.arc(dialX, dialY, 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#d4af37';
+    ctx.arc(pivotX, pivotY, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#d97706';
     ctx.fill();
-
-    // 3. Мешок с песком и чаша справа
-    const pouchX = cx + 140;
-    const pouchY = 145;
-
-    // Мешочек
-    ctx.fillStyle = '#78350f';
-    ctx.beginPath();
-    ctx.arc(pouchX, pouchY, 18, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#d97706';
+    ctx.strokeStyle = '#fde68a';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    ctx.font = '10px "Segoe UI", sans-serif';
-    ctx.fillStyle = '#fbbf24';
+    // Название механизма
+    ctx.font = '9px "Segoe UI", sans-serif';
+    ctx.fillStyle = '#64748b';
     ctx.textAlign = 'center';
-    ctx.fillText('ПЕСОК', pouchX, pouchY + 4);
-
-    // Чаша противовеса снизу
-    const cupY = 230 + (this.plate.weight - 50) * 0.2;
-    ctx.beginPath();
-    ctx.arc(pouchX, cupY, 26, 0, Math.PI);
-    ctx.fillStyle = '#334155';
-    ctx.fill();
-    ctx.strokeStyle = '#94a3b8';
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.fillText('РЫЧАЖНЫЙ ПРОТИВОВЕС', pivotX, pivotY + 22);
   }
 
   // --- МЕХАНИЗМ 4: ЯДОВИТЫЙ РАСПЫЛИТЕЛЬ ---
@@ -1323,103 +1540,209 @@ export class TrapGame {
     const cx = w / 2;
     const cy = h / 2 + 10;
 
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(cx - 70, cy - 80, 140, 160);
+    // 1. АЛХИМИЧЕСКИЙ КОТЕЛ-АЛЕМБИК В ЦЕНТРЕ
+    const boilerW = 120;
+    const boilerH = 140;
+
+    // Корпус котла (темная медь/бронза с закруглением)
+    const boilerGrad = ctx.createLinearGradient(cx - boilerW / 2, 0, cx + boilerW / 2, 0);
+    boilerGrad.addColorStop(0, '#311506');
+    boilerGrad.addColorStop(0.5, '#78350f');
+    boilerGrad.addColorStop(1, '#311506');
+    ctx.fillStyle = boilerGrad;
+
+    // Скругленный котел
+    ctx.beginPath();
+    ctx.roundRect(cx - boilerW / 2, cy - boilerH / 2, boilerW, boilerH, 16);
+    ctx.fill();
     ctx.strokeStyle = '#d97706';
     ctx.lineWidth = 3;
-    ctx.strokeRect(cx - 70, cy - 80, 140, 160);
+    ctx.stroke();
 
-    const vaporColor = this.gas.neutralizeProgress > 70 ? 'rgba(59, 130, 246, 0.45)' : 'rgba(34, 197, 94, 0.55)';
-    ctx.fillStyle = vaporColor;
-    ctx.fillRect(cx - 45, cy - 55, 90, 110);
+    // Заклепки на котле
+    [-boilerW / 2 + 10, boilerW / 2 - 10].forEach(rx => {
+      [cy - 50, cy, cy + 50].forEach(ry => {
+        ctx.beginPath();
+        ctx.arc(cx + rx, ry, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fill();
+      });
+    });
+
+    // Смотровое кварцевое окно в котле
+    const glassW = 76;
+    const glassH = 92;
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(cx - glassW / 2, cy - glassH / 2, glassW, glassH);
     ctx.strokeStyle = '#38bdf8';
     ctx.lineWidth = 2;
-    ctx.strokeRect(cx - 45, cy - 55, 90, 110);
+    ctx.strokeRect(cx - glassW / 2, cy - glassH / 2, glassW, glassH);
 
-    for (let i = 0; i < 4; i++) {
-      const vx = cx + Math.sin(this.animTime * 3 + i) * 25;
-      const vy = cy + Math.cos(this.animTime * 2 + i) * 35;
+    // Бурлящая ядовитая жижа внутри смотрового окна
+    const fluidH = glassH * 0.72;
+    const fluidY = cy + glassH / 2 - fluidH;
+
+    // Цвет яда: при нейтрализации синеет, при вспышке перед скачком давления яростно искрит желто-зеленым!
+    let fluidColor = 'rgba(34, 197, 94, 0.65)';
+    if (this.gas.neutralizeProgress > 60) {
+      fluidColor = 'rgba(56, 189, 248, 0.65)';
+    } else if (this.gas.surgeWarning) {
+      fluidColor = 'rgba(234, 179, 8, 0.78)'; // предупреждающее бурление
+    }
+
+    ctx.fillStyle = fluidColor;
+    ctx.fillRect(cx - glassW / 2 + 2, fluidY, glassW - 4, fluidH - 2);
+
+    // Анимированные пузыри в жидкости
+    const bubbleCount = this.gas.surgeWarning ? 12 : 6;
+    for (let i = 0; i < bubbleCount; i++) {
+      const bx = cx - glassW / 2 + 10 + ((i * 17 + this.animTime * (this.gas.surgeWarning ? 70 : 30)) % (glassW - 20));
+      const by = cy + glassH / 2 - 8 - ((i * 23 + this.animTime * (this.gas.surgeWarning ? 90 : 40)) % (fluidH - 12));
+      const bRad = 2.5 + (i % 3);
       ctx.beginPath();
-      ctx.arc(vx, vy, 12 + Math.sin(this.animTime * 4 + i) * 4, 0, Math.PI * 2);
-      ctx.fillStyle = this.gas.neutralizeProgress > 70 ? 'rgba(147, 197, 253, 0.35)' : 'rgba(74, 222, 128, 0.4)';
+      ctx.arc(bx, by, bRad, 0, Math.PI * 2);
+      ctx.fillStyle = this.gas.surgeWarning ? '#fef08a' : '#86efac';
       ctx.fill();
     }
 
-    // 2. Чёткий понятный манометр слева
-    const gaugeX = cx - 130;
-    const gaugeY = cy - 20;
-    const gr = 42;
+    // Подпись котла
+    ctx.font = 'bold 9px "Segoe UI", sans-serif';
+    ctx.fillStyle = this.gas.surgeWarning ? '#fef08a' : '#fbbf24';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.gas.surgeWarning ? '⚠️ ВСКИПАНИЕ!' : 'РЕАКТОР ЯДА', cx, cy - glassH / 2 - 6);
 
+    // 2. БОЛЬШОЙ ИНФОРМАТИВНЫЙ МАНОМЕТР СЛЕВА
+    const gaugeX = cx - 132;
+    const gaugeY = cy - 8;
+    const gr = 48;
+
+    // Корпус манометра
     ctx.beginPath();
     ctx.arc(gaugeX, gaugeY, gr, 0, Math.PI * 2);
-    ctx.fillStyle = '#0f172a';
+    ctx.fillStyle = '#090d16';
     ctx.fill();
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = '#d97706';
+    ctx.lineWidth = 3;
     ctx.stroke();
 
     const startA = -Math.PI * 0.75;
     const totalA = Math.PI * 1.5;
 
-    // Зелёный сектор (<38%)
+    // Зелёный безопасный сектор (<38%): РАЗРЕШЕН ВПРЫСК
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 5, startA, startA + totalA * 0.38);
+    ctx.arc(gaugeX, gaugeY, gr - 6, startA, startA + totalA * 0.38);
     ctx.strokeStyle = '#22c55e';
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 7;
     ctx.stroke();
 
-    // Жёлтый сектор (38..75%)
+    // Жёлтый сектор (38..75%): ОПАСНОСТЬ ГИДРОУДАРА
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 5, startA + totalA * 0.38, startA + totalA * 0.75);
+    ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * 0.38, startA + totalA * 0.75);
     ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 7;
     ctx.stroke();
 
-    // Красный сектор (75..100%)
+    // Красный сектор (75..100%): ВЗРЫВ КОТЛА
     ctx.beginPath();
-    ctx.arc(gaugeX, gaugeY, gr - 5, startA + totalA * 0.75, startA + totalA);
-    ctx.strokeStyle = '#ed4245';
-    ctx.lineWidth = 5;
+    ctx.arc(gaugeX, gaugeY, gr - 6, startA + totalA * 0.75, startA + totalA);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 7;
     ctx.stroke();
 
-    // Стрелка манометра
-    const gAngle = startA + (this.gas.pressure / 100) * totalA;
+    // Подписи секторов на циферблате
+    ctx.font = 'bold 8px "Segoe UI", sans-serif';
+    ctx.fillStyle = '#4ade80';
+    ctx.textAlign = 'left';
+    ctx.fillText('ВПРЫСК', gaugeX - gr + 5, gaugeY + 28);
+
+    ctx.fillStyle = '#ef4444';
+    ctx.textAlign = 'right';
+    ctx.fillText('ВЗРЫВ', gaugeX + gr - 5, gaugeY + 28);
+
+    // Стрелка манометра (с реалистичной вибрацией)
+    const jitter = (Math.random() - 0.5) * (this.gas.surgeWarning ? 0.09 : (this.gas.pressure > 60 ? 0.05 : 0.02));
+    const gAngle = startA + (this.gas.pressure / 100) * totalA + jitter;
+
     ctx.save();
     ctx.translate(gaugeX, gaugeY);
     ctx.rotate(gAngle);
+
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(gr - 7, 0);
-    ctx.strokeStyle = this.gas.pressure <= this.gas.safeZoneMax ? '#22c55e' : this.gas.pressure >= this.gas.dangerZoneMin ? '#ed4245' : '#f59e0b';
-    ctx.lineWidth = 3;
+    ctx.moveTo(-3, 0);
+    ctx.lineTo(0, -(gr - 8));
+    ctx.lineTo(3, 0);
+    ctx.closePath();
+    ctx.fillStyle = this.gas.pressure <= this.gas.safeZoneMax ? '#22c55e' : (this.gas.pressure >= this.gas.dangerZoneMin ? '#ef4444' : '#f59e0b');
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1;
     ctx.stroke();
     ctx.restore();
 
-    ctx.font = '10px "Segoe UI", sans-serif';
-    ctx.fillStyle = '#94a3b8';
-    ctx.textAlign = 'center';
-    ctx.fillText('МАНОМЕТР', gaugeX, gaugeY + gr + 14);
-
-    // 3. Выпускной клапан справа
-    const ventX = cx + 70;
-    const ventY = cy - 20;
-
-    ctx.fillStyle = '#475569';
-    ctx.fillRect(ventX, ventY - 12, 35, 24);
-    ctx.strokeStyle = '#94a3b8';
-    ctx.strokeRect(ventX, ventY - 12, 35, 24);
-
-    // 4. Игла нейтрализатора слева
-    const syringeX = cx - 70;
-    const syringeY = cy + 40;
-
-    ctx.fillStyle = '#38bdf8';
+    // Центр оси манометра
     ctx.beginPath();
-    ctx.moveTo(syringeX - 40, syringeY);
-    ctx.lineTo(syringeX, syringeY);
+    ctx.arc(gaugeX, gaugeY, 6, 0, Math.PI * 2);
+    ctx.fillStyle = '#d97706';
+    ctx.fill();
+
+    // Текущее числовое давление под манометром
+    ctx.font = 'bold 10px "Segoe UI", sans-serif';
+    ctx.fillStyle = this.gas.pressure <= this.gas.safeZoneMax ? '#4ade80' : '#f87171';
+    ctx.textAlign = 'center';
+    ctx.fillText(`ДАВЛЕНИЕ: ${Math.round(this.gas.pressure)}%`, gaugeX, gaugeY + gr + 16);
+
+    // 3. ПНЕВМО-ШПРИЦ НЕЙТРАЛИЗАТОРА (СЛЕВА ВРЕЗАН В КОТЕЛ)
+    const syringeX = cx - boilerW / 2;
+    const syringeY = cy + 28;
+    const syringeL = 50;
+    const isInjecting = this.isHoldingAction;
+
+    // Цилиндр шприца
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+    ctx.fillRect(syringeX - syringeL, syringeY - 8, syringeL, 16);
     ctx.strokeStyle = '#0284c7';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(syringeX - syringeL, syringeY - 8, syringeL, 16);
+
+    // Синяя сыворотка нейтрализатора
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(syringeX - syringeL + 4, syringeY - 5, syringeL - 8, 10);
+
+    // Поршень шприца (вдвигается вперед при зажатии)
+    const plungerShift = isInjecting ? 12 : 0;
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillRect(syringeX - syringeL - 10 + plungerShift, syringeY - 6, 10, 12);
+    ctx.fillRect(syringeX - syringeL - 18 + plungerShift, syringeY - 2, 8, 4);
+
+    // 4. КЛАПАН СТРАВЛИВАНИЯ ПАРА (СПРАВА)
+    const ventX = cx + boilerW / 2;
+    const ventY = cy - 18;
+
+    // Выпускная труба
+    ctx.fillStyle = '#334155';
+    ctx.fillRect(ventX, ventY - 10, 36, 20);
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(ventX, ventY - 10, 36, 20);
+
+    // Сопло вверх
+    ctx.fillRect(ventX + 22, ventY - 26, 14, 16);
+    ctx.strokeRect(ventX + 22, ventY - 26, 14, 16);
+
+    // Вентиль клапана (мигает оранжевым при перегреве)
+    const isOverheated = this.gas.ventHeat > 1.2;
+    ctx.fillStyle = isOverheated ? '#f97316' : '#b45309';
+    ctx.beginPath();
+    ctx.arc(ventX + 16, ventY, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = isOverheated ? '#fed7aa' : '#fbbf24';
+    ctx.lineWidth = 2;
     ctx.stroke();
+
+    ctx.font = 'bold 9px "Segoe UI", sans-serif';
+    ctx.fillStyle = isOverheated ? '#fdba74' : '#94a3b8';
+    ctx.textAlign = 'center';
+    ctx.fillText(isOverheated ? 'ПЕРЕГРЕВ' : 'СБРОС [E]', ventX + 18, ventY + 24);
   }
 
   // --- ЧАСТИЦЫ И ЭФФЕКТЫ ---
