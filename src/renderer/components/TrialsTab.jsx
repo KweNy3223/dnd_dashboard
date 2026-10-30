@@ -83,7 +83,10 @@ export default function TrialsTab() {
     currentPicks: 5,
     maxPicks: 5,
     timeSpent: 0,
-    timeLimit: 35
+    timeLimit: 35,
+    lockTheme: 'auto',
+    stealthNoise: false,
+    challengeName: 'Тяжёлый кованый сундук бандитов'
   });
 
   stateRef.current.mistakesCount = mistakesCount;
@@ -91,6 +94,9 @@ export default function TrialsTab() {
   stateRef.current.currentPicks = currentPicks;
   stateRef.current.maxPicks = maxPicks;
   stateRef.current.timeLimit = timeLimit;
+  stateRef.current.lockTheme = lockTheme;
+  stateRef.current.stealthNoise = stealthNoise;
+  stateRef.current.challengeName = challengeName;
 
   // Остановка таймера
   const stopTimer = useCallback(() => {
@@ -176,10 +182,36 @@ export default function TrialsTab() {
       }
       return true;
     },
+    setPickDurability: (percent) => {
+      setPickDurability(Math.max(0, Math.min(100, Math.round(percent))));
+    },
     updatePicksDisplay: (durability = 100) => {
       setPickDurability(Math.max(0, Math.min(100, Math.round(durability))));
     },
-    get mistakesCount() { return stateRef.current.mistakesCount; }
+    getLockTheme: () => {
+      if (stateRef.current.lockTheme && stateRef.current.lockTheme !== 'auto') {
+        return stateRef.current.lockTheme;
+      }
+      const objName = (stateRef.current.challengeName || '').toLowerCase();
+      if (objName.includes('гном') || objName.includes('механ') || objName.includes('сейф') || objName.includes('шестерен')) {
+        return 'dwarven';
+      } else if (objName.includes('маг') || objName.includes('руни') || objName.includes('лич') || objName.includes('астрал') || objName.includes('эльф')) {
+        return 'arcane';
+      }
+      return 'iron';
+    },
+    get stealthNoiseEnabled() {
+      return stateRef.current.stealthNoise;
+    },
+    get currentPicks() {
+      return stateRef.current.currentPicks;
+    },
+    get maxPicks() {
+      return stateRef.current.maxPicks;
+    },
+    get mistakesCount() {
+      return stateRef.current.mistakesCount;
+    }
   });
 
   // Запуск сессии с таймером
@@ -247,15 +279,23 @@ export default function TrialsTab() {
     const gameDef = GAME_MODULES[currentGame];
     if (gameDef && arenaRef.current) {
       arenaRef.current.innerHTML = '';
-      const instance = new gameDef.Class(arenaRef.current, appController.current);
-      activeGameInstanceRef.current = instance;
-      instance.init();
+      try {
+        const instance = new gameDef.Class(arenaRef.current, appController.current);
+        activeGameInstanceRef.current = instance;
+        instance.init();
+      } catch (err) {
+        console.error('Ошибка инициализации мини-игры:', err);
+      }
     }
 
     return () => {
       stopTimer();
       if (activeGameInstanceRef.current && typeof activeGameInstanceRef.current.destroy === 'function') {
-        activeGameInstanceRef.current.destroy();
+        try {
+          activeGameInstanceRef.current.destroy();
+        } catch (e) {
+          console.warn('Destroy error:', e);
+        }
         activeGameInstanceRef.current = null;
       }
     };

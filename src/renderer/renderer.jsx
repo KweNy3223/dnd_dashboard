@@ -160,10 +160,6 @@ function App() {
               <LayoutDashboard size={18} /> Стол
             </NavLink>
 
-            <NavLink to="/trials" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Swords size={18} /> Испытания
-            </NavLink>
-
             <NavLink to="/prices" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Store size={18} /> Справочник цен
             </NavLink>
