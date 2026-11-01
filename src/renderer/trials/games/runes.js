@@ -230,6 +230,9 @@ export class RunesGame {
   onWheel(e) {
     if (this.isSolved || this.isFailed) return;
     e.preventDefault();
+    const now = performance.now();
+    if (this.lastWheelTime && now - this.lastWheelTime < 160) return;
+    this.lastWheelTime = now;
     const dir = e.deltaY < 0 ? -45 : 45;
     this.rotateSelectedRing(dir);
   }
@@ -292,11 +295,10 @@ export class RunesGame {
 
     const dc = dnd.dc || 15;
 
-    // Число колец: 2 кольца на DC <= 14, 3 кольца на DC > 14
-    const numRings = dc <= 14 ? 2 : 3;
+    // Ровно 2 широких, просторных кольца для кристальной ясности и лёгкости
+    const numRings = 2;
 
-    // Все 4 стихийных алтаря на внешнем периметре строго в кардинальных точках
-    // Сектора 0, 2, 4, 6 -> 0°, 90°, 180°, 270° (никогда не смещаются и не дублируются!)
+    // Все 4 стихийных алтаря строго в кардинальных точках: 0° (Огонь), 90° (Вода), 180° (Земля), 270° (Буря)
     const allAnchors = [
       { sector: 0, angle: 0, rune: '🔥', name: 'Алтарь Огня', defaultColor: '#ef4444', connected: false },
       { sector: 2, angle: 90, rune: '💧', name: 'Алтарь Вод', defaultColor: '#06b6d4', connected: false },
@@ -304,13 +306,13 @@ export class RunesGame {
       { sector: 6, angle: 270, rune: '⚡', name: 'Алтарь Бури', defaultColor: '#f59e0b', connected: false }
     ];
 
-    // Число активных алтарей в задаче (от 2 до 4)
-    const activeCount = dc <= 12 ? 2 : dc <= 17 ? 3 : 4;
+    // Число активных алтарей: 2 алтаря (для максимальной лёгкости и без визуальной каши)
+    const activeCount = dc >= 20 ? 3 : 2;
     const shuffledAnchors = [...allAnchors].sort(() => Math.random() - 0.5);
     this.anchors = shuffledAnchors.slice(0, activeCount).sort((a, b) => a.sector - b.sector);
 
-    const baseRadius = 52;
-    const ringThickness = numRings === 2 ? 54 : 42;
+    const baseRadius = 56;
+    const ringThickness = 60; // Широкие, легко читаемые ободья
 
     // Построение гарантированного неконфликтующего решения
     let success = false;
@@ -321,7 +323,7 @@ export class RunesGame {
         const midR = (innerR + outerR) / 2;
         return {
           index: r,
-          name: r === 0 ? 'Внутреннее' : r === 1 ? (numRings === 2 ? 'Внешнее' : 'Среднее') : 'Внешнее',
+          name: r === 0 ? 'Внутреннее' : 'Внешнее',
           innerR,
           outerR,
           midR,
@@ -337,16 +339,10 @@ export class RunesGame {
       let ok = true;
       for (const a of this.anchors) {
         const s = a.sector;
-        const candidatePaths = numRings === 2 ? [
+        const candidatePaths = [
           [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.STRAIGHT } ],
           [ { r: 0, s: s, type: NODE_TYPES.TURN_CW }, { r: 1, s: (s + 1) % 8, type: NODE_TYPES.TURN_CCW } ],
           [ { r: 0, s: s, type: NODE_TYPES.TURN_CCW }, { r: 1, s: (s + 7) % 8, type: NODE_TYPES.TURN_CW } ]
-        ] : [
-          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.STRAIGHT }, { r: 2, s: s, type: NODE_TYPES.STRAIGHT } ],
-          [ { r: 0, s: s, type: NODE_TYPES.TURN_CW }, { r: 1, s: (s + 1) % 8, type: NODE_TYPES.TURN_CCW }, { r: 2, s: s, type: NODE_TYPES.STRAIGHT } ],
-          [ { r: 0, s: s, type: NODE_TYPES.TURN_CCW }, { r: 1, s: (s + 7) % 8, type: NODE_TYPES.TURN_CW }, { r: 2, s: s, type: NODE_TYPES.STRAIGHT } ],
-          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.TURN_CW }, { r: 2, s: (s + 1) % 8, type: NODE_TYPES.TURN_CCW } ],
-          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.TURN_CCW }, { r: 2, s: (s + 7) % 8, type: NODE_TYPES.TURN_CW } ]
         ].sort(() => Math.random() - 0.5);
 
         let placed = false;
@@ -363,31 +359,26 @@ export class RunesGame {
       if (ok) success = true;
     }
 
-    // Заполнение свободных секторов правдоподобными декоративными каналами
+    // Добавляем ровно 1 запасной прямой канал на кольцо — без перегруза и каши!
+    // Остальные 5 секторов остаются чистым гладким обсидианом
     this.rings.forEach(ring => {
-      ring.sectors.forEach(sec => {
-        if (sec.type !== NODE_TYPES.EMPTY) return;
-        const roll = Math.random();
-        if (roll < 0.45) {
-          sec.type = NODE_TYPES.STRAIGHT;
-        } else if (roll < 0.72) {
-          sec.type = NODE_TYPES.TURN_CW;
-        } else {
-          sec.type = NODE_TYPES.TURN_CCW;
-        }
-      });
+      const empties = ring.sectors.map((sec, idx) => idx).filter(idx => ring.sectors[idx].type === NODE_TYPES.EMPTY);
+      if (empties.length > 0) {
+        const pick = empties[Math.floor(Math.random() * empties.length)];
+        ring.sectors[pick].type = NODE_TYPES.STRAIGHT;
+      }
     });
 
     // Перемешивание колец (Scramble) из гарантированно решенного состояния
     for (let r = 0; r < numRings; r++) {
       const shiftSteps = 1 + Math.floor(Math.random() * 7);
-      this.applyRingRotation(r, shiftSteps * 45, false);
+      this.applyRingRotation(r, shiftSteps * 45, false, true);
     }
 
     // Проверяем, чтобы сразу не было случайно решено
     this.traceManaBeams();
     if (this.checkWinCondition(false)) {
-      this.applyRingRotation(0, 90, false);
+      this.applyRingRotation(0, 45, false, true);
       this.traceManaBeams();
     }
 
@@ -395,33 +386,28 @@ export class RunesGame {
     this.renderAnchorsHUD();
   }
 
-  // Вращение кольца с учетом сцепки
-  applyRingRotation(ringIdx, degDelta, playSound = true) {
+  // Вращение кольца с плавной анимацией
+  applyRingRotation(ringIdx, degDelta, playSound = true, snapImmediate = false) {
     const ring = this.rings[ringIdx];
     if (!ring) return;
 
-    ring.angle = (ring.angle + degDelta + 720) % 360;
-    ring.currentAngle = Math.round(ring.angle / 45) * 45;
+    // Дискретный шаг 45 градусов
+    ring.currentAngle = (Math.round((ring.currentAngle + degDelta) / 45) * 45 + 7200) % 360;
 
-    // Кинематическая сцепка с другим кольцом
-    if (ring.coupledRing !== null && this.rings[ring.coupledRing]) {
-      const coupled = this.rings[ring.coupledRing];
-      const coupledDelta = degDelta * ring.coupledRatio;
-      coupled.angle = (coupled.angle + coupledDelta + 720) % 360;
-      coupled.currentAngle = Math.round(coupled.angle / 45) * 45;
+    if (snapImmediate) {
+      ring.angle = ring.currentAngle;
     }
 
-    // Звук вращения древнего кольца
     if (playSound) {
-      const pitch = 260 + ringIdx * 110;
-      audio.playRuneHum(pitch, 0.24);
+      const pitch = 260 + ringIdx * 120;
+      audio.playRuneHum(pitch, 0.22);
       audio.playTumblerClick(1.15);
     }
   }
 
   rotateSelectedRing(degDelta) {
     if (this.isSolved || this.isFailed) return;
-    this.applyRingRotation(this.selectedRingIndex, degDelta, true);
+    this.applyRingRotation(this.selectedRingIndex, degDelta, true, false);
     this.traceManaBeams();
     this.checkWinCondition(true);
   }
@@ -779,13 +765,16 @@ export class RunesGame {
     const y = (e.clientY - rect.top) * scaleY - cy;
 
     const currentAngle = Math.atan2(y, x) * (180 / Math.PI);
-    const delta = currentAngle - this.dragStartAngle;
+    let delta = currentAngle - this.dragStartAngle;
+    while (delta > 180) delta -= 360;
+    while (delta < -180) delta += 360;
 
-    const rawAngle = (this.ringInitialAngle + delta + 720) % 360;
-    const discrete = (Math.round(rawAngle / 45) * 45 + 720) % 360;
+    // Плавное следование за курсором
+    this.draggedRing.angle = (this.ringInitialAngle + delta + 7200) % 360;
 
+    // Расчет ближайшего шага 45° для трассировки
+    const discrete = (Math.round(this.draggedRing.angle / 45) * 45 + 7200) % 360;
     if (discrete !== this.draggedRing.currentAngle) {
-      this.draggedRing.angle = discrete;
       this.draggedRing.currentAngle = discrete;
       audio.playTumblerClick(1.0);
       this.traceManaBeams();
@@ -794,6 +783,8 @@ export class RunesGame {
 
   onPointerUp() {
     if (!this.draggedRing) return;
+    const snapped = (Math.round(this.draggedRing.angle / 45) * 45 + 7200) % 360;
+    this.draggedRing.currentAngle = snapped;
     this.draggedRing = null;
     this.traceManaBeams();
     this.checkWinCondition(true);
@@ -818,13 +809,16 @@ export class RunesGame {
   update(dt) {
     this.manaFlowTime += dt;
 
-    // Плавная доводка колец
+    // Плавная и сочная анимация доводки колец к целевому углу
     if (!this.draggedRing) {
       this.rings.forEach(ring => {
-        let diff = ring.currentAngle - ring.angle;
+        let diff = (ring.currentAngle - ring.angle + 7200) % 360;
         if (diff > 180) diff -= 360;
-        if (diff < -180) diff += 360;
-        ring.angle += diff * 0.25;
+        if (Math.abs(diff) > 0.15) {
+          ring.angle = (ring.angle + diff * 0.22 + 7200) % 360;
+        } else {
+          ring.angle = ring.currentAngle;
+        }
       });
     }
 
