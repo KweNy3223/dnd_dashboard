@@ -1,13 +1,10 @@
 /**
  * Модуль мини-игры: Магические руны (Arcane Runes: Arcane Circuit)
- * Древняя арканная печать со свободной процедурной генерацией магических элементов:
- * - Астральные Призмы (преломление и трансмутация спектров маны)
- * - Фазовые Порталы (мгновенная пространственная телепортация луча)
- * - Руны Резонанса (сверхзарядка и усиление маны)
- * - Глифы Энтропии (некротические ловушки, пожирающие ману)
- * - Дуговые и развилочные каналы-желоба
- * - Кинематическая/эфирная сцепка колец (Resonance Coupling)
- * - Шкала Эфирной Нестабильности (Arcane Instability Meter)
+ * Древняя арканная печать со свободной процедурной генерацией каналов маны:
+ * - Прямые радиальные проводники
+ * - Дуговые повороты (по часовой и против часовой стрелки)
+ * - Развилочные каналы-желоба
+ * - Кинематическая/эфирная сцепка колец (Resonance Coupling на высокой сложности)
  * - Процедурный генератор головоломки с гарантией проходимости
  */
 
@@ -20,19 +17,15 @@ export const NODE_TYPES = {
   STRAIGHT: 'straight',    // Прямой радиальный проводник
   TURN_CW: 'turn_cw',      // Дуговой мост по часовой стрелке (+45°)
   TURN_CCW: 'turn_ccw',    // Дуговой мост против часовой стрелки (-45°)
-  FORK: 'fork',            // Развилка (прямо + вправо на 45°)
-  PRISM: 'prism',          // Астральная Призма (меняет стихийный спектр)
-  PORTAL: 'portal',        // Фазовый Разлом (мгновенный прыжок луча)
-  RESONATOR: 'resonator',  // Руна Резонанса (наделяет луч сверхзарядом)
-  ENTROPY: 'entropy'       // Глиф Энтропии (тёмная руна, нагнетающая нестабильность)
+  FORK: 'fork'             // Развилка (прямо + вправо на 45°)
 };
 
-// Спектры маны
+// Спектры маны (цветовая палитра потоков)
 export const SPECTRA = {
-  RAW: { id: 'RAW', name: 'Сырая мана', icon: '✧', color: '#38bdf8', glow: 'rgba(56, 189, 248, 0.7)' },
-  FIRE: { id: 'FIRE', name: 'Огненный эфир', icon: '🔥', color: '#f97316', glow: 'rgba(249, 115, 22, 0.7)' },
+  RAW: { id: 'RAW', name: 'Чистая мана', icon: '✧', color: '#38bdf8', glow: 'rgba(56, 189, 248, 0.7)' },
+  FIRE: { id: 'FIRE', name: 'Огненный эфир', icon: '🔥', color: '#ef4444', glow: 'rgba(239, 68, 68, 0.7)' },
   WATER: { id: 'WATER', name: 'Ледяной исток', icon: '💧', color: '#06b6d4', glow: 'rgba(6, 182, 212, 0.7)' },
-  AIR: { id: 'AIR', name: 'Грозовой заряд', icon: '⚡', color: '#fbbf24', glow: 'rgba(251, 191, 36, 0.7)' },
+  AIR: { id: 'AIR', name: 'Грозовой заряд', icon: '⚡', color: '#f59e0b', glow: 'rgba(245, 158, 11, 0.7)' },
   EARTH: { id: 'EARTH', name: 'Земной резонанс', icon: '🌿', color: '#10b981', glow: 'rgba(16, 185, 129, 0.7)' }
 };
 
@@ -97,7 +90,6 @@ export class RunesGame {
     this.impactPoints = [];
     this.particles = [];
     this.manaFlowTime = 0;
-    this.activeEntropyHit = false;
 
     // Взаимодействие
     this.draggedRing = null;
@@ -170,17 +162,6 @@ export class RunesGame {
                 <span class="anchors-count-badge" id="anchorsCountBadge">0 / 0</span>
               </div>
               <div class="anchors-list" id="anchorsList"></div>
-            </div>
-
-            <!-- Легенда магических элементов -->
-            <div class="runes-elements-legend">
-              <span class="legend-title">Магические фокусы в цепи:</span>
-              <div class="legend-items-list">
-                <div class="legend-item"><span class="legend-icon">💎</span><span>Призма: окрашивает луч под цвет алтаря</span></div>
-                <div class="legend-item"><span class="legend-icon">🌀</span><span>Портал (α): переносит луч на связанное кольцо</span></div>
-                <div class="legend-item"><span class="legend-icon">☀️</span><span>Резонатор: сверхзаряд для алтарей со знаком ☀️</span></div>
-                <div class="legend-item"><span class="legend-icon">⛔</span><span>Энтропия: поглотитель маны (тупиковый барьер)</span></div>
-              </div>
             </div>
           </div>
         </div>
@@ -316,10 +297,10 @@ export class RunesGame {
 
     // Все 4 стихийных якоря на внешнем периметре (сектора 0, 2, 4, 6 -> 0°, 90°, 180°, 270°)
     const allAnchors = [
-      { sector: 0, angle: 0, rune: '🔥', name: 'Алтарь Огня', defaultColor: '#ef4444', targetSpectrum: 'FIRE', connected: false, requiresOvercharge: false },
-      { sector: 2, angle: 90, rune: '💧', name: 'Алтарь Вод', defaultColor: '#06b6d4', targetSpectrum: 'WATER', connected: false, requiresOvercharge: false },
-      { sector: 4, angle: 180, rune: '🌿', name: 'Алтарь Земли', defaultColor: '#10b981', targetSpectrum: 'EARTH', connected: false, requiresOvercharge: false },
-      { sector: 6, angle: 270, rune: '⚡', name: 'Алтарь Бури', defaultColor: '#f59e0b', targetSpectrum: 'AIR', connected: false, requiresOvercharge: false }
+      { sector: 0, angle: 0, rune: '🔥', name: 'Алтарь Огня', defaultColor: '#ef4444', connected: false },
+      { sector: 2, angle: 90, rune: '💧', name: 'Алтарь Вод', defaultColor: '#06b6d4', connected: false },
+      { sector: 4, angle: 180, rune: '🌿', name: 'Алтарь Земли', defaultColor: '#10b981', connected: false },
+      { sector: 6, angle: 270, rune: '⚡', name: 'Алтарь Бури', defaultColor: '#f59e0b', connected: false }
     ];
 
     // Число активных якорей в задаче (от 2 до 4)
@@ -327,14 +308,6 @@ export class RunesGame {
     // Перемешиваем и берем activeCount
     const shuffledAnchors = [...allAnchors].sort(() => Math.random() - 0.5);
     this.anchors = shuffledAnchors.slice(0, activeCount).sort((a, b) => a.sector - b.sector);
-
-    // Дополнительные требования к алтарям при высокой сложности
-    this.anchors.forEach(a => {
-      // С шансом 35% алтарь требует сверхрезонанс (Resonator)
-      if (dc >= 18 && Math.random() > 0.4) {
-        a.requiresOvercharge = true;
-      }
-    });
 
     // Создаем структуру колец
     this.rings = [];
@@ -348,10 +321,7 @@ export class RunesGame {
 
       // 8 секторов: изначально пустые
       const sectors = Array.from({ length: 8 }, () => ({
-        type: NODE_TYPES.EMPTY,
-        spectrum: null,
-        portalId: null,
-        isOvercharged: false
+        type: NODE_TYPES.EMPTY
       }));
 
       // Случайные руны для эстетики
@@ -379,11 +349,6 @@ export class RunesGame {
     this.anchors.forEach((anchor, aIdx) => {
       let currentSector = coreEmitters[aIdx % coreEmitters.length];
       const targetSector = anchor.sector;
-      const neededSpectrum = anchor.targetSpectrum;
-      const needsOvercharge = anchor.requiresOvercharge;
-
-      let hasSpectrumApplied = false;
-      let hasOverchargeApplied = false;
 
       // Проводим луч сквозь каждое кольцо от 0 до numRings - 1
       for (let r = 0; r < numRings; r++) {
@@ -398,23 +363,11 @@ export class RunesGame {
         // Если это последнее кольцо, выход ОБЯЗАН попасть точно в targetSector
         if (isLastRing) {
           if (diff === 0) {
-            // Прямо в цель
-            if (!hasSpectrumApplied && neededSpectrum) {
-              sectorObj.type = NODE_TYPES.PRISM;
-              sectorObj.spectrum = neededSpectrum;
-              hasSpectrumApplied = true;
-            } else if (!hasOverchargeApplied && needsOvercharge) {
-              sectorObj.type = NODE_TYPES.RESONATOR;
-              hasOverchargeApplied = true;
-            } else {
-              sectorObj.type = NODE_TYPES.STRAIGHT;
-            }
+            sectorObj.type = NODE_TYPES.STRAIGHT;
           } else if (diff === 1 || diff === -7) {
-            // Поворот по часовой
             sectorObj.type = NODE_TYPES.TURN_CW;
             currentSector = (currentSector + 1) % 8;
           } else if (diff === -1 || diff === 7) {
-            // Поворот против часовой
             sectorObj.type = NODE_TYPES.TURN_CCW;
             currentSector = (currentSector - 1 + 8) % 8;
           } else {
@@ -426,20 +379,8 @@ export class RunesGame {
           continue;
         }
 
-        // Для промежуточных колец: случайный выбор элемента с пользой для сближения
-        const rnd = Math.random();
-
-        if (!hasSpectrumApplied && rnd < 0.45) {
-          // Ставим призму!
-          sectorObj.type = NODE_TYPES.PRISM;
-          sectorObj.spectrum = neededSpectrum;
-          hasSpectrumApplied = true;
-        } else if (!hasOverchargeApplied && needsOvercharge && rnd < 0.4) {
-          // Ставим резонатор!
-          sectorObj.type = NODE_TYPES.RESONATOR;
-          hasOverchargeApplied = true;
-        } else if (diff !== 0 && Math.random() > 0.3) {
-          // Сближаем луч с целевым сектором
+        // Для промежуточных колец: сближаем луч с целевым сектором
+        if (diff !== 0 && Math.random() > 0.25) {
           if (diff > 0) {
             sectorObj.type = NODE_TYPES.TURN_CW;
             currentSector = (currentSector + 1) % 8;
@@ -449,55 +390,24 @@ export class RunesGame {
           }
         } else {
           // Прямой проводник или развилка
-          sectorObj.type = Math.random() > 0.6 ? NODE_TYPES.FORK : NODE_TYPES.STRAIGHT;
+          sectorObj.type = Math.random() > 0.65 ? NODE_TYPES.FORK : NODE_TYPES.STRAIGHT;
         }
       }
     });
 
     // --- ЗАПОЛНЕНИЕ СВОБОДНЫХ СЕКТОРОВ ПРОЦЕДУРНЫМ МИКСИРОВАНИЕМ ---
-    // Добавляем порталы, глифы энтропии и альтернативные пути
-    let portalCreated = false;
-    this.rings.forEach((ring, rIdx) => {
-      ring.sectors.forEach((sec, sIdx) => {
+    this.rings.forEach(ring => {
+      ring.sectors.forEach(sec => {
         if (sec.type !== NODE_TYPES.EMPTY) return;
-
         const roll = Math.random();
-        if (!portalCreated && roll < 0.15 && rIdx < numRings - 1) {
-          // Создаем пару связанных порталов
-          const targetRing = this.rings[rIdx + 1];
-          const emptySectors = targetRing.sectors
-            .map((s, idx) => ({ s, idx }))
-            .filter(item => item.s.type === NODE_TYPES.EMPTY);
-
-          if (emptySectors.length > 0) {
-            const partner = emptySectors[Math.floor(Math.random() * emptySectors.length)];
-            sec.type = NODE_TYPES.PORTAL;
-            sec.portalId = 'portal_alpha';
-            sec.targetRing = rIdx + 1;
-            sec.targetSector = partner.idx;
-
-            partner.s.type = NODE_TYPES.PORTAL;
-            partner.s.portalId = 'portal_alpha';
-            partner.s.targetRing = rIdx;
-            partner.s.targetSector = sIdx;
-            portalCreated = true;
-            return;
-          }
-        }
-
-        if (roll < 0.22) {
-          // Глиф Энтропии (ловушка)
-          sec.type = NODE_TYPES.ENTROPY;
-        } else if (roll < 0.45) {
-          sec.type = NODE_TYPES.TURN_CW;
-        } else if (roll < 0.68) {
-          sec.type = NODE_TYPES.TURN_CCW;
-        } else if (roll < 0.88) {
+        if (roll < 0.38) {
           sec.type = NODE_TYPES.STRAIGHT;
+        } else if (roll < 0.65) {
+          sec.type = NODE_TYPES.TURN_CW;
+        } else if (roll < 0.90) {
+          sec.type = NODE_TYPES.TURN_CCW;
         } else {
-          // Случайная декоративная призма
-          sec.type = NODE_TYPES.PRISM;
-          sec.spectrum = ['FIRE', 'WATER', 'AIR', 'EARTH'][Math.floor(Math.random() * 4)];
+          sec.type = NODE_TYPES.FORK;
         }
       });
     });
@@ -581,8 +491,6 @@ export class RunesGame {
     coreEmitters.forEach(emitterSector => {
       const startAngle = emitterSector * 45;
       const initialBeam = {
-        spectrum: 'RAW',
-        isOvercharged: false,
         currentSector: emitterSector,
         ringIdx: 0,
         path: []
@@ -622,7 +530,6 @@ export class RunesGame {
     const currentRad = (beam.currentSector * 45 * Math.PI) / 180;
     const rIn = ring.innerR;
     const rOut = ring.outerR;
-    const rMid = ring.midR;
 
     if (!node || node.type === NODE_TYPES.EMPTY) {
       // Пустой сектор: луч упирается в камень и рассеивается
@@ -642,23 +549,9 @@ export class RunesGame {
         y: impactY,
         angle: currentRad,
         ringIdx: beam.ringIdx,
-        color: beam.isOvercharged ? '#e879f9' : (SPECTRA[beam.spectrum]?.color || '#38bdf8')
+        color: '#38bdf8'
       });
 
-      this.activeBeams.push(beam);
-      return;
-    }
-
-    if (node.type === NODE_TYPES.ENTROPY) {
-      // Попадание в Глиф Энтропии (Тёмная руна)
-      beam.path.push({
-        type: 'line',
-        x1: center + Math.cos(currentRad) * rIn,
-        y1: center + Math.sin(currentRad) * rIn,
-        x2: center + Math.cos(currentRad) * rMid,
-        y2: center + Math.sin(currentRad) * rMid
-      });
-      this.activeEntropyHit = true;
       this.activeBeams.push(beam);
       return;
     }
@@ -673,36 +566,6 @@ export class RunesGame {
         y2: center + Math.sin(currentRad) * rOut
       });
       // Идем на следующее кольцо
-      beam.ringIdx++;
-      this.propagateBeam(beam, center);
-      return;
-    }
-
-    if (node.type === NODE_TYPES.PRISM) {
-      // Астральная Призма: меняет спектр
-      beam.spectrum = node.spectrum || 'FIRE';
-      beam.path.push({
-        type: 'line',
-        x1: center + Math.cos(currentRad) * rIn,
-        y1: center + Math.sin(currentRad) * rIn,
-        x2: center + Math.cos(currentRad) * rOut,
-        y2: center + Math.sin(currentRad) * rOut
-      });
-      beam.ringIdx++;
-      this.propagateBeam(beam, center);
-      return;
-    }
-
-    if (node.type === NODE_TYPES.RESONATOR) {
-      // Руна Резонанса: сверхзарядка
-      beam.isOvercharged = true;
-      beam.path.push({
-        type: 'line',
-        x1: center + Math.cos(currentRad) * rIn,
-        y1: center + Math.sin(currentRad) * rIn,
-        x2: center + Math.cos(currentRad) * rOut,
-        y2: center + Math.sin(currentRad) * rOut
-      });
       beam.ringIdx++;
       this.propagateBeam(beam, center);
       return;
@@ -782,8 +645,6 @@ export class RunesGame {
       const cp2y = y1 - Math.sin(branchRad) * k;
 
       const branchBeam = {
-        spectrum: beam.spectrum,
-        isOvercharged: beam.isOvercharged,
         currentSector: branchSector,
         ringIdx: beam.ringIdx + 1,
         path: [
@@ -810,54 +671,6 @@ export class RunesGame {
       return;
     }
 
-    if (node.type === NODE_TYPES.PORTAL) {
-      // Портал: мгновенный эфирный прыжок луча в связанный сектор
-      const targetRingIdx = node.targetRing;
-      const targetSectorLocal = node.targetSector;
-      if (targetRingIdx !== undefined && this.rings[targetRingIdx]) {
-        const destRing = this.rings[targetRingIdx];
-        const destWorldSector = (targetSectorLocal + Math.round(destRing.currentAngle / 45)) % 8;
-        const destRad = (destWorldSector * 45 * Math.PI) / 180;
-
-        const srcX = center + Math.cos(currentRad) * rMid;
-        const srcY = center + Math.sin(currentRad) * rMid;
-        const dstX = center + Math.cos(destRad) * destRing.midR;
-        const dstY = center + Math.sin(destRad) * destRing.midR;
-
-        // Вход в портал
-        beam.path.push({
-          type: 'line',
-          x1: center + Math.cos(currentRad) * rIn,
-          y1: center + Math.sin(currentRad) * rIn,
-          x2: srcX,
-          y2: srcY
-        });
-
-        // Мост сквозь подпространство между порталами
-        beam.path.push({
-          type: 'line',
-          x1: srcX,
-          y1: srcY,
-          x2: dstX,
-          y2: dstY
-        });
-
-        // Выход из целевого портала
-        beam.ringIdx = targetRingIdx + 1;
-        beam.currentSector = destWorldSector;
-        beam.path.push({
-          type: 'line',
-          x1: dstX,
-          y1: dstY,
-          x2: center + Math.cos(destRad) * destRing.outerR,
-          y2: center + Math.sin(destRad) * destRing.outerR
-        });
-
-        this.propagateBeam(beam, center);
-        return;
-      }
-    }
-
     this.activeBeams.push(beam);
   }
 
@@ -879,19 +692,15 @@ export class RunesGame {
       y2: center + Math.sin(rad) * targetR
     });
 
-    // Проверяем соответствие спектра и резонанса
-    const spectrumMatch = (!matchedAnchor.targetSpectrum || beam.spectrum === matchedAnchor.targetSpectrum || beam.spectrum === 'RAW');
-    const overchargeMatch = (!matchedAnchor.requiresOvercharge || beam.isOvercharged);
+    beam.connectedAnchor = matchedAnchor;
 
-    if (spectrumMatch && overchargeMatch) {
-      if (!matchedAnchor.connected) {
-        // Алтарь только что зажегся!
-        matchedAnchor.connected = true;
-        audio.playBalanceChime();
-        this.spawnManaSparkles(matchedAnchor.angle, 25, matchedAnchor.defaultColor);
-      } else {
-        matchedAnchor.connected = true;
-      }
+    if (!matchedAnchor.connected) {
+      // Алтарь только что зажегся!
+      matchedAnchor.connected = true;
+      audio.playBalanceChime();
+      this.spawnManaSparkles(matchedAnchor.angle, 25, matchedAnchor.defaultColor);
+    } else {
+      matchedAnchor.connected = true;
     }
   }
 
@@ -955,20 +764,16 @@ export class RunesGame {
       this.anchorsCountBadge.style.color = connectedCount === this.anchors.length ? '#10b981' : '#e8c36a';
     }
 
-    this.anchorsList.innerHTML = this.anchors.map(a => {
-      const spec = SPECTRA[a.targetSpectrum] || SPECTRA.RAW;
-      const overchargeLabel = a.requiresOvercharge ? ' • ☀️ Сверхзаряд' : '';
-      return `
-        <div class="anchor-status-item ${a.connected ? 'active' : ''}">
-          <span class="anchor-rune" style="color: ${a.defaultColor}">${a.rune}</span>
-          <div class="anchor-info-block">
-            <span class="anchor-name">${a.name}</span>
-            <span class="anchor-req">${spec.name}${overchargeLabel}</span>
-          </div>
-          <span class="anchor-badge">${a.connected ? '✓ Замкнут' : '○ Ищет луч'}</span>
+    this.anchorsList.innerHTML = this.anchors.map(a => `
+      <div class="anchor-status-item ${a.connected ? 'active' : ''}">
+        <span class="anchor-rune" style="color: ${a.defaultColor}">${a.rune}</span>
+        <div class="anchor-info-block">
+          <span class="anchor-name">${a.name}</span>
+          <span class="anchor-req">${a.connected ? 'Канал замкнут' : 'Ожидает поток маны'}</span>
         </div>
-      `;
-    }).join('');
+        <span class="anchor-badge">${a.connected ? '✓ Запитан' : '○ Нет связи'}</span>
+      </div>
+    `).join('');
   }
 
   // =========================================================================
@@ -1072,11 +877,6 @@ export class RunesGame {
       });
     }
 
-    // Звук при блокировке луча темной руной
-    if (this.activeEntropyHit && !this.isSolved && Math.random() < 0.03) {
-      audio.playEntropyHiss();
-    }
-
     // Частицы
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
@@ -1102,10 +902,7 @@ export class RunesGame {
     // 1. Древняя обсидиановая каменная плита
     this.drawBackground(ctx, cx, cy, size);
 
-    // 1.1. Эфирные нити связи между фазовыми порталами
-    this.drawPortalLinks(ctx, cx, cy);
-
-    // 2. Кольца, каналы и магические элементы
+    // 2. Кольца, каналы и проводники
     this.rings.forEach(ring => this.drawRing(ctx, cx, cy, ring));
 
     // 3. Живые светящиеся потоки маны
@@ -1151,37 +948,6 @@ export class RunesGame {
       ctx.lineTo(cx + Math.cos(rad) * (size * 0.44), cy + Math.sin(rad) * (size * 0.44));
       ctx.stroke();
     });
-  }
-
-  drawPortalLinks(ctx, cx, cy) {
-    const portals = [];
-    this.rings.forEach(ring => {
-      ring.sectors.forEach((sec, s) => {
-        if (sec.type === NODE_TYPES.PORTAL) {
-          const worldAngle = ((s * 45 + ring.angle) * Math.PI) / 180;
-          portals.push({
-            ring,
-            x: cx + Math.cos(worldAngle) * ring.midR,
-            y: cy + Math.sin(worldAngle) * ring.midR
-          });
-        }
-      });
-    });
-
-    if (portals.length >= 2) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(portals[0].x, portals[0].y);
-      ctx.quadraticCurveTo(cx, cy, portals[1].x, portals[1].y);
-      ctx.strokeStyle = 'rgba(129, 140, 248, 0.4)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 6]);
-      ctx.lineDashOffset = -this.manaFlowTime * 18;
-      ctx.shadowColor = '#818cf8';
-      ctx.shadowBlur = 8;
-      ctx.stroke();
-      ctx.restore();
-    }
   }
 
   drawRing(ctx, cx, cy, ring) {
@@ -1267,7 +1033,7 @@ export class RunesGame {
 
     const renderPath = () => {
       ctx.beginPath();
-      if (node.type === NODE_TYPES.STRAIGHT || node.type === NODE_TYPES.PRISM || node.type === NODE_TYPES.RESONATOR || node.type === NODE_TYPES.ENTROPY) {
+      if (node.type === NODE_TYPES.STRAIGHT) {
         ctx.moveTo(Math.cos(rad) * rIn, Math.sin(rad) * rIn);
         ctx.lineTo(Math.cos(rad) * rOut, Math.sin(rad) * rOut);
       } else if (node.type === NODE_TYPES.TURN_CW || node.type === NODE_TYPES.TURN_CCW) {
@@ -1358,7 +1124,7 @@ export class RunesGame {
       ctx.fill();
     };
 
-    if (node.type === NODE_TYPES.STRAIGHT || node.type === NODE_TYPES.PRISM || node.type === NODE_TYPES.RESONATOR || node.type === NODE_TYPES.ENTROPY) {
+    if (node.type === NODE_TYPES.STRAIGHT) {
       drawPort(rIn, rad);
       drawPort(rOut, rad);
     } else if (node.type === NODE_TYPES.TURN_CW) {
@@ -1371,160 +1137,6 @@ export class RunesGame {
       drawPort(rIn, rad);
       drawPort(rOut, rad);
       drawPort(rOut, ((s + 1) * 45 * Math.PI) / 180);
-    }
-
-    // --- ОТРИСОВКА МАГИЧЕСКИХ ВСТАВОК (ПРИЗМЫ, РЕЗОНАТОРЫ, ПОРТАЛЫ, ЭНТРОПИЯ) ---
-    if (node.type === NODE_TYPES.PRISM) {
-      const px = Math.cos(rad) * rMid;
-      const py = Math.sin(rad) * rMid;
-      const spec = SPECTRA[node.spectrum] || SPECTRA.FIRE;
-
-      ctx.save();
-      ctx.translate(px, py);
-      ctx.rotate(rad);
-
-      // Латунная оправа кристалла
-      ctx.beginPath();
-      ctx.arc(0, 0, 11, 0, Math.PI * 2);
-      ctx.fillStyle = '#0f172a';
-      ctx.strokeStyle = '#d4af37';
-      ctx.lineWidth = 1.8;
-      ctx.fill();
-      ctx.stroke();
-
-      // Ограненный кристалл (ромб)
-      ctx.beginPath();
-      ctx.moveTo(0, -9);
-      ctx.lineTo(9, 0);
-      ctx.lineTo(0, 9);
-      ctx.lineTo(-9, 0);
-      ctx.closePath();
-
-      const gemGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 9);
-      gemGrad.addColorStop(0, '#ffffff');
-      gemGrad.addColorStop(0.4, spec.color);
-      gemGrad.addColorStop(1, '#0f172a');
-      ctx.fillStyle = gemGrad;
-      ctx.shadowColor = spec.color;
-      ctx.shadowBlur = 14;
-      ctx.fill();
-
-      // Грани кристалла
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-
-      // Иконка стихии
-      ctx.font = '10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(spec.icon, 0, 0);
-
-      ctx.restore();
-    } else if (node.type === NODE_TYPES.RESONATOR) {
-      const rx = Math.cos(rad) * rMid;
-      const ry = Math.sin(rad) * rMid;
-
-      ctx.save();
-      ctx.translate(rx, ry);
-
-      // Солнечные лучи
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 1.5;
-      for (let a = 0; a < 8; a++) {
-        const ar = (a * 45 * Math.PI) / 180;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(ar) * 8, Math.sin(ar) * 8);
-        ctx.lineTo(Math.cos(ar) * 12, Math.sin(ar) * 12);
-        ctx.stroke();
-      }
-
-      // Золотой солярный диск
-      ctx.beginPath();
-      ctx.arc(0, 0, 8, 0, Math.PI * 2);
-      const resGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, 8);
-      resGrad.addColorStop(0, '#ffffff');
-      resGrad.addColorStop(0.5, '#fde047');
-      resGrad.addColorStop(1, '#d97706');
-      ctx.fillStyle = resGrad;
-      ctx.shadowColor = '#fde047';
-      ctx.shadowBlur = 14;
-      ctx.fill();
-      ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 1.2;
-      ctx.stroke();
-
-      ctx.font = '9px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('☀️', 0, 0);
-
-      ctx.restore();
-    } else if (node.type === NODE_TYPES.ENTROPY) {
-      const ex = Math.cos(rad) * rMid;
-      const ey = Math.sin(rad) * rMid;
-
-      ctx.save();
-      ctx.translate(ex, ey);
-
-      // Тёмная октагональная печать поглощения
-      ctx.beginPath();
-      ctx.arc(0, 0, 9.5, 0, Math.PI * 2);
-      ctx.fillStyle = '#1e0524';
-      ctx.strokeStyle = '#c026d3';
-      ctx.lineWidth = 1.8;
-      ctx.shadowColor = '#c026d3';
-      ctx.shadowBlur = 12;
-      ctx.fill();
-      ctx.stroke();
-
-      // Знак блокировки / тупика
-      ctx.strokeStyle = '#f43f5e';
-      ctx.lineWidth = 2.2;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(-4, -4);
-      ctx.lineTo(4, 4);
-      ctx.moveTo(4, -4);
-      ctx.lineTo(-4, 4);
-      ctx.stroke();
-
-      ctx.restore();
-    } else if (node.type === NODE_TYPES.PORTAL) {
-      const pox = Math.cos(rad) * rMid;
-      const poy = Math.sin(rad) * rMid;
-
-      ctx.save();
-      ctx.translate(pox, poy);
-
-      // Вращающийся вихрь портала
-      const rotA = this.manaFlowTime * 2.5;
-      ctx.rotate(rotA);
-
-      ctx.beginPath();
-      ctx.arc(0, 0, 10, 0, Math.PI * 2);
-      ctx.fillStyle = '#090514';
-      ctx.strokeStyle = '#818cf8';
-      ctx.lineWidth = 2;
-      ctx.shadowColor = '#818cf8';
-      ctx.shadowBlur = 14;
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(0, 0, 6, 0, Math.PI);
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      ctx.rotate(-rotA);
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 9px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('α', 0, 0);
-
-      ctx.restore();
     }
   }
 
@@ -1568,8 +1180,8 @@ export class RunesGame {
     if (!this.activeBeams || this.activeBeams.length === 0) return;
 
     this.activeBeams.forEach(beam => {
-      const spec = SPECTRA[beam.spectrum] || SPECTRA.RAW;
-      const beamColor = beam.isOvercharged ? '#e879f9' : spec.color;
+      const isConnected = !!beam.connectedAnchor;
+      const beamColor = isConnected ? beam.connectedAnchor.defaultColor : '#38bdf8';
 
       beam.path.forEach(seg => {
         ctx.save();
@@ -1588,19 +1200,19 @@ export class RunesGame {
         // 1. Внешнее неоновое свечение
         ctx.strokeStyle = beamColor;
         ctx.shadowColor = beamColor;
-        ctx.shadowBlur = beam.isOvercharged ? 20 : 12;
-        ctx.lineWidth = beam.isOvercharged ? 7 : 5;
+        ctx.shadowBlur = isConnected ? 18 : 10;
+        ctx.lineWidth = isConnected ? 6.5 : 4.5;
         ctx.lineCap = 'round';
         ctx.stroke();
 
         // 2. Белое горячее ядро луча
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = beam.isOvercharged ? 3 : 2;
+        ctx.lineWidth = isConnected ? 2.8 : 1.8;
         ctx.stroke();
 
         // 3. Бегущие искры тока маны
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.2;
         ctx.setLineDash([8, 14]);
         ctx.lineDashOffset = -this.manaFlowTime * 40;
         ctx.stroke();
@@ -1731,12 +1343,6 @@ export class RunesGame {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(anchor.rune, ax, ay);
-
-      // Маленькая метка сверхрезонанса
-      if (anchor.requiresOvercharge && !anchor.connected) {
-        ctx.font = '10px sans-serif';
-        ctx.fillText('☀️', ax + 12, ay - 12);
-      }
 
       ctx.restore();
     });
