@@ -281,7 +281,7 @@ export class RunesGame {
   }
 
   // =========================================================================
-  // --- ПРОЦЕДУРНЫЙ ГЕНЕРАТОР ГОЛОВОЛОМКИ (С ГАРАНТИЕЙ РЕШАЕМОСТИ) ---
+  // --- ПРОЦЕДУРНЫЙ ГЕНЕРАТОР ГОЛОВОЛОМКИ (100% ГАРАНТИЯ ПРОХОДИМОСТИ) ---
   // =========================================================================
   generateRunePuzzle() {
     this.isSolved = false;
@@ -292,10 +292,11 @@ export class RunesGame {
 
     const dc = dnd.dc || 15;
 
-    // Число колец: 2..4 в зависимости от сложности
-    const numRings = dc <= 13 ? 2 : dc <= 19 ? 3 : 4;
+    // Число колец: 2 кольца на DC <= 14, 3 кольца на DC > 14
+    const numRings = dc <= 14 ? 2 : 3;
 
-    // Все 4 стихийных якоря на внешнем периметре (сектора 0, 2, 4, 6 -> 0°, 90°, 180°, 270°)
+    // Все 4 стихийных алтаря на внешнем периметре строго в кардинальных точках
+    // Сектора 0, 2, 4, 6 -> 0°, 90°, 180°, 270° (никогда не смещаются и не дублируются!)
     const allAnchors = [
       { sector: 0, angle: 0, rune: '🔥', name: 'Алтарь Огня', defaultColor: '#ef4444', connected: false },
       { sector: 2, angle: 90, rune: '💧', name: 'Алтарь Вод', defaultColor: '#06b6d4', connected: false },
@@ -303,137 +304,89 @@ export class RunesGame {
       { sector: 6, angle: 270, rune: '⚡', name: 'Алтарь Бури', defaultColor: '#f59e0b', connected: false }
     ];
 
-    // Число активных якорей в задаче (от 2 до 4)
+    // Число активных алтарей в задаче (от 2 до 4)
     const activeCount = dc <= 12 ? 2 : dc <= 17 ? 3 : 4;
-    // Перемешиваем и берем activeCount
     const shuffledAnchors = [...allAnchors].sort(() => Math.random() - 0.5);
     this.anchors = shuffledAnchors.slice(0, activeCount).sort((a, b) => a.sector - b.sector);
 
-    // Создаем структуру колец
-    this.rings = [];
     const baseRadius = 52;
-    const ringThickness = numRings === 4 ? 36 : numRings === 3 ? 42 : 48;
+    const ringThickness = numRings === 2 ? 54 : 42;
 
-    for (let r = 0; r < numRings; r++) {
-      const innerR = baseRadius + r * ringThickness;
-      const outerR = innerR + ringThickness - 3;
-      const midR = (innerR + outerR) / 2;
-
-      // 8 секторов: изначально пустые
-      const sectors = Array.from({ length: 8 }, () => ({
-        type: NODE_TYPES.EMPTY
-      }));
-
-      // Случайные руны для эстетики
-      const runes = Array.from({ length: 8 }, (_, i) => RUNIC_ALPHABET[(r * 7 + i * 3) % RUNIC_ALPHABET.length]);
-
-      this.rings.push({
-        index: r,
-        name: r === 0 ? 'Внутреннее' : r === 1 ? 'Среднее' : r === 2 ? (numRings === 3 ? 'Внешнее' : 'Эфирное') : 'Внешнее',
-        innerR,
-        outerR,
-        midR,
-        angle: 0,
-        currentAngle: 0,
-        sectors,
-        runes,
-        coupledRing: null,
-        coupledRatio: 0
+    // Построение гарантированного неконфликтующего решения
+    let success = false;
+    while (!success) {
+      this.rings = Array.from({ length: numRings }, (_, r) => {
+        const innerR = baseRadius + r * ringThickness;
+        const outerR = innerR + ringThickness - 4;
+        const midR = (innerR + outerR) / 2;
+        return {
+          index: r,
+          name: r === 0 ? 'Внутреннее' : r === 1 ? (numRings === 2 ? 'Внешнее' : 'Среднее') : 'Внешнее',
+          innerR,
+          outerR,
+          midR,
+          angle: 0,
+          currentAngle: 0,
+          sectors: Array.from({ length: 8 }, () => ({ type: NODE_TYPES.EMPTY })),
+          runes: Array.from({ length: 8 }, (_, i) => RUNIC_ALPHABET[(r * 7 + i * 3) % RUNIC_ALPHABET.length]),
+          coupledRing: null,
+          coupledRatio: 0
+        };
       });
+
+      let ok = true;
+      for (const a of this.anchors) {
+        const s = a.sector;
+        const candidatePaths = numRings === 2 ? [
+          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.STRAIGHT } ],
+          [ { r: 0, s: s, type: NODE_TYPES.TURN_CW }, { r: 1, s: (s + 1) % 8, type: NODE_TYPES.TURN_CCW } ],
+          [ { r: 0, s: s, type: NODE_TYPES.TURN_CCW }, { r: 1, s: (s + 7) % 8, type: NODE_TYPES.TURN_CW } ]
+        ] : [
+          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.STRAIGHT }, { r: 2, s: s, type: NODE_TYPES.STRAIGHT } ],
+          [ { r: 0, s: s, type: NODE_TYPES.TURN_CW }, { r: 1, s: (s + 1) % 8, type: NODE_TYPES.TURN_CCW }, { r: 2, s: s, type: NODE_TYPES.STRAIGHT } ],
+          [ { r: 0, s: s, type: NODE_TYPES.TURN_CCW }, { r: 1, s: (s + 7) % 8, type: NODE_TYPES.TURN_CW }, { r: 2, s: s, type: NODE_TYPES.STRAIGHT } ],
+          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.TURN_CW }, { r: 2, s: (s + 1) % 8, type: NODE_TYPES.TURN_CCW } ],
+          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.TURN_CCW }, { r: 2, s: (s + 7) % 8, type: NODE_TYPES.TURN_CW } ]
+        ].sort(() => Math.random() - 0.5);
+
+        let placed = false;
+        for (const path of candidatePaths) {
+          const canPlace = path.every(step => this.rings[step.r].sectors[step.s].type === NODE_TYPES.EMPTY);
+          if (canPlace) {
+            path.forEach(step => { this.rings[step.r].sectors[step.s].type = step.type; });
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) { ok = false; break; }
+      }
+      if (ok) success = true;
     }
 
-    // --- ПОСТРОЕНИЕ ГАРАНТИРОВАННОГО РЕШЕНИЯ ---
-    // Центральное ядро испускает ману из секторов: 0, 2, 4, 6
-    const coreEmitters = [0, 2, 4, 6].sort(() => Math.random() - 0.5);
-
-    this.anchors.forEach((anchor, aIdx) => {
-      let currentSector = coreEmitters[aIdx % coreEmitters.length];
-      const targetSector = anchor.sector;
-
-      // Проводим луч сквозь каждое кольцо от 0 до numRings - 1
-      for (let r = 0; r < numRings; r++) {
-        const ring = this.rings[r];
-        const isLastRing = (r === numRings - 1);
-        let sectorObj = ring.sectors[currentSector];
-
-        // Разница секторов до целевого
-        let diff = (targetSector - currentSector + 8) % 8;
-        if (diff > 4) diff -= 8;
-
-        // Если это последнее кольцо, выход ОБЯЗАН попасть точно в targetSector
-        if (isLastRing) {
-          if (diff === 0) {
-            sectorObj.type = NODE_TYPES.STRAIGHT;
-          } else if (diff === 1 || diff === -7) {
-            sectorObj.type = NODE_TYPES.TURN_CW;
-            currentSector = (currentSector + 1) % 8;
-          } else if (diff === -1 || diff === 7) {
-            sectorObj.type = NODE_TYPES.TURN_CCW;
-            currentSector = (currentSector - 1 + 8) % 8;
-          } else {
-            // Если слишком далеко на последнем кольце — ставим прямой и переносим целевой якорь на currentSector
-            sectorObj.type = NODE_TYPES.STRAIGHT;
-            anchor.sector = currentSector;
-            anchor.angle = currentSector * 45;
-          }
-          continue;
-        }
-
-        // Для промежуточных колец: сближаем луч с целевым сектором
-        if (diff !== 0 && Math.random() > 0.25) {
-          if (diff > 0) {
-            sectorObj.type = NODE_TYPES.TURN_CW;
-            currentSector = (currentSector + 1) % 8;
-          } else {
-            sectorObj.type = NODE_TYPES.TURN_CCW;
-            currentSector = (currentSector - 1 + 8) % 8;
-          }
-        } else {
-          // Прямой проводник или развилка
-          sectorObj.type = Math.random() > 0.65 ? NODE_TYPES.FORK : NODE_TYPES.STRAIGHT;
-        }
-      }
-    });
-
-    // --- ЗАПОЛНЕНИЕ СВОБОДНЫХ СЕКТОРОВ ПРОЦЕДУРНЫМ МИКСИРОВАНИЕМ ---
+    // Заполнение свободных секторов правдоподобными декоративными каналами
     this.rings.forEach(ring => {
       ring.sectors.forEach(sec => {
         if (sec.type !== NODE_TYPES.EMPTY) return;
         const roll = Math.random();
-        if (roll < 0.38) {
+        if (roll < 0.45) {
           sec.type = NODE_TYPES.STRAIGHT;
-        } else if (roll < 0.65) {
+        } else if (roll < 0.72) {
           sec.type = NODE_TYPES.TURN_CW;
-        } else if (roll < 0.90) {
-          sec.type = NODE_TYPES.TURN_CCW;
         } else {
-          sec.type = NODE_TYPES.FORK;
+          sec.type = NODE_TYPES.TURN_CCW;
         }
       });
     });
 
-    // --- КИНЕМАТИЧЕСКАЯ / РЕЗОНАНСНАЯ СЦЕПКА КОЛЕЦ ---
-    // Сцепка колец активна только на легендарном DC >= 24 (Тир 4)
-    if (dc >= 24 && numRings >= 3) {
-      const ringA = 1;
-      const ringB = 2;
-      this.rings[ringA].coupledRing = ringB;
-      this.rings[ringA].coupledRatio = -1; // При вращении A на +45°, B крутится на -45°
+    // Перемешивание колец (Scramble) из гарантированно решенного состояния
+    for (let r = 0; r < numRings; r++) {
+      const shiftSteps = 1 + Math.floor(Math.random() * 7);
+      this.applyRingRotation(r, shiftSteps * 45, false);
     }
 
-    // --- ПЕРЕМЕШИВАНИЕ (SCRAMBLE) ИЗ РЕШЕНИЯ ---
-    // Поворачиваем кольца серией случайных валидных шагов, чтобы гарантировать проходимость!
-    const scrambleMoves = 4 + Math.floor(Math.random() * 5);
-    for (let m = 0; m < scrambleMoves; m++) {
-      const randRing = Math.floor(Math.random() * numRings);
-      const randDir = Math.random() > 0.5 ? 45 : -45;
-      this.applyRingRotation(randRing, randDir, false);
-    }
-
-    // Проверяем, чтобы сразу не было решено
+    // Проверяем, чтобы сразу не было случайно решено
     this.traceManaBeams();
     if (this.checkWinCondition(false)) {
-      // Сдвигаем первое кольцо еще на 90°
       this.applyRingRotation(0, 90, false);
       this.traceManaBeams();
     }
@@ -676,9 +629,23 @@ export class RunesGame {
 
   checkAnchorHit(beam, center) {
     const matchedAnchor = this.anchors.find(a => a.sector === beam.currentSector);
-    if (!matchedAnchor) return;
+    if (!matchedAnchor) {
+      // Луч вышел на периметр в секторе без алтаря
+      const rad = (beam.currentSector * 45 * Math.PI) / 180;
+      const lastRing = this.rings[this.rings.length - 1];
+      const outX = center + Math.cos(rad) * lastRing.outerR;
+      const outY = center + Math.sin(rad) * lastRing.outerR;
+      this.impactPoints.push({
+        x: outX,
+        y: outY,
+        angle: rad,
+        ringIdx: this.rings.length - 1,
+        color: '#38bdf8'
+      });
+      return;
+    }
 
-    // Луч дошел до сектора алтаря!
+    // Луч дошел точно до сектора стихийного алтаря!
     const targetR = this.logicalSize * 0.44;
     const rad = (matchedAnchor.angle * Math.PI) / 180;
 
@@ -695,7 +662,6 @@ export class RunesGame {
     beam.connectedAnchor = matchedAnchor;
 
     if (!matchedAnchor.connected) {
-      // Алтарь только что зажегся!
       matchedAnchor.connected = true;
       audio.playBalanceChime();
       this.spawnManaSparkles(matchedAnchor.angle, 25, matchedAnchor.defaultColor);
@@ -815,22 +781,12 @@ export class RunesGame {
     const currentAngle = Math.atan2(y, x) * (180 / Math.PI);
     const delta = currentAngle - this.dragStartAngle;
 
-    this.draggedRing.angle = (this.ringInitialAngle + delta + 720) % 360;
+    const rawAngle = (this.ringInitialAngle + delta + 720) % 360;
+    const discrete = (Math.round(rawAngle / 45) * 45 + 720) % 360;
 
-    // Живой расчет дискретного угла при вращении
-    const discrete = (Math.round(this.draggedRing.angle / 45) * 45 + 720) % 360;
     if (discrete !== this.draggedRing.currentAngle) {
-      const prevDiscrete = this.draggedRing.currentAngle;
+      this.draggedRing.angle = discrete;
       this.draggedRing.currentAngle = discrete;
-
-      if (this.draggedRing.coupledRing !== null && this.rings[this.draggedRing.coupledRing]) {
-        const coupled = this.rings[this.draggedRing.coupledRing];
-        const stepDelta = (discrete - prevDiscrete + 720) % 360;
-        const normalizedStep = stepDelta > 180 ? stepDelta - 360 : stepDelta;
-        coupled.angle = (coupled.angle + normalizedStep * this.draggedRing.coupledRatio + 720) % 360;
-        coupled.currentAngle = Math.round(coupled.angle / 45) * 45;
-      }
-
       audio.playTumblerClick(1.0);
       this.traceManaBeams();
     }
@@ -838,11 +794,6 @@ export class RunesGame {
 
   onPointerUp() {
     if (!this.draggedRing) return;
-    // Привязка к ближайшим 45 градусам
-    const snapped = Math.round(this.draggedRing.angle / 45) * 45;
-    this.draggedRing.angle = (snapped + 720) % 360;
-    this.draggedRing.currentAngle = this.draggedRing.angle;
-
     this.draggedRing = null;
     this.traceManaBeams();
     this.checkWinCondition(true);
@@ -1300,13 +1251,16 @@ export class RunesGame {
         ctx.beginPath();
         ctx.moveTo(cx + Math.cos(rad) * rStart, cy + Math.sin(rad) * rStart);
         ctx.lineTo(cx + Math.cos(rad) * rEnd, cy + Math.sin(rad) * rEnd);
-        ctx.strokeStyle = anchor.defaultColor;
-        ctx.setLineDash([4, 5]);
-        ctx.lineWidth = anchor.connected ? 3 : 1.5;
-        ctx.globalAlpha = anchor.connected ? 0.95 : 0.35;
         if (anchor.connected) {
+          ctx.strokeStyle = anchor.defaultColor;
+          ctx.lineWidth = 3.5;
           ctx.shadowColor = anchor.defaultColor;
-          ctx.shadowBlur = 12;
+          ctx.shadowBlur = 16;
+          ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([3, 4]);
         }
         ctx.stroke();
       }
