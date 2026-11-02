@@ -5,7 +5,7 @@ export const WEALTH_TIERS = shopDatabase.wealthTiers;
 export const SHOP_NAMES = shopDatabase.names;
 export const MERCHANTS_POOL = shopDatabase.merchants;
 export const ATMOSPHERES = shopDatabase.atmospheres;
-export const GOODS_CATALOG = shopDatabase.goods;
+export const GOODS_CATALOG = shopDatabase.catalog || shopDatabase.goods;
 export const SECRET_LOTS = shopDatabase.secretLots;
 export const SECURITY_OPTIONS = shopDatabase.security;
 export const SHOP_RUMORS = shopDatabase.rumors;
@@ -69,8 +69,8 @@ export function generateRandomShop(options = {}) {
   const atmosList = ATMOSPHERES[shopType.id] || ATMOSPHERES.armory;
   const atmosphere = atmosList[Math.floor(Math.random() * atmosList.length)];
 
-  // 6. Товары: ходовые (витрина 4 шт.) и полный каталог лавки
-  const allGoods = GOODS_CATALOG[shopType.id]?.[wealthTier.id] || GOODS_CATALOG.armory.medium;
+  // 6. Товары: полный каталог лавки (из Справочника цен + новинки) и 4 ходовых товара
+  const allGoods = GOODS_CATALOG[shopType.id] || [];
   const showcase = getRandomSubset(allGoods, Math.min(4, allGoods.length));
 
   // 7. Секретный лот "Из-под прилавка"

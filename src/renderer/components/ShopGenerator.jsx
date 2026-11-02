@@ -14,7 +14,8 @@ import {
   ArrowRight, 
   ShoppingBag,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Search
 } from 'lucide-react';
 import { 
   SHOP_TYPES, 
@@ -34,6 +35,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
   // По умолчанию дефолтный район — Торговый квартал города (medium)
   const [selectedWealth, setSelectedWealth] = useState('medium');
   const [isCatalogExpanded, setIsCatalogExpanded] = useState(false);
+  const [searchFilter, setSearchFilter] = useState('');
   const [copied, setCopied] = useState(false);
 
   // Активная лавка (сохраняется в localStorage)
@@ -84,7 +86,8 @@ export default function ShopGenerator({ onOpenInNpc }) {
     }
     const shop = generateRandomShop({ typeId, wealthId, forceRandom });
     setCurrentShop(shop);
-    setIsCatalogExpanded(false); // сбрасываем аккордеон при новой генерации
+    setIsCatalogExpanded(false);
+    setSearchFilter('');
   };
 
   // Микро-перегенерация отдельных полей
@@ -96,7 +99,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
       const m = MERCHANTS_POOL[Math.floor(Math.random() * MERCHANTS_POOL.length)];
       setCurrentShop({ ...currentShop, merchant: m });
     } else if (field === 'showcase') {
-      const list = GOODS_CATALOG[currentShop.type.id]?.[currentShop.wealth.id] || GOODS_CATALOG.armory.medium;
+      const list = currentShop.allGoods || GOODS_CATALOG[currentShop.type.id] || [];
       const shuffled = [...list].sort(() => 0.5 - Math.random());
       setCurrentShop({ ...currentShop, showcase: shuffled.slice(0, Math.min(4, shuffled.length)) });
     } else if (field === 'secretLot') {
@@ -128,11 +131,16 @@ export default function ShopGenerator({ onOpenInNpc }) {
     setSavedShops(savedShops.filter(s => s.id !== id));
   };
 
+  // Полный список товаров лавки для текущего типа и района (из справочника цен + новинки)
+  const allGoodsList = currentShop?.allGoods || 
+    GOODS_CATALOG[currentShop?.type?.id] || 
+    currentShop?.showcase || 
+    [];
+
   // Копирование информации о лавке в буфер обмена
   const handleCopy = () => {
     if (!currentShop) return;
     const { merchant, showcase, allGoods, secretLot, security } = currentShop;
-    const allGoodsList = allGoods || GOODS_CATALOG[currentShop.type.id]?.[currentShop.wealth.id] || showcase;
     const itemsToCopy = isCatalogExpanded ? allGoodsList : showcase;
 
     const text = [
@@ -144,7 +152,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
       `   Звуки: ${currentShop.atmosphere.sound}`,
       ``,
       `📦 ${isCatalogExpanded ? 'ПОЛНЫЙ АССОРТИМЕНТ ТОВАРОВ' : 'ХОДОВЫЕ ТОВАРЫ НА ВИТРИНЕ'}:`,
-      ...itemsToCopy.map(item => `• ${item.name} (${item.price}) — ${item.desc}`),
+      ...itemsToCopy.map(item => `• ${item.name} (${item.price})${item.isHandbook ? ' [Справочник]' : ''} — ${item.desc}`),
       ``,
       `⭐ ТОВАР ИЗ-ПОД ПРИЛАВКА:`,
       `   ${secretLot.name} (${secretLot.price})`,
@@ -162,11 +170,10 @@ export default function ShopGenerator({ onOpenInNpc }) {
     });
   };
 
-  // Полный список товаров лавки для текущего типа и района
-  const allGoodsList = currentShop?.allGoods || 
-    GOODS_CATALOG[currentShop?.type?.id]?.[currentShop?.wealth?.id] || 
-    currentShop?.showcase || 
-    [];
+  // Отфильтрованные товары при поиске
+  const displayedItems = isCatalogExpanded
+    ? (searchFilter ? allGoodsList.filter(item => item.name.toLowerCase().includes(searchFilter.toLowerCase())) : allGoodsList)
+    : (currentShop?.showcase || []);
 
   return (
     <div>
@@ -179,7 +186,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
           </h2>
         </div>
         <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Создание кузниц, алхимических лавок, магии и ломбардов с витриной, уникальным товаром из-под прилавка и защитой от кражи.
+          Создание кузниц, алхимических лавок, магии и ломбардов с официальным ассортиментом из Справочника цен, новинками и защитой от кражи.
         </p>
       </div>
 
@@ -362,7 +369,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ShoppingBag size={15} color="var(--accent-gold)" /> 
                   {isCatalogExpanded 
-                    ? `Полный ассортимент лавки (${allGoodsList.length} поз.)`
+                    ? `Полный ассортимент лавки (${allGoodsList.length} позиций)`
                     : `Ходовые товары на витрине (${currentShop.wealth.name})`}
                 </span>
                 <button type="button" className="reroll-btn" onClick={() => handleRerollField('showcase')}>
@@ -370,21 +377,52 @@ export default function ShopGenerator({ onOpenInNpc }) {
                 </button>
               </div>
 
-              {/* Список отображаемых товаров: 4 ходовых или весь расширенный каталог */}
+              {/* Поле быстрого поиска по товарам при развернутом списке */}
+              {isCatalogExpanded && (
+                <div style={{ position: 'relative', marginTop: '6px', marginBottom: '6px' }}>
+                  <input 
+                    type="text" 
+                    value={searchFilter} 
+                    onChange={(e) => setSearchFilter(e.target.value)} 
+                    placeholder="🔍 Быстрый поиск по названию..." 
+                    className="curtain-select filter-select"
+                    style={{ width: '100%', boxSizing: 'border-box', fontSize: '12px', padding: '6px 12px' }}
+                  />
+                </div>
+              )}
+
+              {/* Список отображаемых товаров: 4 ходовых или весь каталог со значками */}
               <div className="menu-items-list" style={{ marginTop: '4px' }}>
-                {(isCatalogExpanded ? allGoodsList : currentShop.showcase).map((item, idx) => (
-                  <div key={idx} className="menu-item-card">
-                    <div className="menu-item-top">
-                      <span className="menu-item-name">{item.name}</span>
-                      <span style={{ fontWeight: 700, color: 'var(--accent-gold)', fontSize: '12.5px' }}>
-                        {item.price}
-                      </span>
-                    </div>
-                    <div className="menu-item-desc">
-                      {item.desc}
-                    </div>
+                {displayedItems.length === 0 ? (
+                  <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                    Ничего не найдено по запросу «{searchFilter}»
                   </div>
-                ))}
+                ) : (
+                  displayedItems.map((item, idx) => (
+                    <div key={idx} className="menu-item-card">
+                      <div className="menu-item-top">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span className="menu-item-name">{item.name}</span>
+                          {item.isHandbook ? (
+                            <span style={{ fontSize: '10px', color: '#94a3b8', background: 'rgba(148, 163, 184, 0.1)', border: '1px solid rgba(148, 163, 184, 0.25)', borderRadius: '3px', padding: '1px 5px' }}>
+                              📖 Справочник цен
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '10px', color: '#eab308', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.25)', borderRadius: '3px', padding: '1px 5px' }}>
+                              ✨ Новинка
+                            </span>
+                          )}
+                        </div>
+                        <span style={{ fontWeight: 700, color: 'var(--accent-gold)', fontSize: '12.5px', whiteSpace: 'nowrap' }}>
+                          {item.price}
+                        </span>
+                      </div>
+                      <div className="menu-item-desc">
+                        {item.desc}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Кнопка развернуть / свернуть весь ассортимент */}
@@ -392,7 +430,10 @@ export default function ShopGenerator({ onOpenInNpc }) {
                 <button 
                   type="button" 
                   className="catalog-toggle-btn"
-                  onClick={() => setIsCatalogExpanded(!isCatalogExpanded)}
+                  onClick={() => {
+                    setIsCatalogExpanded(!isCatalogExpanded);
+                    if (isCatalogExpanded) setSearchFilter('');
+                  }}
                 >
                   {isCatalogExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                   <span>
