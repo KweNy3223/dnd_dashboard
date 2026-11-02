@@ -417,45 +417,51 @@ export default function TrialsTab({ onOpenSidebar }) {
       {/* ================= ШТОРКА МАСТЕРА ================= */}
       <div className={`trials-curtain ${isCurtainOpen ? 'open' : ''}`}>
         <div className="trials-curtain-grid">
-          {/* Колонка 1: Сложность и статы */}
+          {/* Колонка 1: Сложность / Зелье */}
           <div className="curtain-box">
-            <h4 className="curtain-box-title">🎯 Сложность и Модификаторы</h4>
+            <h4 className="curtain-box-title">
+              {currentGame === 'alchemy' ? '🧪 Рецепт и сложность зелья' : '🎯 Сложность и Модификаторы'}
+            </h4>
             
-            <div className="curtain-row">
-              <label>Сложность (DC): <strong>{dc}</strong></label>
-              <input 
-                type="range" 
-                min="8" 
-                max="28" 
-                value={dc} 
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setDc(val);
-                  dnd.setDC(val);
-                  if (activeGameInstanceRef.current?.onParametersChanged) {
-                    activeGameInstanceRef.current.onParametersChanged(dnd.getEffectiveAdvantage());
-                  }
-                }} 
-              />
-            </div>
+            {currentGame !== 'alchemy' && (
+              <>
+                <div className="curtain-row">
+                  <label>Сложность (DC): <strong>{dc}</strong></label>
+                  <input 
+                    type="range" 
+                    min="8" 
+                    max="28" 
+                    value={dc} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setDc(val);
+                      dnd.setDC(val);
+                      if (activeGameInstanceRef.current?.onParametersChanged) {
+                        activeGameInstanceRef.current.onParametersChanged(dnd.getEffectiveAdvantage());
+                      }
+                    }} 
+                  />
+                </div>
 
-            <div className="curtain-row">
-              <label>Бонус персонажа: <strong>{bonus >= 0 ? `+${bonus}` : bonus}</strong></label>
-              <input 
-                type="range" 
-                min="-2" 
-                max="12" 
-                value={bonus} 
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setBonus(val);
-                  dnd.setBonus(val);
-                  if (activeGameInstanceRef.current?.onParametersChanged) {
-                    activeGameInstanceRef.current.onParametersChanged(dnd.getEffectiveAdvantage());
-                  }
-                }} 
-              />
-            </div>
+                <div className="curtain-row">
+                  <label>Бонус персонажа: <strong>{bonus >= 0 ? `+${bonus}` : bonus}</strong></label>
+                  <input 
+                    type="range" 
+                    min="-2" 
+                    max="12" 
+                    value={bonus} 
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setBonus(val);
+                      dnd.setBonus(val);
+                      if (activeGameInstanceRef.current?.onParametersChanged) {
+                        activeGameInstanceRef.current.onParametersChanged(dnd.getEffectiveAdvantage());
+                      }
+                    }} 
+                  />
+                </div>
+              </>
+            )}
 
             {currentGame === 'lockpick' && (
               <div className="curtain-row">
@@ -523,106 +529,178 @@ export default function TrialsTab({ onOpenSidebar }) {
               </div>
             )}
 
-            {currentGame === 'alchemy' && (
-              <div className="curtain-row">
-                <label>Рецепт зелья D&D 5e:</label>
-                <select 
-                  className="curtain-select"
-                  value={potionType}
-                  onChange={(e) => {
-                    const next = e.target.value;
-                    setPotionType(next);
-                    stateRef.current.potionType = next;
-                    if (activeGameInstanceRef.current?.setPotion) {
-                      activeGameInstanceRef.current.setPotion(next);
-                    }
-                  }}
-                >
-                  <optgroup label="Обычные (Common) — для начинающих">
-                    <option value="healing">🍷 Зелье лечения (2d4+2 HP)</option>
-                    <option value="climbing">🧗 Зелье лазания (Атлетика)</option>
-                    <option value="animal_friendship">🌿 Зелье дружбы с животными (24 часа)</option>
-                  </optgroup>
-                  <optgroup label="Необычные (Uncommon) — умеренные">
-                    <option value="greater_healing">💖 Большее зелье лечения (4d4+4 HP)</option>
-                    <option value="water_breathing">🌊 Зелье дыхания под водой (1 час)</option>
-                    <option value="fire_resistance">🛡️ Зелье огнестойкости (Огонь)</option>
-                    <option value="hill_giant">🦾 Зелье силы холмового великана (Сила 21)</option>
-                    <option value="growth">🍄 Зелье роста (+1d4 к урону, размер)</option>
-                  </optgroup>
-                  <optgroup label="Редкие (Rare) — высшее мастерство">
-                    <option value="invisibility">👻 Зелье невидимости (1 час)</option>
-                    <option value="heroism">👑 Зелье героизма (Благословение + 10 HP)</option>
-                    <option value="gaseous_form">🌫️ Зелье газообразной формы (Туман)</option>
-                    <option value="invulnerability">🛡️ Зелье неуязвимости (Сопротивление всему)</option>
-                  </optgroup>
-                  <optgroup label="Очень редкие (Very Rare) — великие">
-                    <option value="speed">⚡ Зелье скорости (Ускорение)</option>
-                    <option value="flying">🕊️ Зелье полёта (60 футов)</option>
-                    <option value="supreme_healing">🌟 Высшее зелье лечения (10d4+20 HP)</option>
-                  </optgroup>
-                  <optgroup label="Легендарные (Legendary) — богоподобные">
-                    <option value="storm_giant">⛈️ Зелье силы великана бурь (Сила 29!)</option>
-                  </optgroup>
-                </select>
+            {currentGame === 'runes' && (
+              <div style={{ marginTop: '8px', fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                ℹ️ <strong>Магическая печать:</strong> при DC &lt; 20 активно 3 стихийных алтаря (Огонь, Вода, Буря). При DC ≥ 20 активируется 4-й алтарь Земли.
               </div>
+            )}
+
+            {currentGame === 'alchemy' && (
+              <>
+                <div className="curtain-row">
+                  <label>Выбор рецепта D&D 5e:</label>
+                  <select 
+                    className="curtain-select"
+                    value={potionType}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setPotionType(next);
+                      stateRef.current.potionType = next;
+                      if (activeGameInstanceRef.current?.setPotion) {
+                        activeGameInstanceRef.current.setPotion(next);
+                      }
+                    }}
+                  >
+                    <optgroup label="Обычные (Common) — 3 ошибки">
+                      <option value="healing">🍷 Зелье лечения (2d4+2 HP)</option>
+                      <option value="climbing">🧗 Зелье лазания (Атлетика)</option>
+                      <option value="animal_friendship">🌿 Зелье дружбы с животными (24 ч)</option>
+                    </optgroup>
+                    <optgroup label="Необычные (Uncommon) — 2 ошибки">
+                      <option value="greater_healing">💖 Большее зелье лечения (4d4+4 HP)</option>
+                      <option value="water_breathing">🌊 Зелье дыхания под водой (1 ч)</option>
+                      <option value="fire_resistance">🛡️ Зелье огнестойкости (Огонь)</option>
+                      <option value="hill_giant">🦾 Зелье силы холмового великана (Сила 21)</option>
+                      <option value="growth">🍄 Зелье роста (+1d4 к урону, размер)</option>
+                    </optgroup>
+                    <optgroup label="Редкие (Rare) — 1 ошибка">
+                      <option value="invisibility">👻 Зелье невидимости (1 ч)</option>
+                      <option value="heroism">👑 Зелье героизма (Благословение + 10 HP)</option>
+                      <option value="gaseous_form">🌫️ Зелье газообразной формы (Туман)</option>
+                      <option value="invulnerability">🛡️ Зелье неуязвимости (Сопротивление всему)</option>
+                    </optgroup>
+                    <optgroup label="Очень редкие (Very Rare) — 1 ошибка">
+                      <option value="speed">⚡ Зелье скорости (Ускорение)</option>
+                      <option value="flying">🕊️ Зелье полёта (60 футов)</option>
+                      <option value="supreme_healing">🌟 Высшее зелье лечения (10d4+20 HP)</option>
+                    </optgroup>
+                    <optgroup label="Легендарные (Legendary) — 1 ошибка">
+                      <option value="storm_giant">⛈️ Зелье силы великана бурь (Сила 29!)</option>
+                    </optgroup>
+                  </select>
+                </div>
+                <p style={{ margin: '6px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  ℹ️ Сложность определяется каноном D&D: чем могущественнее эффект, тем строже допуск по температуре, сложнее шаги и выше риск порчи варева.
+                </p>
+              </>
             )}
           </div>
 
-          {/* Колонка 2: Снаряжение и Стелс */}
+          {/* Колонка 2: Специальные параметры мини-игры */}
           <div className="curtain-box">
-            <h4 className="curtain-box-title">🛡️ Снаряжение и Стелс</h4>
+            <h4 className="curtain-box-title">
+              {currentGame === 'lockpick' && '🗝️ Отмычки и Скрытность'}
+              {currentGame === 'trap' && '⚙️ Механизм и Боёк'}
+              {currentGame === 'runes' && '✨ Структура печати'}
+              {currentGame === 'pickpocket' && '👥 Бдительность и Скрытность'}
+              {currentGame === 'alchemy' && '⚗️ Тигель и Реагенты'}
+            </h4>
 
             {currentGame === 'lockpick' && (
-              <div className="curtain-row">
-                <label>Запас отмычек у персонажа:</label>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <>
+                <div className="curtain-row">
+                  <label>Запас отмычек у персонажа:</label>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input 
+                      type="number" 
+                      min="1" 
+                      max="50" 
+                      value={maxPicks} 
+                      onChange={(e) => {
+                        const val = Math.max(1, parseInt(e.target.value, 10) || 1);
+                        setMaxPicks(val);
+                        setCurrentPicks(val);
+                        stateRef.current.maxPicks = val;
+                        stateRef.current.currentPicks = val;
+                      }}
+                      className="curtain-select"
+                      style={{ width: '70px', textAlign: 'center', fontWeight: 'bold' }}
+                    />
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>шт.</span>
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="20" 
+                      value={Math.min(20, maxPicks)} 
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setMaxPicks(val);
+                        setCurrentPicks(val);
+                        stateRef.current.maxPicks = val;
+                        stateRef.current.currentPicks = val;
+                      }} 
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                </div>
+
+                <div className="curtain-toggle-row">
+                  <label>Шкала шума стражи (стелс):</label>
                   <input 
-                    type="number" 
-                    min="1" 
-                    max="50" 
-                    value={maxPicks} 
-                    onChange={(e) => {
-                      const val = Math.max(1, parseInt(e.target.value, 10) || 1);
-                      setMaxPicks(val);
-                      setCurrentPicks(val);
-                      stateRef.current.maxPicks = val;
-                      stateRef.current.currentPicks = val;
-                    }}
-                    className="curtain-select"
-                    style={{ width: '70px', textAlign: 'center', fontWeight: 'bold' }}
-                  />
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>шт.</span>
-                  <input 
-                    type="range" 
-                    min="1" 
-                    max="20" 
-                    value={Math.min(20, maxPicks)} 
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      setMaxPicks(val);
-                      setCurrentPicks(val);
-                      stateRef.current.maxPicks = val;
-                      stateRef.current.currentPicks = val;
-                    }} 
-                    style={{ flex: 1 }}
+                    type="checkbox" 
+                    checked={stealthNoise} 
+                    onChange={(e) => setStealthNoise(e.target.checked)} 
                   />
                 </div>
-              </div>
+
+                <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  ℹ️ Отмычки гнутся и ломаются при сильном упоре. При включённом стелсе звон замка заполняет шкалу тревоги стражи.
+                </p>
+              </>
             )}
 
-            <div className="curtain-toggle-row">
-              <label>Шкала шума стражи (стелс):</label>
-              <input 
-                type="checkbox" 
-                checked={stealthNoise} 
-                onChange={(e) => setStealthNoise(e.target.checked)} 
-              />
-            </div>
+            {currentGame === 'trap' && (
+              <>
+                <div style={{ fontSize: '12px', lineHeight: '1.5', color: 'var(--text-primary)' }}>
+                  <p style={{ margin: '0 0 6px 0' }}><strong>Предохранитель бойка:</strong> 3 щелчка до детонации.</p>
+                  <p style={{ margin: '0 0 6px 0' }}><strong>Урон при взрыве:</strong> {tier === 1 ? '2d10' : tier === 2 ? '4d10' : '8d10'} урона.</p>
+                </div>
+                <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  ℹ️ Ловушка требует филигранного удержания пинцета в рабочей зоне триггера. При срыве боёк взводится ближе к детонации.
+                </p>
+              </>
+            )}
 
-            <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              ℹ️ В испытаниях действуют естественные правила: отмычки ломаются при сильном упоре, ловушки взводят боёк при ошибке, а карманная кража зависит от бдительности жертвы.
-            </p>
+            {currentGame === 'runes' && (
+              <>
+                <div style={{ fontSize: '12px', lineHeight: '1.5', color: 'var(--text-primary)' }}>
+                  <p style={{ margin: '0 0 6px 0' }}><strong>Кольца печати:</strong> 3 концентрических круга (Внутреннее, Среднее, Внешнее).</p>
+                  <p style={{ margin: '0 0 6px 0' }}><strong>Управление:</strong> Клавиши <code>1, 2, 3</code> — выбор кольца; <code>A/D</code> или колёсико — поворот.</p>
+                </div>
+                <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  ℹ️ Мана бьёт из центрального ядра по 4 направлениям. Совмещайте золотые желоба, чтобы замкнуть цветные алтари.
+                </p>
+              </>
+            )}
+
+            {currentGame === 'pickpocket' && (
+              <>
+                <div className="curtain-toggle-row">
+                  <label>Шкала бдительности жертвы (стелс):</label>
+                  <input 
+                    type="checkbox" 
+                    checked={stealthNoise} 
+                    onChange={(e) => setStealthNoise(e.target.checked)} 
+                  />
+                </div>
+                <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  ℹ️ Медленно вытягивайте предмет из кармана жертвы. Резкие рывки и касания краёв вызывают подозрение и крик «Держи вора!».
+                </p>
+              </>
+            )}
+
+            {currentGame === 'alchemy' && (
+              <>
+                <div style={{ fontSize: '12px', lineHeight: '1.5', color: 'var(--text-primary)' }}>
+                  <p style={{ margin: '0 0 4px 0' }}>💨 <strong>Меха (ПРОБЕЛ):</strong> накал пламени тигля.</p>
+                  <p style={{ margin: '0 0 4px 0' }}>🥄 <strong>Помешивание (A/D):</strong> по часовой ↻ или против ↺.</p>
+                  <p style={{ margin: '0 0 4px 0' }}>🌿 <strong>Реагенты:</strong> всыпать строго в зелёной зоне.</p>
+                </div>
+                <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                  ℹ️ При нарушении рецепта или температуры варево теряет стабильность. Превышение лимита ошибок портит зелье!
+                </p>
+              </>
+            )}
           </div>
 
           {/* Колонка 3: Генератор испытаний и кубик */}
@@ -700,10 +778,18 @@ export default function TrialsTab({ onOpenSidebar }) {
           <span className="hud-value" title={challengeDesc}>{challengeName}</span>
         </div>
 
-        <div className="hud-dnd-badges">
-          <span className="hud-badge dc-badge">DC {dc}</span>
-          <span className="hud-badge bonus-badge">Модификатор: {bonus >= 0 ? `+${bonus}` : bonus}</span>
-        </div>
+        {currentGame !== 'alchemy' ? (
+          <div className="hud-dnd-badges">
+            <span className="hud-badge dc-badge">DC {dc}</span>
+            <span className="hud-badge bonus-badge">Модификатор: {bonus >= 0 ? `+${bonus}` : bonus}</span>
+          </div>
+        ) : (
+          <div className="hud-dnd-badges">
+            <span className="hud-badge dc-badge" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.3)' }}>
+              🧪 Алхимия D&D 5e
+            </span>
+          </div>
+        )}
 
         {currentGame === 'lockpick' && (
           <div className="hud-picks-box">
@@ -758,14 +844,21 @@ export default function TrialsTab({ onOpenSidebar }) {
             <p className="result-subtitle">{outcome.subtitle}</p>
 
             <div className="result-details-grid">
-              <div className="detail-item">
-                <span className="detail-label">Уровень шума:</span>
-                <span className="detail-val">{outcome.noiseStatus}</span>
-              </div>
+              {outcome.toolsLabel && outcome.toolsStatus && (
+                <div className="detail-item">
+                  <span className="detail-label">{outcome.toolsLabel}</span>
+                  <span className="detail-val">{outcome.toolsStatus}</span>
+                </div>
+              )}
               <div className="detail-item">
                 <span className="detail-label">Затраченное время:</span>
                 <span className="detail-val">{outcome.timeFormatted}</span>
               </div>
+              {outcome.narrative && (
+                <div className="detail-item narrative-item">
+                  <p className="detail-narrative">{outcome.narrative}</p>
+                </div>
+              )}
             </div>
 
             <div className="modal-actions-row">
