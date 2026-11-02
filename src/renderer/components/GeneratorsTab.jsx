@@ -3,6 +3,7 @@ import {
   Sparkles, 
   Dices, 
   User, 
+  Beer,
   Volume2, 
   Eye, 
   Brain, 
@@ -26,7 +27,10 @@ import {
 } from '../data/npcData.js';
 
 export default function GeneratorsTab() {
-  // Фильтры
+  // Активный тип генератора
+  const [activeGenerator, setActiveGenerator] = useState('npc');
+
+  // Фильтры NPC
   const [selectedRace, setSelectedRace] = useState('any');
   const [selectedGender, setSelectedGender] = useState('any');
   const [selectedOccupation, setSelectedOccupation] = useState('any');
@@ -152,16 +156,41 @@ export default function GeneratorsTab() {
 
   return (
     <div className="generators-container">
-      {/* Шапка раздела */}
-      <div className="generators-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Sparkles size={26} color="var(--accent-gold)" />
-          <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>Генератор NPC</h2>
+      {/* Верхняя плашка выбора типа генератора */}
+      <div className="generators-top-bar">
+        <div className="generators-tab-pills">
+          <button 
+            type="button"
+            className={`gen-pill-btn ${activeGenerator === 'npc' ? 'active' : ''}`}
+            onClick={() => setActiveGenerator('npc')}
+          >
+            <User size={16} />
+            <span>Генератор NPC</span>
+          </button>
+
+          <button 
+            type="button"
+            className={`gen-pill-btn ${activeGenerator === 'tavern' ? 'active' : ''}`}
+            onClick={() => setActiveGenerator('tavern')}
+          >
+            <Beer size={16} />
+            <span>Таверны и Заведения</span>
+          </button>
         </div>
-        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Мгновенное создание персонажей с аутентичными именами, прозвищами и подсказками для отыгрыша голосом.
-        </p>
       </div>
+
+      {activeGenerator === 'npc' && (
+        <>
+          {/* Шапка раздела */}
+          <div className="generators-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Sparkles size={26} color="var(--accent-gold)" />
+              <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>Генератор NPC</h2>
+            </div>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+              Мгновенное создание персонажей с аутентичными именами, прозвищами и подсказками для отыгрыша голосом.
+            </p>
+          </div>
 
       {/* Панель фильтров и генерации */}
       <div className="generators-toolbar">
@@ -442,8 +471,26 @@ export default function GeneratorsTab() {
             )}
           </div>
         </div>
+        </div>
+        </>
+      )}
 
-      </div>
+      {activeGenerator === 'tavern' && (
+        <div className="tavern-placeholder-view">
+          <div className="tavern-placeholder-card">
+            <Beer size={48} color="var(--accent-gold)" style={{ marginBottom: '14px' }} />
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '22px', color: 'var(--text-title)' }}>
+              Генератор Таверн и Заведений
+            </h3>
+            <p style={{ maxWidth: '520px', margin: '0 auto 24px auto', fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+              Раздел готов к разработке! Здесь будут атмосферные названия, фирменная выпивка и похлёбки с ценами, завсегдатаи, слухи у трактирной стойки и внезапные происшествия прямо в зале.
+            </p>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '20px', background: 'rgba(212, 175, 55, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', color: 'var(--accent-gold)', fontSize: '13px', fontWeight: 600 }}>
+              <span>💬 Ожидает обсуждения деталей с Артёмом</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

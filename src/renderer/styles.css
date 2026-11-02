@@ -2543,6 +2543,69 @@ canvas.game-canvas:active {
   box-sizing: border-box;
 }
 
+.generators-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 14px;
+}
+
+.generators-tab-pills {
+  display: flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.gen-pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gen-pill-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.gen-pill-btn.active {
+  background: var(--bg-module);
+  color: var(--accent-gold);
+  border-color: rgba(212, 175, 55, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.tavern-placeholder-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+.tavern-placeholder-card {
+  background: var(--bg-module);
+  border: 1px dashed rgba(212, 175, 55, 0.4);
+  border-radius: 14px;
+  padding: 40px 30px;
+  text-align: center;
+  max-width: 580px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  animation: modal-pop 0.25s ease-out;
+}
+
 .generators-header {
   margin-bottom: 20px;
 }

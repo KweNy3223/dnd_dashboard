@@ -165,10 +165,6 @@ function AppContent() {
               <LayoutDashboard size={18} /> Стол
             </NavLink>
 
-            <NavLink to="/generators" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Sparkles size={18} /> Генераторы
-            </NavLink>
-
             <NavLink to="/prices" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Store size={18} /> Справочник цен
             </NavLink>
