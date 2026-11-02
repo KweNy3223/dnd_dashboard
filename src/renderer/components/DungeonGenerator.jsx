@@ -41,7 +41,6 @@ export default function DungeonGenerator() {
   });
 
   const [copied, setCopied] = useState(false);
-  const [skillRoll, setSkillRoll] = useState(null);
 
   useEffect(() => {
     if (currentRoom) {
@@ -62,23 +61,9 @@ export default function DungeonGenerator() {
   }, [savedRooms]);
 
   const handleGenerate = (forceRandom = false) => {
-    setSkillRoll(null);
     const theme = forceRandom ? 'any' : selectedTheme;
     if (forceRandom) setSelectedTheme('any');
     setCurrentRoom(generateRandomDungeonRoom(theme));
-  };
-
-  const handleRollSkill = (type) => {
-    if (!currentRoom) return;
-    const roll = Math.floor(Math.random() * 20) + 1;
-    const targetDC = type === 'perception' ? currentRoom.perceptionDC : currentRoom.investigationDC;
-    const isSuccess = roll >= targetDC;
-    setSkillRoll({
-      type: type === 'perception' ? 'Внимательность (ловушки)' : 'Анализ (тайники)',
-      roll,
-      dc: targetDC,
-      isSuccess
-    });
   };
 
   const isSaved = savedRooms.some(r => r.id === currentRoom?.id);
@@ -162,52 +147,8 @@ export default function DungeonGenerator() {
           >
             <RotateCcw size={16} /> Рандом
           </button>
-          <button 
-            type="button" 
-            className="trials-btn secondary"
-            onClick={() => handleRollSkill('perception')}
-            title="Бросить внимательность на ловушку"
-          >
-            <Eye size={16} /> Внимательность
-          </button>
-          <button 
-            type="button" 
-            className="trials-btn secondary"
-            onClick={() => handleRollSkill('investigation')}
-            title="Бросить анализ на поиск тайника"
-          >
-            <Sparkles size={16} /> Анализ
-          </button>
         </div>
       </div>
-
-      {/* Результат проверки кубика d20 */}
-      {skillRoll && (
-        <div style={{ 
-          marginTop: '14px', 
-          padding: '10px 16px', 
-          borderRadius: '8px', 
-          backgroundColor: 'var(--bg-module)', 
-          border: '1px solid var(--border-color)', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          fontSize: '13px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontWeight: 'bold', color: skillRoll.isSuccess ? '#4ade80' : '#ef4444' }}>
-              🎲 {skillRoll.type}: d20 = {skillRoll.roll} — {skillRoll.isSuccess ? 'УСПЕХ' : 'ПРОВАЛ'} (Сл {skillRoll.dc})
-            </span>
-          </div>
-          <button 
-            type="button" 
-            onClick={() => setSkillRoll(null)}
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
-          >
-            Скрыть
-          </button>
-        </div>
-      )}
 
       {/* Основная сетка: Карточка комнаты слева (1fr) + Записная книжка справа (320px) */}
       <div className="generators-main-layout">
