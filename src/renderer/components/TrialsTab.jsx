@@ -47,6 +47,7 @@ export default function TrialsTab({ onOpenSidebar }) {
   const [lockTheme, setLockTheme] = useState('auto');
   const [lootType, setLootType] = useState('auto');
   const [trapType, setTrapType] = useState('tripwire');
+  const [potionType, setPotionType] = useState('healing');
   const [strikerStage, setStrikerStage] = useState(0);
   const [maxPicks, setMaxPicks] = useState(5);
   const [currentPicks, setCurrentPicks] = useState(5);
@@ -80,6 +81,7 @@ export default function TrialsTab({ onOpenSidebar }) {
     lockTheme: 'auto',
     lootType: 'auto',
     trapType: 'tripwire',
+    potionType: 'healing',
     strikerStage: 0,
     stealthNoise: false,
     challengeName: 'Тяжёлый кованый сундук бандитов'
@@ -92,6 +94,7 @@ export default function TrialsTab({ onOpenSidebar }) {
   stateRef.current.lockTheme = lockTheme;
   stateRef.current.lootType = lootType;
   stateRef.current.trapType = trapType;
+  stateRef.current.potionType = potionType;
   stateRef.current.strikerStage = strikerStage;
   stateRef.current.stealthNoise = stealthNoise;
   stateRef.current.challengeName = challengeName;
@@ -121,6 +124,10 @@ export default function TrialsTab({ onOpenSidebar }) {
       noiseLevel: stateRef.current.noiseLevel,
       gameType: currentGame
     });
+
+    if (extraData.potionName && success) {
+      res.subtitle = `Сварено: ${extraData.potionName} (${extraData.effect || ''})`;
+    }
 
     setOutcome(res);
   }, [currentGame]);
@@ -193,6 +200,9 @@ export default function TrialsTab({ onOpenSidebar }) {
     },
     getTrapType: () => {
       return stateRef.current.trapType || 'tripwire';
+    },
+    getPotionType: () => {
+      return stateRef.current.potionType || 'healing';
     },
     setStrikerStage: (stage) => {
       const s = Math.max(0, Math.min(3, stage));
@@ -512,6 +522,51 @@ export default function TrialsTab({ onOpenSidebar }) {
                 </select>
               </div>
             )}
+
+            {currentGame === 'alchemy' && (
+              <div className="curtain-row">
+                <label>Рецепт зелья D&D 5e:</label>
+                <select 
+                  className="curtain-select"
+                  value={potionType}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setPotionType(next);
+                    stateRef.current.potionType = next;
+                    if (activeGameInstanceRef.current?.setPotion) {
+                      activeGameInstanceRef.current.setPotion(next);
+                    }
+                  }}
+                >
+                  <optgroup label="Обычные (Common) — для начинающих">
+                    <option value="healing">🍷 Зелье лечения (2d4+2 HP)</option>
+                    <option value="climbing">🧗 Зелье лазания (Атлетика)</option>
+                    <option value="animal_friendship">🌿 Зелье дружбы с животными (24 часа)</option>
+                  </optgroup>
+                  <optgroup label="Необычные (Uncommon) — умеренные">
+                    <option value="greater_healing">💖 Большее зелье лечения (4d4+4 HP)</option>
+                    <option value="water_breathing">🌊 Зелье дыхания под водой (1 час)</option>
+                    <option value="fire_resistance">🛡️ Зелье огнестойкости (Огонь)</option>
+                    <option value="hill_giant">🦾 Зелье силы холмового великана (Сила 21)</option>
+                    <option value="growth">🍄 Зелье роста (+1d4 к урону, размер)</option>
+                  </optgroup>
+                  <optgroup label="Редкие (Rare) — высшее мастерство">
+                    <option value="invisibility">👻 Зелье невидимости (1 час)</option>
+                    <option value="heroism">👑 Зелье героизма (Благословение + 10 HP)</option>
+                    <option value="gaseous_form">🌫️ Зелье газообразной формы (Туман)</option>
+                    <option value="invulnerability">🛡️ Зелье неуязвимости (Сопротивление всему)</option>
+                  </optgroup>
+                  <optgroup label="Очень редкие (Very Rare) — великие">
+                    <option value="speed">⚡ Зелье скорости (Ускорение)</option>
+                    <option value="flying">🕊️ Зелье полёта (60 футов)</option>
+                    <option value="supreme_healing">🌟 Высшее зелье лечения (10d4+20 HP)</option>
+                  </optgroup>
+                  <optgroup label="Легендарные (Legendary) — богоподобные">
+                    <option value="storm_giant">⛈️ Зелье силы великана бурь (Сила 29!)</option>
+                  </optgroup>
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Колонка 2: Снаряжение и Стелс */}
@@ -786,8 +841,14 @@ export default function TrialsTab({ onOpenSidebar }) {
               )}
               {currentGame === 'alchemy' && (
                 <>
-                  <p><strong>Цель:</strong> Сварить зелье по рецепту, соблюдая точный температурный диапазон для каждого реагента.</p>
-                  <p><strong>Управление:</strong> Зажимайте <code>ПРОБЕЛ</code> или кнопку <code>Раздувать меха</code> для нагрева. Кликайте по ингредиенту на полке, когда столбик в зеленой зоне.</p>
+                  <p><strong>Цель:</strong> Приготовить каноническое зелье D&D 5e по старинному алхимическому трактату.</p>
+                  <p><strong>3 действия алхимика:</strong></p>
+                  <ul style={{ margin: '4px 0 8px 16px', padding: 0, fontSize: '12px', lineHeight: '1.5' }}>
+                    <li>💨 <strong>Меха (ПРОБЕЛ):</strong> Нагнетайте жар тигля (Томление, Кипение или Жар). Отпустите для естественного остывания.</li>
+                    <li>🌿 <strong>Полка реагентов:</strong> Бросайте нужный ингредиент, пока тигель в целевом температурном диапазоне.</li>
+                    <li>🥄 <strong>Помешивание (A / D или ← / →):</strong> Размешивайте по часовой ↻ или против часовой ↺ стрелки по указанию в свитке.</li>
+                  </ul>
+                  <p><strong>Сложность зелья:</strong> Чем сильнее и выше редкость зелья (от Обычного до Очень редкого), тем больше этапов и тем строже допуски на ошибки!</p>
                 </>
               )}
             </div>
