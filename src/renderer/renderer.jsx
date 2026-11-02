@@ -15,7 +15,9 @@ import {
   Calculator,
   Menu,
   Swords,
-  Sparkles
+  Sparkles,
+  User,
+  Beer
 } from 'lucide-react';
 
 // Компоненты
@@ -36,6 +38,7 @@ import GeneratorsTab from './components/GeneratorsTab.jsx';
 function AppContent() {
   const location = useLocation();
   const isTrialsRoute = location.pathname.startsWith('/trials');
+  const isGeneratorsRoute = location.pathname.startsWith('/generators');
 
   // 1. ПАМЯТЬ ПРИЛОЖЕНИЯ
   const [modules, setModules] = useState([]);
@@ -157,29 +160,60 @@ function AppContent() {
             >
               <Menu size={20} />
             </button>
-            <h2 className="app-title">DnD Dashboard</h2>
+            <h2 className="app-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {isGeneratorsRoute ? (
+                <>
+                  <Sparkles size={20} color="var(--accent-gold)" />
+                  <span>Генераторы</span>
+                </>
+              ) : (
+                'DnD Dashboard'
+              )}
+            </h2>
           </div>
 
           <nav className="navbar-center" style={{ display: 'flex', gap: '15px' }}>
-            <NavLink to="/" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <LayoutDashboard size={18} /> Стол
-            </NavLink>
+            {isGeneratorsRoute ? (
+              <>
+                <NavLink 
+                  to="/generators/npc" 
+                  className={`nav-tab ${location.pathname === '/generators/npc' || location.pathname === '/generators' ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <User size={18} /> Генератор NPC
+                </NavLink>
 
-            <NavLink to="/prices" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Store size={18} /> Справочник цен
-            </NavLink>
+                <NavLink 
+                  to="/generators/tavern" 
+                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Beer size={18} /> Таверны и Заведения
+                </NavLink>
+              </>
+            ) : (
+              <>
+                <NavLink to="/" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <LayoutDashboard size={18} /> Стол
+                </NavLink>
 
-            <NavLink to="/calculator" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Calculator size={18} /> Калькулятор лута
-            </NavLink>
+                <NavLink to="/prices" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Store size={18} /> Справочник цен
+                </NavLink>
 
-            <NavLink to="/rules" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <BookOpen size={18} /> Справочник
-            </NavLink>
-            
-            <NavLink to="/settings" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Settings size={18} /> Настройки
-            </NavLink>
+                <NavLink to="/calculator" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Calculator size={18} /> Калькулятор лута
+                </NavLink>
+
+                <NavLink to="/rules" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <BookOpen size={18} /> Справочник
+                </NavLink>
+                
+                <NavLink to="/settings" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Settings size={18} /> Настройки
+                </NavLink>
+              </>
+            )}
           </nav>
 
           <div className="navbar-right"></div>
@@ -238,6 +272,8 @@ function AppContent() {
 
             {/* СТРАНИЦА: ГЕНЕРАТОРЫ */}
             <Route path="/generators" element={<GeneratorsTab />} />
+            <Route path="/generators/npc" element={<GeneratorsTab />} />
+            <Route path="/generators/tavern" element={<GeneratorsTab />} />
 
             {/* СТРАНИЦА 2: СПРАВОЧНИК ЦЕН */}
             <Route path="/prices" element={<PricesTab />} />

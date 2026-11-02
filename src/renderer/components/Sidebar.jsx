@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Swords, 
@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme }) {
+  const location = useLocation();
+
   return (
     <>
       {/* Затемнение фона при открытом меню */}
@@ -57,7 +59,7 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
 
           <NavLink 
             to="/trials" 
-            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            className={`sidebar-link ${location.pathname.startsWith('/trials') ? 'active' : ''}`}
             onClick={onClose}
           >
             <Swords size={19} className="sidebar-icon" />
@@ -66,7 +68,7 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
 
           <NavLink 
             to="/generators" 
-            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            className={`sidebar-link ${location.pathname.startsWith('/generators') ? 'active' : ''}`}
             onClick={onClose}
           >
             <Sparkles size={19} className="sidebar-icon" />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   Sparkles, 
   Dices, 
@@ -27,8 +28,9 @@ import {
 } from '../data/npcData.js';
 
 export default function GeneratorsTab() {
-  // Активный тип генератора
-  const [activeGenerator, setActiveGenerator] = useState('npc');
+  const location = useLocation();
+  // Тип генератора определяется по подмаршруту
+  const activeGenerator = location.pathname.endsWith('/tavern') ? 'tavern' : 'npc';
 
   // Фильтры NPC
   const [selectedRace, setSelectedRace] = useState('any');
@@ -156,29 +158,6 @@ export default function GeneratorsTab() {
 
   return (
     <div className="generators-container">
-      {/* Верхняя плашка выбора типа генератора */}
-      <div className="generators-top-bar">
-        <div className="generators-tab-pills">
-          <button 
-            type="button"
-            className={`gen-pill-btn ${activeGenerator === 'npc' ? 'active' : ''}`}
-            onClick={() => setActiveGenerator('npc')}
-          >
-            <User size={16} />
-            <span>Генератор NPC</span>
-          </button>
-
-          <button 
-            type="button"
-            className={`gen-pill-btn ${activeGenerator === 'tavern' ? 'active' : ''}`}
-            onClick={() => setActiveGenerator('tavern')}
-          >
-            <Beer size={16} />
-            <span>Таверны и Заведения</span>
-          </button>
-        </div>
-      </div>
-
       {activeGenerator === 'npc' && (
         <>
           {/* Шапка раздела */}
