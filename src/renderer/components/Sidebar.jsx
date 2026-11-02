@@ -62,7 +62,6 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
           >
             <Swords size={19} className="sidebar-icon" />
             <span>Мастерская Испытаний</span>
-            <span className="sidebar-badge">5 игр</span>
           </NavLink>
 
           <div className="sidebar-section-label">СПРАВОЧНИКИ</div>

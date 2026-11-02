@@ -779,11 +779,15 @@ input[type="number"] {
 .sidebar-badge {
   margin-left: auto;
   font-size: 11px;
-  padding: 2px 7px;
-  border-radius: 10px;
-  background-color: rgba(207, 168, 50, 0.2);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background-color: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.3);
   color: var(--accent-gold);
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.2;
 }
 
 .sidebar-footer {
