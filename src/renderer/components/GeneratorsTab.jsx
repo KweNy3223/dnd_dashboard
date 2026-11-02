@@ -38,8 +38,25 @@ export default function GeneratorsTab() {
   const [selectedGender, setSelectedGender] = useState('any');
   const [selectedOccupation, setSelectedOccupation] = useState('any');
 
-  // Текущий NPC
-  const [currentNPC, setCurrentNPC] = useState(() => generateRandomNPC());
+  // Текущий NPC (сохраняется в памяти)
+  const [currentNPC, setCurrentNPC] = useState(() => {
+    try {
+      const cached = localStorage.getItem('dnd_active_npc');
+      return cached ? JSON.parse(cached) : generateRandomNPC();
+    } catch {
+      return generateRandomNPC();
+    }
+  });
+
+  useEffect(() => {
+    if (currentNPC) {
+      try {
+        localStorage.setItem('dnd_active_npc', JSON.stringify(currentNPC));
+      } catch (e) {
+        console.warn('Не удалось закешировать активного NPC', e);
+      }
+    }
+  }, [currentNPC]);
 
   // Сохраненные NPC (из localStorage)
   const [savedNPCs, setSavedNPCs] = useState(() => {
@@ -159,10 +176,9 @@ export default function GeneratorsTab() {
 
   return (
     <div className="generators-container">
-      {activeGenerator === 'npc' && (
-        <>
-          {/* Шапка раздела */}
-          <div className="generators-header">
+      <div style={{ display: activeGenerator === 'npc' ? 'block' : 'none' }}>
+        {/* Шапка раздела */}
+        <div className="generators-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <Sparkles size={26} color="var(--accent-gold)" />
               <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>Генератор NPC</h2>
@@ -452,12 +468,11 @@ export default function GeneratorsTab() {
           </div>
         </div>
         </div>
-        </>
-      )}
+      </div>
 
-      {activeGenerator === 'tavern' && (
+      <div style={{ display: activeGenerator === 'tavern' ? 'block' : 'none' }}>
         <TavernGenerator />
-      )}
+      </div>
     </div>
   );
 }

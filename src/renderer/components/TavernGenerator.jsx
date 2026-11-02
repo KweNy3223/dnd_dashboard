@@ -13,7 +13,8 @@ import {
   MessageSquare,
   AlertTriangle,
   Compass,
-  Wine
+  Wine,
+  Dices
 } from 'lucide-react';
 import { 
   TAVERN_CONCEPTS, 
@@ -30,8 +31,78 @@ import {
 export default function TavernGenerator() {
   const [selectedConcept, setSelectedConcept] = useState('any');
   const [selectedRegion, setSelectedRegion] = useState('any');
-  const [currentTavern, setCurrentTavern] = useState(() => generateRandomTavern());
+  const [currentTavern, setCurrentTavern] = useState(() => {
+    try {
+      const cached = localStorage.getItem('dnd_active_tavern');
+      return cached ? JSON.parse(cached) : generateRandomTavern();
+    } catch {
+      return generateRandomTavern();
+    }
+  });
   const [copied, setCopied] = useState(false);
+
+  // Кеширование активной таверны (сохраняется при переходе между вкладками генераторов и модулями)
+  useEffect(() => {
+    if (currentTavern) {
+      try {
+        localStorage.setItem('dnd_active_tavern', JSON.stringify(currentTavern));
+      } catch (e) {
+        console.warn('Не удалось закешировать активную таверну', e);
+      }
+    }
+  }, [currentTavern]);
+
+  // Спасброски Телосложения (интерактивные броски d20 на опьянение и непривычные деликатесы)
+  const [conRolls, setConRolls] = useState({});
+
+  const handleRollCon = (itemKey, dc) => {
+    const roll = Math.floor(Math.random() * 20) + 1;
+    const isPass = roll >= dc;
+    setConRolls(prev => ({
+      ...prev,
+      [`${currentTavern?.id || 'tav'}_${itemKey}`]: { roll, isPass }
+    }));
+  };
+
+  const renderConCheck = (conCheck, itemKey) => {
+    if (!conCheck) return null;
+    const outcome = conRolls[`${currentTavern?.id || 'tav'}_${itemKey}`];
+
+    return (
+      <div className="con-check-box">
+        <div className="con-check-header">
+          <span className="con-check-badge">
+            🎲 {conCheck.label}
+          </span>
+          <button 
+            type="button" 
+            className="con-roll-btn"
+            onClick={() => handleRollCon(itemKey, conCheck.dc)}
+            title="Сделать бросок d20 на Телосложение"
+          >
+            <Dices size={12} /> Бросить d20
+          </button>
+        </div>
+
+        {outcome && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+            <span className={`con-roll-outcome ${outcome.isPass ? 'pass' : 'fail'}`}>
+              d20: {outcome.roll} — {outcome.isPass ? 'УСПЕХ' : 'ПРОВАЛ'} (Сл {conCheck.dc})
+            </span>
+          </div>
+        )}
+
+        <div className="con-check-desc-row">
+          <div className="con-check-pass">
+            <strong>✅ Успех:</strong> {conCheck.onPass}
+          </div>
+          <div className="con-check-fail">
+            <strong>❌ Провал:</strong> {conCheck.onFail}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Сохранённые таверны (сессионная записная книжка)
   const [savedTaverns, setSavedTaverns] = useState(() => {
@@ -124,15 +195,19 @@ export default function TavernGenerator() {
       `🍲 КУХНЯ И БЛЮДА:`,
       `⭐ Фирменное: ${menu.food.signature.name} — ${menu.food.signature.price}`,
       `   ${menu.food.signature.desc}`,
+      menu.food.signature.conCheck ? `   🎲 ${menu.food.signature.conCheck.label}: [Успех: ${menu.food.signature.conCheck.onPass} | Провал: ${menu.food.signature.conCheck.onFail}]` : '',
       `🌟 Экзотика: ${menu.food.exotic.name} — ${menu.food.exotic.price}`,
       `   ${menu.food.exotic.desc}`,
+      menu.food.exotic.conCheck ? `   🎲 ${menu.food.exotic.conCheck.label}: [Успех: ${menu.food.exotic.conCheck.onPass} | Провал: ${menu.food.exotic.conCheck.onFail}]` : '',
       ...menu.food.dishes.map(d => `• ${d.name} (${d.price}) — ${d.desc}`),
       ``,
       `🍺 ПОГРЕБ И ВЫПИВКА:`,
       `⭐ Фирменная: ${menu.drinks.signature.name} — ${menu.drinks.signature.price}`,
       `   ${menu.drinks.signature.desc}`,
+      menu.drinks.signature.conCheck ? `   🎲 ${menu.drinks.signature.conCheck.label}: [Успех: ${menu.drinks.signature.conCheck.onPass} | Провал: ${menu.drinks.signature.conCheck.onFail}]` : '',
       `🍷 Редкое/Особое: ${menu.drinks.special.name} — ${menu.drinks.special.price}`,
       `   ${menu.drinks.special.desc}`,
+      menu.drinks.special.conCheck ? `   🎲 ${menu.drinks.special.conCheck.label}: [Успех: ${menu.drinks.special.conCheck.onPass} | Провал: ${menu.drinks.special.conCheck.onFail}]` : '',
       ...menu.drinks.items.map(d => `• ${d.name} (${d.price}) — ${d.desc}`),
       ``,
       `🛏️ НОЧЛЕГ:`,
@@ -357,6 +432,7 @@ export default function TavernGenerator() {
                       <div className="menu-highlight-desc">
                         {menu.food.signature.desc}
                       </div>
+                      {renderConCheck(menu.food.signature.conCheck, 'food_signature')}
                     </div>
                   )}
 
@@ -377,6 +453,7 @@ export default function TavernGenerator() {
                       <div className="menu-highlight-desc" style={{ color: '#e9d5ff' }}>
                         {menu.food.exotic.desc}
                       </div>
+                      {renderConCheck(menu.food.exotic.conCheck, 'food_exotic')}
                     </div>
                   )}
 
@@ -424,6 +501,7 @@ export default function TavernGenerator() {
                       <div className="menu-highlight-desc">
                         {menu.drinks.signature.desc}
                       </div>
+                      {renderConCheck(menu.drinks.signature.conCheck, 'drinks_signature')}
                     </div>
                   )}
 
@@ -444,6 +522,7 @@ export default function TavernGenerator() {
                       <div className="menu-highlight-desc" style={{ color: '#fecaca' }}>
                         {menu.drinks.special.desc}
                       </div>
+                      {renderConCheck(menu.drinks.special.conCheck, 'drinks_special')}
                     </div>
                   )}
 
