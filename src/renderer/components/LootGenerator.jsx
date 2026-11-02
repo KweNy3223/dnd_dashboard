@@ -210,43 +210,44 @@ export default function LootGenerator() {
           <div className="npc-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             
             {/* Шапка карточки */}
-            <div className="card-top-header">
-              <div className="card-main-meta">
-                <span className="card-race-icon">💎</span>
-                <div>
-                  <h2 className="card-character-name" style={{ fontSize: '20px' }}>
-                    {currentLoot.typeLabel}
-                  </h2>
-                  <span className="card-character-sub">
-                    {currentLoot.tierLabel} • Доля на 1 игрока: ≈ {perPlayerGp} ЗМ
+            <div className="npc-card-header">
+              <div className="npc-avatar-box">
+                <span className="npc-race-emoji">💎</span>
+              </div>
+              <div className="npc-title-box">
+                <h3 className="npc-name">{currentLoot.typeLabel}</h3>
+                <div className="npc-meta-row">
+                  <span className="npc-tag highlight">{currentLoot.tierLabel}</span>
+                  <span className="npc-tag" style={{ color: 'var(--accent-gold)', borderColor: 'rgba(212, 175, 55, 0.3)' }}>
+                    Доля на 1 игрока: ≈ {perPlayerGp} ЗМ
                   </span>
                 </div>
               </div>
 
-              <div className="card-action-btns">
+              <div className="npc-actions-box">
                 <button 
                   type="button" 
-                  className={`card-tool-btn ${isSaved ? 'bookmarked' : ''}`}
+                  className={`trials-btn secondary icon-btn ${isSaved ? 'active' : ''}`}
                   onClick={toggleSaveLoot}
                   title={isSaved ? 'Удалить из сохраненных' : 'Сохранить сокровища'}
                 >
-                  <Bookmark size={18} />
+                  <Bookmark size={17} color={isSaved ? 'var(--accent-gold)' : 'currentColor'} />
                 </button>
                 <button 
                   type="button" 
-                  className="card-tool-btn"
+                  className="trials-btn secondary icon-btn"
                   onClick={handleCopy}
                   title="Скопировать сокровища"
                 >
-                  {copied ? <Check size={18} color="#22c55e" /> : <Copy size={18} />}
+                  {copied ? <Check size={17} color="#22c55e" /> : <Copy size={17} />}
                 </button>
                 <button 
                   type="button" 
-                  className="card-tool-btn"
+                  className="trials-btn secondary icon-btn"
                   onClick={() => handleGenerate(false)}
                   title="Сгенерировать заново"
                 >
-                  <RotateCcw size={18} />
+                  <RotateCcw size={17} />
                 </button>
               </div>
             </div>

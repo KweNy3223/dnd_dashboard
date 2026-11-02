@@ -188,43 +188,44 @@ export default function EncounterGenerator() {
           <div className="npc-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             
             {/* Шапка карточки */}
-            <div className="card-top-header">
-              <div className="card-main-meta">
-                <span className="card-race-icon">⚔️</span>
-                <div>
-                  <h2 className="card-character-name" style={{ fontSize: '20px' }}>
-                    {currentEncounter.title}
-                  </h2>
-                  <span className="card-character-sub">
-                    {currentEncounter.biomeLabel} • Отряд: {currentEncounter.partySize} героев ({currentEncounter.partyLevel} ур.)
+            <div className="npc-card-header">
+              <div className="npc-avatar-box">
+                <span className="npc-race-emoji">⚔️</span>
+              </div>
+              <div className="npc-title-box">
+                <h3 className="npc-name">{currentEncounter.title}</h3>
+                <div className="npc-meta-row">
+                  <span className="npc-tag highlight">{currentEncounter.biomeLabel}</span>
+                  <span className="npc-tag" style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
+                    Отряд: {currentEncounter.partySize} героев ({currentEncounter.partyLevel} ур.)
                   </span>
                 </div>
               </div>
 
-              <div className="card-action-btns">
+              <div className="npc-actions-box">
                 <button 
                   type="button" 
-                  className={`card-tool-btn ${isSaved ? 'bookmarked' : ''}`}
+                  className={`trials-btn secondary icon-btn ${isSaved ? 'active' : ''}`}
                   onClick={toggleSaveEncounter}
                   title={isSaved ? 'Удалить из сохраненных' : 'Сохранить энкаунтер'}
                 >
-                  <Bookmark size={18} />
+                  <Bookmark size={17} color={isSaved ? 'var(--accent-gold)' : 'currentColor'} />
                 </button>
                 <button 
                   type="button" 
-                  className="card-tool-btn"
+                  className="trials-btn secondary icon-btn"
                   onClick={handleCopy}
                   title="Скопировать энкаунтер"
                 >
-                  {copied ? <Check size={18} color="#22c55e" /> : <Copy size={18} />}
+                  {copied ? <Check size={17} color="#22c55e" /> : <Copy size={17} />}
                 </button>
                 <button 
                   type="button" 
-                  className="card-tool-btn"
+                  className="trials-btn secondary icon-btn"
                   onClick={() => handleGenerate(false)}
                   title="Сгенерировать заново"
                 >
-                  <RotateCcw size={18} />
+                  <RotateCcw size={17} />
                 </button>
               </div>
             </div>

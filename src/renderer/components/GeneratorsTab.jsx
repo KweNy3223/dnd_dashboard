@@ -220,61 +220,6 @@ export default function GeneratorsTab() {
 
   return (
     <div className="generators-container">
-      {/* Верхняя панель переключения генераторов (Pills) */}
-      <div className="generators-top-bar">
-        <div className="generators-tab-pills">
-          <button 
-            type="button"
-            className={`gen-pill-btn ${activeGenerator === 'npc' ? 'active' : ''}`}
-            onClick={() => navigate('/generators/npc')}
-          >
-            <User size={16} /> NPC
-          </button>
-          <button 
-            type="button"
-            className={`gen-pill-btn ${activeGenerator === 'tavern' ? 'active' : ''}`}
-            onClick={() => navigate('/generators/tavern')}
-          >
-            <Beer size={16} /> Таверны
-          </button>
-          <button 
-            type="button"
-            className={`gen-pill-btn ${activeGenerator === 'shops' ? 'active' : ''}`}
-            onClick={() => navigate('/generators/shops')}
-          >
-            <Store size={16} /> Лавки
-          </button>
-          <button 
-            type="button"
-            className={`gen-pill-btn ${activeGenerator === 'quests' ? 'active' : ''}`}
-            onClick={() => navigate('/generators/quests')}
-          >
-            <Scroll size={16} /> Заказы
-          </button>
-          <button 
-            type="button"
-            className={`gen-pill-btn ${activeGenerator === 'encounters' ? 'active' : ''}`}
-            onClick={() => navigate('/generators/encounters')}
-          >
-            <Swords size={16} /> Энкаунтеры
-          </button>
-          <button 
-            type="button"
-            className={`gen-pill-btn ${activeGenerator === 'dungeon' ? 'active' : ''}`}
-            onClick={() => navigate('/generators/dungeon')}
-          >
-            <Compass size={16} /> Подземелья
-          </button>
-          <button 
-            type="button"
-            className={`gen-pill-btn ${activeGenerator === 'loot' ? 'active' : ''}`}
-            onClick={() => navigate('/generators/loot')}
-          >
-            <Gem size={16} /> Сокровища
-          </button>
-        </div>
-      </div>
-
       <div style={{ display: activeGenerator === 'npc' ? 'block' : 'none' }}>
         {/* Шапка раздела */}
         <div className="generators-header">
