@@ -3403,3 +3403,88 @@ canvas.game-canvas:active {
   color: #ffffff;
 }
 
+/* =========================================
+   ВСПЛЫВАЮЩИЙ ТОСТ СВЯЗКИ СО СТОЛОМ МАСТЕРА
+   ========================================= */
+.table-toast-banner {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  background-color: rgba(30, 31, 34, 0.96);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(207, 168, 50, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(207, 168, 50, 0.2);
+  border-radius: 10px;
+  padding: 12px 20px;
+  color: var(--text-title);
+  animation: tableToastSlideUp 0.25s ease-out;
+  max-width: 90vw;
+}
+
+@keyframes tableToastSlideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.table-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.table-toast-text {
+  font-weight: 500;
+  color: var(--text-title);
+}
+
+.table-toast-action-btn {
+  background: var(--accent-gold);
+  color: #111214;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.table-toast-action-btn:hover {
+  background: #dfb943;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(207, 168, 50, 0.4);
+}
+
+.table-toast-close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.table-toast-close-btn:hover {
+  color: var(--text-title);
+}
+
+

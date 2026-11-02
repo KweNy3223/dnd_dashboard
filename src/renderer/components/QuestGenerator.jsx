@@ -13,14 +13,15 @@ import {
   Check, 
   Trash2, 
   RotateCcw,
-  Sparkles
+  Sparkles,
+  FileText
 } from 'lucide-react';
 import { 
   QUEST_CATEGORIES, 
   generateRandomQuest 
 } from '../data/questData.js';
 
-export default function QuestGenerator() {
+export default function QuestGenerator({ onSendToNotes }) {
   const [selectedCategory, setSelectedCategory] = useState('any');
   const [currentQuest, setCurrentQuest] = useState(() => {
     try {
@@ -112,6 +113,20 @@ export default function QuestGenerator() {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSendQuestToNotes = () => {
+    if (!currentQuest || !onSendToNotes) return;
+    const text = [
+      `【 📜 Заказ: ${currentQuest.title} 】`,
+      `⏳ Сроки: ${currentQuest.urgency}`,
+      `👤 Заказчик: ${currentQuest.client} (${currentQuest.clientVibe})`,
+      `📍 Место действия: ${currentQuest.location}`,
+      `🎯 Суть задачи: ${currentQuest.goal}`,
+      `⚠️ Подводный камень: ${currentQuest.twist}`,
+      `💰 Награда: ${currentQuest.reward}`
+    ].join('\n');
+    onSendToNotes(text, currentQuest.title);
   };
 
   return (
@@ -232,6 +247,14 @@ export default function QuestGenerator() {
                   title={isSaved ? 'Удалить из сохраненных' : 'Сохранить квест'}
                 >
                   <Bookmark size={17} color={isSaved ? 'var(--accent-gold)' : 'currentColor'} />
+                </button>
+                <button 
+                  type="button" 
+                  className="trials-btn secondary icon-btn"
+                  onClick={handleSendQuestToNotes}
+                  title="Отправить детали заказа в Заметки на Стол"
+                >
+                  <FileText size={17} />
                 </button>
                 <button 
                   type="button" 

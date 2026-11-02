@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   BookOpen, Skull, Swords, ShieldHalf, AlertTriangle, 
   Eye, Tent, Footprints, Brain, ArrowDownToLine, 
-  HeartPulse, Waves, Zap, Pickaxe 
+  HeartPulse, Waves, Zap, Pickaxe, Search, X 
 } from 'lucide-react';
 
 const categories = [
@@ -94,16 +94,133 @@ const rulesData = {
 
 export default function RulesTab() {
   const [activeCategory, setActiveCategory] = useState('conditions');
-  const currentRules = rulesData[activeCategory] || [];
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const trimmedQuery = searchQuery.trim().toLowerCase();
+  const isSearching = trimmedQuery.length > 0;
+
+  // Поиск по всем правилам во всех категориях
+  const searchResults = isSearching
+    ? categories.flatMap(cat => {
+        const list = rulesData[cat.id] || [];
+        return list
+          .filter(rule => {
+            const inName = rule.name.toLowerCase().includes(trimmedQuery);
+            const inPoints = rule.points.some(p => p.toLowerCase().includes(trimmedQuery));
+            return inName || inPoints;
+          })
+          .map(rule => ({
+            ...rule,
+            categoryLabel: cat.label,
+            categoryId: cat.id,
+            categoryIcon: cat.icon
+          }));
+      })
+    : [];
+
+  const currentRules = isSearching ? searchResults : (rulesData[activeCategory] || []);
+
+  const highlightMatch = (text, query) => {
+    if (!query) return text;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) => 
+      part.toLowerCase() === query.toLowerCase() ? (
+        <mark key={i} style={{ backgroundColor: 'rgba(207, 168, 50, 0.35)', color: 'var(--text-title)', borderRadius: '3px', padding: '0 3px', fontWeight: 'bold' }}>
+          {part}
+        </mark>
+      ) : part
+    );
+  };
 
   return (
     <div style={{ padding: '20px', color: 'var(--text-title)', maxWidth: '1100px', margin: '0 auto', height: 'calc(100vh - 40px)', overflowY: 'auto', boxSizing: 'border-box' }}>
       
-      {/* Заголовок */}
-      <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 25px 0' }}>
-        <BookOpen size={28} color="var(--accent-primary)" />
-        Справочник мастера
-      </h2>
+      {/* Шапка: Заголовок + Строка живого поиска */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', flexWrap: 'wrap', gap: '14px' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0, fontSize: '24px' }}>
+          <BookOpen size={26} color="var(--accent-gold)" />
+          Справочник правил
+        </h2>
+
+        {/* Поле поиска */}
+        <div style={{ position: 'relative', width: '380px', maxWidth: '100%' }}>
+          <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input 
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск по всем правилам, состояниям и КД..."
+            style={{
+              width: '100%',
+              padding: '10px 38px 10px 40px',
+              backgroundColor: 'var(--bg-module)',
+              border: `1px solid ${isSearching ? 'var(--accent-gold)' : 'var(--border-color)'}`,
+              borderRadius: '8px',
+              color: 'var(--text-title)',
+              fontSize: '14px',
+              outline: 'none',
+              boxSizing: 'border-box',
+              transition: 'border-color 0.2s'
+            }}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              title="Очистить поиск"
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center'
+              }}
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Индикатор результатов поиска */}
+      {isSearching && (
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          padding: '10px 16px', 
+          backgroundColor: 'rgba(207, 168, 50, 0.1)', 
+          border: '1px solid rgba(207, 168, 50, 0.3)', 
+          borderRadius: '8px', 
+          marginBottom: '20px',
+          fontSize: '14px'
+        }}>
+          <div>
+            Найдено совпадений: <strong>{searchResults.length}</strong> по запросу «<strong>{searchQuery}</strong>»
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setSearchQuery('')}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: 'var(--accent-gold)', 
+              cursor: 'pointer', 
+              fontSize: '13px', 
+              textDecoration: 'underline' 
+            }}
+          >
+            Сбросить поиск
+          </button>
+        </div>
+      )}
 
       {/* ГЛАВНЫЙ КОНТЕЙНЕР (Сайдбар + Карточки) */}
       <div style={{ display: 'flex', gap: '25px', alignItems: 'flex-start' }}>
@@ -115,22 +232,52 @@ export default function RulesTab() {
         }}>
           {categories.map((cat) => {
             const Icon = cat.icon;
+            const isSelected = !isSearching && activeCategory === cat.id;
+            
+            // Если включен поиск, подсчитаем количество совпадений в этой категории
+            let matchCountInCat = 0;
+            if (isSearching) {
+              const list = rulesData[cat.id] || [];
+              matchCountInCat = list.filter(r => 
+                r.name.toLowerCase().includes(trimmedQuery) || 
+                r.points.some(p => p.toLowerCase().includes(trimmedQuery))
+              ).length;
+            }
+
             return (
               <button
                 key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
+                onClick={() => {
+                  setActiveCategory(cat.id);
+                  if (isSearching) setSearchQuery('');
+                }}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px',
-                  backgroundColor: activeCategory === cat.id ? 'var(--bg-module)' : 'transparent',
-                  color: activeCategory === cat.id ? 'var(--accent-primary)' : 'var(--text-muted)',
-                  border: `1px solid ${activeCategory === cat.id ? 'var(--accent-primary)' : 'var(--border-color)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px',
+                  backgroundColor: isSelected ? 'var(--bg-module)' : 'transparent',
+                  color: isSelected ? 'var(--accent-gold)' : (matchCountInCat > 0 ? 'var(--text-title)' : 'var(--text-muted)'),
+                  border: `1px solid ${isSelected ? 'var(--accent-gold)' : 'var(--border-color)'}`,
                   borderRadius: '8px', cursor: 'pointer', textAlign: 'left',
-                  fontSize: '15px', fontWeight: activeCategory === cat.id ? '600' : 'normal',
-                  transition: 'all 0.2s', boxShadow: activeCategory === cat.id ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'
+                  fontSize: '15px', fontWeight: isSelected || matchCountInCat > 0 ? '600' : 'normal',
+                  transition: 'all 0.2s', boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.1)' : 'none',
+                  opacity: isSearching && matchCountInCat === 0 ? 0.45 : 1
                 }}
               >
-                <Icon size={18} />
-                {cat.label}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Icon size={18} color={isSelected ? 'var(--accent-gold)' : 'currentColor'} />
+                  {cat.label}
+                </div>
+                {isSearching && matchCountInCat > 0 && (
+                  <span style={{ 
+                    fontSize: '12px', 
+                    padding: '2px 7px', 
+                    borderRadius: '10px', 
+                    backgroundColor: 'rgba(207, 168, 50, 0.2)', 
+                    color: 'var(--accent-gold)', 
+                    fontWeight: 'bold' 
+                  }}>
+                    {matchCountInCat}
+                  </span>
+                )}
               </button>
             );
           })}
@@ -138,25 +285,68 @@ export default function RulesTab() {
 
         {/* ПРАВАЯ ЧАСТЬ (Список карточек) */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          {currentRules.map((rule, index) => (
-            <div 
-              key={index} 
-              style={{ 
-                backgroundColor: 'var(--bg-input)', borderRadius: '8px', 
-                border: '1px solid var(--border-color)', padding: '20px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-              }}
-            >
-              <h3 style={{ margin: '0 0 10px 0', color: 'var(--accent-primary)', fontSize: '18px' }}>
-                {rule.name}
-              </h3>
-              <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-title)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {rule.points.map((point, i) => (
-                  <li key={i} style={{ lineHeight: '1.5' }}>{point}</li>
-                ))}
-              </ul>
+          {currentRules.length === 0 ? (
+            <div style={{ 
+              backgroundColor: 'var(--bg-module)', 
+              borderRadius: '8px', 
+              border: '1px dashed var(--border-color)', 
+              padding: '40px 20px', 
+              textAlign: 'center',
+              color: 'var(--text-muted)'
+            }}>
+              <BookOpen size={40} style={{ margin: '0 auto 12px auto', opacity: 0.3 }} />
+              <p style={{ margin: '0 0 6px 0', fontSize: '16px', color: 'var(--text-title)', fontWeight: 'bold' }}>
+                Ничего не найдено по запросу «{searchQuery}»
+              </p>
+              <p style={{ margin: 0, fontSize: '13px' }}>
+                Попробуйте другие слова, например: <em>помеха, преимущество, укрытие, спасбросок, КД, отдых</em>.
+              </p>
             </div>
-          ))}
+          ) : (
+            currentRules.map((rule, index) => {
+              const CategoryIcon = rule.categoryIcon;
+              return (
+                <div 
+                  key={index} 
+                  style={{ 
+                    backgroundColor: 'var(--bg-input)', borderRadius: '8px', 
+                    border: '1px solid var(--border-color)', padding: '20px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 10px 0', flexWrap: 'wrap', gap: '8px' }}>
+                    <h3 style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '18px' }}>
+                      {highlightMatch(rule.name, trimmedQuery)}
+                    </h3>
+                    {isSearching && rule.categoryLabel && (
+                      <span style={{ 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        fontSize: '12px', 
+                        padding: '3px 10px', 
+                        borderRadius: '12px', 
+                        backgroundColor: 'rgba(207, 168, 50, 0.12)', 
+                        color: 'var(--accent-gold)', 
+                        border: '1px solid rgba(207, 168, 50, 0.3)',
+                        fontWeight: '600'
+                      }}>
+                        {CategoryIcon && <CategoryIcon size={13} />}
+                        {rule.categoryLabel}
+                      </span>
+                    )}
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-title)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {rule.points.map((point, i) => (
+                      <li key={i} style={{ lineHeight: '1.5', fontSize: '14px' }}>
+                        {highlightMatch(point, trimmedQuery)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })
+          )}
         </div>
 
       </div>

@@ -10,7 +10,8 @@ import {
   Trash2, 
   RotateCcw,
   Dices,
-  Trophy
+  Trophy,
+  FileText
 } from 'lucide-react';
 import { 
   LOOT_TIERS, 
@@ -26,7 +27,7 @@ const currencyBadges = {
   pp: { bg: 'rgba(224, 231, 255, 0.15)', border: 'rgba(224, 231, 255, 0.4)', text: '#818cf8', label: 'ПМ' }
 };
 
-export default function LootGenerator() {
+export default function LootGenerator({ onSendToNotes }) {
   const [selectedTier, setSelectedTier] = useState('tier1');
   const [selectedType, setSelectedType] = useState('hoard');
   const [partyCount, setPartyCount] = useState(4);
@@ -119,6 +120,32 @@ export default function LootGenerator() {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSendLootToNotes = () => {
+    if (!currentLoot || !onSendToNotes) return;
+    const coinsStr = Object.entries(currentLoot.coins || {})
+      .filter(([_, v]) => v > 0)
+      .map(([k, v]) => `${v.toLocaleString('ru-RU')} ${currencyBadges[k]?.label || k}`)
+      .join(', ') || '0 монет';
+
+    const gemsStr = currentLoot.gemstones && currentLoot.gemstones.length > 0
+      ? currentLoot.gemstones.map(g => `• ${g.count}× ${g.name} (${g.totalValueGp} ЗМ)`).join('\n')
+      : 'Нет';
+
+    const magicStr = currentLoot.magicItems && currentLoot.magicItems.length > 0
+      ? currentLoot.magicItems.map(m => `• [${m.rarity}] ${m.name} — ${m.desc}`).join('\n')
+      : 'Нет';
+
+    const text = [
+      `【 💰 Сокровища: ${currentLoot.typeLabel} (${currentLoot.tierLabel}) 】`,
+      `Монеты: ${coinsStr} (~${currentLoot.coinTotalGp} ЗМ)`,
+      `Самоцветы:\n${gemsStr}`,
+      `Магические предметы:\n${magicStr}`,
+      `Итоговая ценность: ~${currentLoot.totalValueGp} ЗМ (доля каждого из ${partyCount} игр.: ~${perPlayerGp} ЗМ)`
+    ].join('\n');
+
+    onSendToNotes(text, `Сокровища (${currentLoot.totalValueGp} ЗМ)`);
   };
 
   const perPlayerGp = currentLoot && partyCount > 0 
@@ -232,6 +259,14 @@ export default function LootGenerator() {
                   title={isSaved ? 'Удалить из сохраненных' : 'Сохранить сокровища'}
                 >
                   <Bookmark size={17} color={isSaved ? 'var(--accent-gold)' : 'currentColor'} />
+                </button>
+                <button 
+                  type="button" 
+                  className="trials-btn secondary icon-btn"
+                  onClick={handleSendLootToNotes}
+                  title="Отправить сокровища в Заметки на Стол"
+                >
+                  <FileText size={17} />
                 </button>
                 <button 
                   type="button" 

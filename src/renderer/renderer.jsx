@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom'; // Импортируем магию роутера
+import { HashRouter, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'; // Импортируем магию роутера
 import './styles.css';
 
 // Иконки
@@ -40,17 +40,53 @@ import GeneratorsTab from './components/GeneratorsTab.jsx';
 
 function AppContent() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isTrialsRoute = location.pathname.startsWith('/trials');
   const isGeneratorsRoute = location.pathname.startsWith('/generators');
 
-  // 1. ПАМЯТЬ ПРИЛОЖЕНИЯ
-  const [modules, setModules] = useState([]);
+  // 1. ПАМЯТЬ ПРИЛОЖЕНИЯ С СОХРАНЕНИЕМ В LOCALSTORAGE
+  const [modules, setModules] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dnd_table_modules');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error('Ошибка загрузки модулей стола:', e);
+      return [];
+    }
+  });
+
   const [snapToGrid, setSnapToGrid] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const [isModuleMenuOpen, setIsModuleMenuOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false); // Для кастомного окна очистки стола
+
+  // Всплывающее уведомление (Toast)
+  const [toast, setToast] = useState(null);
+
+  // Синхронизация модулей стола с localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('dnd_table_modules', JSON.stringify(modules));
+    } catch (e) {
+      console.error('Ошибка сохранения модулей стола:', e);
+    }
+  }, [modules]);
+
+  // Функция показа уведомлений
+  function showToast(message, actionLabel = 'На Стол', actionPath = '/') {
+    setToast({ message, actionLabel, actionPath });
+  }
+
+  // Автоматическое скрытие тоста
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   // 2. ФУНКЦИИ-ОБРАБОТЧИКИ
   function handleAddModule(moduleName) {
@@ -86,6 +122,93 @@ function AppContent() {
 
     setModules([...modules, newModule]);
     setIsModuleMenuOpen(false); 
+  }
+
+  // === СВЯЗКА ГЕНЕРАТОРОВ СО СТОЛОМ МАСТЕРА ===
+  // 1. Отправка монстров из энкаунтера в Инициативу
+  function handleSendToInitiative(roster, encounterTitle) {
+    if (!roster || roster.length === 0) return;
+
+    const newParticipants = [];
+    roster.forEach((m, idx) => {
+      const count = Number(m.count) || 1;
+      for (let i = 1; i <= count; i++) {
+        newParticipants.push({
+          id: Date.now() + Math.floor(Math.random() * 10000) + idx * 20 + i,
+          name: count > 1 ? `${m.name} #${i}` : m.name,
+          init: '',
+          ac: m.ac || '',
+          hp: m.hp || '',
+          conditions: ''
+        });
+      }
+    });
+
+    setModules(prev => {
+      const existingIndex = prev.findIndex(mod => mod.name === 'Инициатива');
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        const currentParticipants = updated[existingIndex].data?.participants || [];
+        // Убираем пустую строчку-заглушку, если она была единственной пустой
+        const cleanCurrent = currentParticipants.filter(p => (p.name && p.name.trim() !== '') || p.init !== '' || p.ac !== '' || p.hp !== '');
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          data: {
+            ...updated[existingIndex].data,
+            participants: [...cleanCurrent, ...newParticipants]
+          }
+        };
+        return updated;
+      } else {
+        const newModule = {
+          id: Date.now(),
+          name: 'Инициатива',
+          data: {
+            participants: newParticipants,
+            isPinned: false,
+            isMinimized: false
+          }
+        };
+        return [...prev, newModule];
+      }
+    });
+
+    showToast(`Враги (${newParticipants.length} шт.) из «${encounterTitle || 'Энкаунтера'}» добавлены в Инициативу!`);
+  }
+
+  // 2. Отправка заметок (квесты, описания энкаунтеров, NPC, сокровища)
+  function handleSendToNotes(noteText, noteTitle) {
+    if (!noteText) return;
+
+    setModules(prev => {
+      const existingIndex = prev.findIndex(mod => mod.name === 'Заметки');
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        const currentText = updated[existingIndex].data?.text || '';
+        const separator = currentText.trim() ? '\n\n═════════════════════════════\n\n' : '';
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          data: {
+            ...updated[existingIndex].data,
+            text: currentText + separator + noteText
+          }
+        };
+        return updated;
+      } else {
+        const newModule = {
+          id: Date.now(),
+          name: 'Заметки',
+          data: {
+            text: noteText,
+            isPinned: false,
+            isMinimized: false
+          }
+        };
+        return [...prev, newModule];
+      }
+    });
+
+    showToast(`«${noteTitle || 'Запись'}» добавлена в модуль «Заметки» на Столе!`);
   }
 
   function handleRemoveModule(idToRemove) {
@@ -314,14 +437,14 @@ function AppContent() {
             <Route path="/trials" element={<TrialsTab onOpenSidebar={() => setIsSidebarOpen(true)} />} />
 
             {/* СТРАНИЦА: ГЕНЕРАТОРЫ */}
-            <Route path="/generators" element={<GeneratorsTab />} />
-            <Route path="/generators/npc" element={<GeneratorsTab />} />
-            <Route path="/generators/tavern" element={<GeneratorsTab />} />
-            <Route path="/generators/shops" element={<GeneratorsTab />} />
-            <Route path="/generators/quests" element={<GeneratorsTab />} />
-            <Route path="/generators/encounters" element={<GeneratorsTab />} />
-            <Route path="/generators/dungeon" element={<GeneratorsTab />} />
-            <Route path="/generators/loot" element={<GeneratorsTab />} />
+            <Route path="/generators" element={<GeneratorsTab onSendToInitiative={handleSendToInitiative} onSendToNotes={handleSendToNotes} />} />
+            <Route path="/generators/npc" element={<GeneratorsTab onSendToInitiative={handleSendToInitiative} onSendToNotes={handleSendToNotes} />} />
+            <Route path="/generators/tavern" element={<GeneratorsTab onSendToInitiative={handleSendToInitiative} onSendToNotes={handleSendToNotes} />} />
+            <Route path="/generators/shops" element={<GeneratorsTab onSendToInitiative={handleSendToInitiative} onSendToNotes={handleSendToNotes} />} />
+            <Route path="/generators/quests" element={<GeneratorsTab onSendToInitiative={handleSendToInitiative} onSendToNotes={handleSendToNotes} />} />
+            <Route path="/generators/encounters" element={<GeneratorsTab onSendToInitiative={handleSendToInitiative} onSendToNotes={handleSendToNotes} />} />
+            <Route path="/generators/dungeon" element={<GeneratorsTab onSendToInitiative={handleSendToInitiative} onSendToNotes={handleSendToNotes} />} />
+            <Route path="/generators/loot" element={<GeneratorsTab onSendToInitiative={handleSendToInitiative} onSendToNotes={handleSendToNotes} />} />
 
             {/* СТРАНИЦА 2: СПРАВОЧНИК ЦЕН */}
             <Route path="/prices" element={<PricesTab />} />
@@ -339,6 +462,36 @@ function AppContent() {
 
           </Routes>
         </main>
+
+        {/* === ВСПЛЫВАЮЩИЙ ТОСТ СВЯЗКИ СО СТОЛОМ === */}
+        {toast && (
+          <aside aria-label="Уведомление" className="table-toast-banner">
+            <div className="table-toast-content">
+              <Sparkles size={18} color="var(--accent-gold)" />
+              <span className="table-toast-text">{toast.message}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <button 
+                type="button" 
+                className="table-toast-action-btn"
+                onClick={() => {
+                  navigate(toast.actionPath || '/');
+                  setToast(null);
+                }}
+              >
+                {toast.actionLabel} →
+              </button>
+              <button 
+                type="button" 
+                className="table-toast-close-btn"
+                onClick={() => setToast(null)}
+                title="Закрыть"
+              >
+                ✕
+              </button>
+            </div>
+          </aside>
+        )}
 
         {/* === КАСТОМНОЕ ОКНО ПОДТВЕРЖДЕНИЯ === */}
         {isConfirmOpen && (

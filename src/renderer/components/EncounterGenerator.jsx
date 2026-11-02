@@ -16,7 +16,8 @@ import {
   Compass,
   Award,
   Sparkles,
-  HelpCircle
+  HelpCircle,
+  FileText
 } from 'lucide-react';
 import { 
   ENCOUNTER_TYPES,
@@ -24,7 +25,7 @@ import {
   generateRandomEncounter 
 } from '../data/encounterData.js';
 
-export default function EncounterGenerator() {
+export default function EncounterGenerator({ onSendToInitiative, onSendToNotes }) {
   const [selectedType, setSelectedType] = useState('any');
   const [selectedBiome, setSelectedBiome] = useState('any');
   const [partySize, setPartySize] = useState(4);
@@ -129,6 +130,43 @@ export default function EncounterGenerator() {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSendRosterToInitiative = () => {
+    if (!currentEncounter || !currentEncounter.roster || !onSendToInitiative) return;
+    onSendToInitiative(currentEncounter.roster, currentEncounter.title);
+  };
+
+  const handleSendEncounterToNotes = () => {
+    if (!currentEncounter || !onSendToNotes) return;
+    let text = '';
+    if (currentEncounter.type === 'hazard') {
+      text = `【 ⛰️ Природная Опасность: ${currentEncounter.title} 】\n` +
+        `Биом: ${currentEncounter.biomeLabel} | Угроза: ${currentEncounter.hazardLevel} (Сл ${currentEncounter.dc})\n` +
+        `Триггер: ${currentEncounter.trigger}\n\n` +
+        `Описание: ${currentEncounter.description}\n\n` +
+        `🎲 Спасброски и проверки:\n` +
+        currentEncounter.checks.map(c => `• ${c.skill} — ${c.effect}`).join('\n') + '\n\n' +
+        `⚠️ Последствия провала: ${currentEncounter.consequences}\n` +
+        `🛡️ Контрмеры: ${currentEncounter.countermeasures}`;
+    } else if (currentEncounter.type === 'event') {
+      text = `【 🧭 Дорожное Событие: ${currentEncounter.title} 】\n` +
+        `Биом: ${currentEncounter.biomeLabel} | Атмосфера: ${currentEncounter.vibe}\n\n` +
+        `Ситуация: ${currentEncounter.description}\n\n` +
+        `⚖️ Дилемма: ${currentEncounter.dilemma}\n` +
+        `🎁 Возможный исход: ${currentEncounter.reward}`;
+    } else {
+      const rosterLines = (currentEncounter.roster || [])
+        .map(r => `• ${r.count}× ${r.name} (КД ${r.ac}, HP ${r.hp}, CR ${r.cr}, ${r.role})`)
+        .join('\n');
+
+      text = `【 ⚔️ Боевое Столкновение: ${currentEncounter.title} 】\n` +
+        `Биом: ${currentEncounter.biomeLabel} | Сложность: ${currentEncounter.difficulty} (${currentEncounter.rawXP} XP)\n\n` +
+        `Враги:\n${rosterLines}\n\n` +
+        `⚡ Осложнение боя: ${currentEncounter.complication}\n\n` +
+        `🧠 Поведение врагов: ${currentEncounter.tactics}`;
+    }
+    onSendToNotes(text, currentEncounter.title);
   };
 
   const getEmojiForType = (type) => {
@@ -279,6 +317,24 @@ export default function EncounterGenerator() {
                   title={isSaved ? 'Удалить из сохраненных' : 'Сохранить энкаунтер'}
                 >
                   <Bookmark size={17} color={isSaved ? 'var(--accent-gold)' : 'currentColor'} />
+                </button>
+                {currentEncounter.type === 'combat' && (
+                  <button 
+                    type="button" 
+                    className="trials-btn secondary icon-btn"
+                    onClick={handleSendRosterToInitiative}
+                    title="Отправить врагов в трекер Инициативы на Стол"
+                  >
+                    <Swords size={17} color="var(--accent-red)" />
+                  </button>
+                )}
+                <button 
+                  type="button" 
+                  className="trials-btn secondary icon-btn"
+                  onClick={handleSendEncounterToNotes}
+                  title="Отправить описание энкаунтера в Заметки на Стол"
+                >
+                  <FileText size={17} />
                 </button>
                 <button 
                   type="button" 
@@ -447,10 +503,21 @@ export default function EncounterGenerator() {
 
                 {/* Враги */}
                 <div>
-                  <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 12px 0', fontSize: '15px', color: 'var(--text-title)' }}>
-                    <Swords size={17} color="var(--accent-red)" />
-                    Состав противников
-                  </h4>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0 12px 0', flexWrap: 'wrap', gap: '8px' }}>
+                    <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontSize: '15px', color: 'var(--text-title)' }}>
+                      <Swords size={17} color="var(--accent-red)" />
+                      Состав противников
+                    </h4>
+                    <button 
+                      type="button" 
+                      className="trials-btn primary"
+                      onClick={handleSendRosterToInitiative}
+                      style={{ fontSize: '12px', padding: '5px 12px', gap: '6px' }}
+                      title="Добавить всех врагов с КД и HP в трекер Инициативы на Столе"
+                    >
+                      <Swords size={14} /> Отправить в Инициативу
+                    </button>
+                  </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     {currentEncounter.roster?.map((m, idx) => (

@@ -13,14 +13,15 @@ import {
   Check, 
   Trash2, 
   RotateCcw,
-  Ruler
+  Ruler,
+  FileText
 } from 'lucide-react';
 import { 
   DUNGEON_THEMES, 
   generateRandomDungeonRoom 
 } from '../data/dungeonData.js';
 
-export default function DungeonGenerator() {
+export default function DungeonGenerator({ onSendToNotes }) {
   const [selectedTheme, setSelectedTheme] = useState('any');
   const [currentRoom, setCurrentRoom] = useState(() => {
     try {
@@ -97,6 +98,20 @@ export default function DungeonGenerator() {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSendRoomToNotes = () => {
+    if (!currentRoom || !onSendToNotes) return;
+    const text = [
+      `【 🗝️ Комната подземелья: ${currentRoom.title} 】`,
+      `Размеры: ${currentRoom.size}`,
+      `Архитектура: ${currentRoom.architecture}`,
+      `Атмосфера: Зрение: ${currentRoom.sight} | Звук: ${currentRoom.sound} | Запах: ${currentRoom.smell}`,
+      `Интерактивный объект: ${currentRoom.feature}`,
+      `Опасность: ${currentRoom.hazard}`,
+      `Находка (Сл ${currentRoom.investigationDC}): ${currentRoom.treasure}`
+    ].join('\n');
+    onSendToNotes(text, currentRoom.title);
   };
 
   return (
@@ -180,6 +195,14 @@ export default function DungeonGenerator() {
                   title={isSaved ? 'Удалить из сохраненных' : 'Сохранить комнату'}
                 >
                   <Bookmark size={17} color={isSaved ? 'var(--accent-gold)' : 'currentColor'} />
+                </button>
+                <button 
+                  type="button" 
+                  className="trials-btn secondary icon-btn"
+                  onClick={handleSendRoomToNotes}
+                  title="Отправить комнату в Заметки на Стол"
+                >
+                  <FileText size={17} />
                 </button>
                 <button 
                   type="button" 

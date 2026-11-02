@@ -20,7 +20,8 @@ import {
   Trash2, 
   RotateCcw,
   MessageSquareQuote,
-  ShieldAlert
+  ShieldAlert,
+  FileText
 } from 'lucide-react';
 import { 
   RACES_DATA, 
@@ -38,7 +39,7 @@ import EncounterGenerator from './EncounterGenerator.jsx';
 import DungeonGenerator from './DungeonGenerator.jsx';
 import LootGenerator from './LootGenerator.jsx';
 
-export default function GeneratorsTab() {
+export default function GeneratorsTab({ onSendToInitiative, onSendToNotes }) {
   const location = useLocation();
   const navigate = useNavigate();
   // Тип генератора определяется по подмаршруту
@@ -218,6 +219,21 @@ export default function GeneratorsTab() {
     });
   };
 
+  const handleSendNpcToNotes = () => {
+    if (!currentNPC || !onSendToNotes) return;
+    const note = [
+      `【 ${currentNPC.fullName} — ${currentNPC.raceName}, ${currentNPC.occupation} 】`,
+      `Мировоззрение: ${currentNPC.alignment}`,
+      `🎭 Голос: ${currentNPC.voice.pitch}`,
+      `🗣️ Манера речи: ${currentNPC.voice.manner}`,
+      `💬 Коронная фраза: «${currentNPC.voice.quote}»`,
+      `👁️ Внешность: ${currentNPC.appearance}`,
+      `🧠 Характер: ${currentNPC.personality}`,
+      `🤫 Тайна / Мотив: ${currentNPC.secret}`
+    ].join('\n');
+    onSendToNotes(note, currentNPC.fullName);
+  };
+
   return (
     <div className="generators-container">
       <div style={{ display: activeGenerator === 'npc' ? 'block' : 'none' }}>
@@ -338,6 +354,14 @@ export default function GeneratorsTab() {
                   title={isCurrentSaved ? 'Удалить из сохраненных' : 'Сохранить NPC в список сессии'}
                 >
                   {isCurrentSaved ? <BookmarkCheck size={18} color="var(--accent-gold)" /> : <Bookmark size={18} />}
+                </button>
+                <button 
+                  type="button" 
+                  className="trials-btn icon-btn"
+                  onClick={handleSendNpcToNotes}
+                  title="Отправить описание NPC в Заметки на Стол Мастера"
+                >
+                  <FileText size={18} />
                 </button>
                 <button 
                   type="button" 
@@ -523,19 +547,19 @@ export default function GeneratorsTab() {
       </div>
 
       <div style={{ display: activeGenerator === 'quests' ? 'block' : 'none' }}>
-        <QuestGenerator />
+        <QuestGenerator onSendToNotes={onSendToNotes} />
       </div>
 
       <div style={{ display: activeGenerator === 'encounters' ? 'block' : 'none' }}>
-        <EncounterGenerator />
+        <EncounterGenerator onSendToInitiative={onSendToInitiative} onSendToNotes={onSendToNotes} />
       </div>
 
       <div style={{ display: activeGenerator === 'dungeon' ? 'block' : 'none' }}>
-        <DungeonGenerator />
+        <DungeonGenerator onSendToNotes={onSendToNotes} />
       </div>
 
       <div style={{ display: activeGenerator === 'loot' ? 'block' : 'none' }}>
-        <LootGenerator />
+        <LootGenerator onSendToNotes={onSendToNotes} />
       </div>
     </div>
   );
