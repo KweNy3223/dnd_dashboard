@@ -15,14 +15,15 @@ import {
   MessageSquare,
   AlertTriangle,
   Compass,
+  MapPin,
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
 import { 
   TAVERN_CONCEPTS, 
+  TAVERN_REGIONS,
   TAVERN_KEEPERS, 
   TAVERN_ATMOSPHERES, 
-  TAVERN_SPECIALTIES, 
   TAVERN_PATRONS, 
   TAVERN_RUMORS, 
   TAVERN_EVENTS,
@@ -32,8 +33,8 @@ import {
 
 export default function TavernGenerator() {
   const [selectedConcept, setSelectedConcept] = useState('any');
+  const [selectedRegion, setSelectedRegion] = useState('any');
   const [currentTavern, setCurrentTavern] = useState(() => generateRandomTavern());
-  const [showStandardMenu, setShowStandardMenu] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Сохранённые таверны (сессионная записная книжка)
@@ -57,8 +58,12 @@ export default function TavernGenerator() {
   // Генерация таверны
   const handleGenerate = (forceRandom = false) => {
     const conceptId = forceRandom ? 'any' : selectedConcept;
-    if (forceRandom) setSelectedConcept('any');
-    const tav = generateRandomTavern({ conceptId });
+    const regionId = forceRandom ? 'any' : selectedRegion;
+    if (forceRandom) {
+      setSelectedConcept('any');
+      setSelectedRegion('any');
+    }
+    const tav = generateRandomTavern({ conceptId, regionId });
     setCurrentTavern(tav);
   };
 
@@ -70,9 +75,19 @@ export default function TavernGenerator() {
     } else if (field === 'keeper') {
       const k = TAVERN_KEEPERS[Math.floor(Math.random() * TAVERN_KEEPERS.length)];
       setCurrentTavern({ ...currentTavern, keeper: k });
-    } else if (field === 'specialty') {
-      const s = TAVERN_SPECIALTIES[Math.floor(Math.random() * TAVERN_SPECIALTIES.length)];
-      setCurrentTavern({ ...currentTavern, specialty: s });
+    } else if (field === 'menu') {
+      // Случайный другой регион и его меню
+      const r = TAVERN_REGIONS[Math.floor(Math.random() * TAVERN_REGIONS.length)];
+      setCurrentTavern({
+        ...currentTavern,
+        region: r,
+        menu: {
+          specialDrink: r.specialDrink,
+          specialDish: r.specialDish,
+          exoticDish: r.exoticDish,
+          items: r.menuItems
+        }
+      });
     } else if (field === 'rumor') {
       const r = TAVERN_RUMORS[Math.floor(Math.random() * TAVERN_RUMORS.length)];
       setCurrentTavern({ ...currentTavern, rumor: r });
@@ -104,14 +119,17 @@ export default function TavernGenerator() {
     if (!currentTavern) return;
     const text = [
       `🍺 Таверна: "${currentTavern.name}" (${currentTavern.concept.name})`,
+      `🗺️ Регион: ${currentTavern.region.icon} ${currentTavern.region.name}`,
       `👤 Трактирщик: ${currentTavern.keeper.name} (${currentTavern.keeper.race}, ${currentTavern.keeper.gender})`,
       `   ${currentTavern.keeper.quirk}`,
       `   Отношение: ${currentTavern.keeper.attitude}`,
       `🕯️ Атмосфера: ${currentTavern.atmosphere.visual}`,
       `   Запах: ${currentTavern.atmosphere.smell}`,
       `   Звуки: ${currentTavern.atmosphere.sound}`,
-      `🍲 Фирменное блюдо: ${currentTavern.specialty.dish} (${currentTavern.specialty.dishPrice})`,
-      `🍺 Фирменная выпивка: ${currentTavern.specialty.drink} (${currentTavern.specialty.drinkPrice})`,
+      `🍲 Меню кухни (${currentTavern.region.name}):`,
+      `   - Фирменное: ${currentTavern.menu.specialDish.name} (${currentTavern.menu.specialDish.price})`,
+      `   - Выпивка: ${currentTavern.menu.specialDrink.name} (${currentTavern.menu.specialDrink.price})`,
+      `   - Экзотика: ${currentTavern.menu.exoticDish.name} (${currentTavern.menu.exoticDish.price})`,
       `👥 Завсегдатаи: ${currentTavern.patrons}`,
       `📜 Слух у стойки: "${currentTavern.rumor}"`,
       `⚡ Событие прямо сейчас: "${currentTavern.event}"`
@@ -134,24 +152,41 @@ export default function TavernGenerator() {
           </h2>
         </div>
         <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Создание атмосферных трактиров с меню, комнатами, трактирщиком, завсегдатаями и слухами для вдохновения Мастера.
+          Создание атмосферных трактиров с региональным колоритным меню, экзотическими блюдами, ночлегом и слухами.
         </p>
       </div>
 
       {/* Панель фильтров и генерации */}
       <div className="generators-toolbar">
         <div className="filters-group">
+          {/* Концепт заведения */}
           <div className="filter-item">
             <label>Концепт заведения:</label>
             <select 
               value={selectedConcept} 
               onChange={(e) => setSelectedConcept(e.target.value)}
               className="curtain-select filter-select"
-              style={{ minWidth: '240px' }}
+              style={{ minWidth: '210px' }}
             >
               <option value="any">🎲 Любой концепт</option>
               {TAVERN_CONCEPTS.map(c => (
                 <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Регион / Биом */}
+          <div className="filter-item">
+            <label>Тип региона (колорит кухни):</label>
+            <select 
+              value={selectedRegion} 
+              onChange={(e) => setSelectedRegion(e.target.value)}
+              className="curtain-select filter-select"
+              style={{ minWidth: '220px' }}
+            >
+              <option value="any">🎲 Любой регион</option>
+              {TAVERN_REGIONS.map(r => (
+                <option key={r.id} value={r.id}>{r.icon} {r.name}</option>
               ))}
             </select>
           </div>
@@ -199,6 +234,9 @@ export default function TavernGenerator() {
                 </div>
                 <div className="npc-meta-row">
                   <span className="npc-tag highlight">{currentTavern.concept.name}</span>
+                  <span className="npc-tag" style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
+                    {currentTavern.region.icon} {currentTavern.region.name}
+                  </span>
                 </div>
               </div>
 
@@ -272,29 +310,32 @@ export default function TavernGenerator() {
               </div>
             </div>
 
-            {/* Блок 3: Меню (Фирменное + Общее меню и Ночлег) */}
-            <div className="npc-section-box" style={{ background: 'rgba(234, 179, 8, 0.04)', borderColor: 'rgba(234, 179, 8, 0.2)' }}>
+            {/* Блок 3: ПОЛНОЦЕННОЕ РЕГИОНАЛЬНОЕ МЕНЮ КУХНИ */}
+            <div className="npc-section-box tavern-menu-box" style={{ background: 'rgba(234, 179, 8, 0.04)', borderColor: 'rgba(234, 179, 8, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Utensils size={15} color="var(--accent-gold)" /> Кухня, выпивка и комнаты
+                  <Utensils size={15} color="var(--accent-gold)" /> Трактирное меню: {currentTavern.region.name}
                 </span>
-                <button type="button" className="reroll-btn" onClick={() => handleRerollField('specialty')}>
-                  <RotateCcw size={11} /> Другое фирменное
+                <button type="button" className="reroll-btn" onClick={() => handleRerollField('menu')}>
+                  <RotateCcw size={11} /> Другая кухня / регион
                 </button>
               </div>
 
-              {/* Фирменные угощения */}
+              {/* 1. Фирменные угощения */}
               <div className="tavern-specialties-grid">
                 <div className="tavern-specialty-card">
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
                     🍺 Фирменная выпивка
                   </span>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '3px' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--text-title)' }}>
-                      {currentTavern.specialty.drink}
+                    <span style={{ fontWeight: 700, color: 'var(--text-title)', fontSize: '13px' }}>
+                      {currentTavern.menu.specialDrink.name}
                     </span>
-                    <span className="price-tag">{currentTavern.specialty.drinkPrice}</span>
+                    <span className="price-tag">{currentTavern.menu.specialDrink.price}</span>
                   </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                    {currentTavern.menu.specialDrink.note}
+                  </span>
                 </div>
 
                 <div className="tavern-specialty-card">
@@ -302,72 +343,81 @@ export default function TavernGenerator() {
                     🍲 Фирменное блюдо
                   </span>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '3px' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--text-title)' }}>
-                      {currentTavern.specialty.dish}
+                    <span style={{ fontWeight: 700, color: 'var(--text-title)', fontSize: '13px' }}>
+                      {currentTavern.menu.specialDish.name}
                     </span>
-                    <span className="price-tag">{currentTavern.specialty.dishPrice}</span>
+                    <span className="price-tag">{currentTavern.menu.specialDish.price}</span>
                   </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                    {currentTavern.menu.specialDish.note}
+                  </span>
                 </div>
               </div>
 
-              {currentTavern.specialty.note && (
-                <div style={{ fontSize: '11.5px', color: '#fde68a', fontStyle: 'italic', marginTop: '6px' }}>
-                  ✨ {currentTavern.specialty.note}
+              {/* 2. Экзотический деликатес региона */}
+              <div className="tavern-exotic-box">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fde68a' }}>
+                    {currentTavern.menu.exoticDish.name}
+                  </span>
+                  <span className="price-tag" style={{ background: 'rgba(245, 158, 11, 0.25)', borderColor: '#f59e0b', color: '#fde68a' }}>
+                    {currentTavern.menu.exoticDish.price}
+                  </span>
                 </div>
-              )}
+                <div style={{ fontSize: '11.5px', color: 'var(--text-primary)', marginTop: '4px' }}>
+                  {currentTavern.menu.exoticDish.note}
+                </div>
+              </div>
 
-              {/* Ночлег / Комнаты по уровню комфорта */}
+              {/* 3. Список других блюд и напитков региона */}
               <div style={{ marginTop: '10px' }}>
-                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  <Bed size={13} /> Ночлег (по уровню комфорта D&D 5e):
+                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  📋 Другие угощения в меню:
                 </span>
-                <div className="tavern-rooms-grid">
-                  {currentTavern.rooms.map((room, i) => (
-                    <div key={i} className="tavern-room-item">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-title)', fontSize: '12px' }}>
-                          {room.tier}
-                        </span>
-                        <span className="room-price-badge">{room.price}</span>
-                      </div>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {room.desc}
+                <div className="tavern-std-menu-grid" style={{ marginTop: '6px' }}>
+                  {currentTavern.menu.items.map((item, i) => (
+                    <div key={i} className="std-menu-row">
+                      <span style={{ color: 'var(--text-primary)' }}>
+                        {item.type === 'drink' ? '🍺 ' : '🥣 '}
+                        {item.name}
                       </span>
+                      <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{item.price}</span>
                     </div>
                   ))}
                 </div>
               </div>
+            </div>
 
-              {/* Спойлер: Общее меню D&D 5e */}
-              <div style={{ marginTop: '12px' }}>
-                <button 
-                  type="button" 
-                  className="clean-btn"
-                  onClick={() => setShowStandardMenu(!showStandardMenu)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', padding: '4px 0' }}
-                >
-                  {showStandardMenu ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  <span>{showStandardMenu ? 'Скрыть стандартное меню D&D 5e' : 'Показать стандартное меню D&D 5e (хлеб, эль, рагу)'}</span>
-                </button>
+            {/* Блок 4: ОТДЕЛЬНЫЙ НОЧЛЕГ И ПОСТОЙ */}
+            <div className="npc-section-box" style={{ background: 'rgba(56, 189, 248, 0.04)', borderColor: 'rgba(56, 189, 248, 0.25)' }}>
+              <div className="section-title-row">
+                <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8' }}>
+                  <Bed size={15} color="#38bdf8" /> Ночлег и постой (уровни комфорта D&D 5e)
+                </span>
+              </div>
 
-                {showStandardMenu && (
-                  <div className="tavern-std-menu-grid">
-                    {currentTavern.standardMenu.map((item, i) => (
-                      <div key={i} className="std-menu-row">
-                        <span style={{ color: 'var(--text-primary)' }}>{item.name}</span>
-                        <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{item.price}</span>
-                      </div>
-                    ))}
+              <div className="tavern-rooms-grid">
+                {currentTavern.rooms.map((room, i) => (
+                  <div key={i} className="tavern-room-item">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-title)', fontSize: '12px' }}>
+                        {room.tier}
+                      </span>
+                      <span className="room-price-badge">{room.price}</span>
+                    </div>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px', lineHeight: '1.35' }}>
+                      {room.desc}
+                    </span>
                   </div>
-                )}
+                ))}
               </div>
             </div>
 
-            {/* Блок 4: Завсегдатаи */}
+            {/* Блок 5: Завсегдатаи */}
             <div className="npc-section-box">
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Compass size={15} color="#38bdf8" /> Завсегдатаи прямо сейчас
+                  <Compass size={15} color="#a855f7" /> Завсегдатаи прямо сейчас
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', lineHeight: '1.45' }}>
@@ -375,7 +425,7 @@ export default function TavernGenerator() {
               </p>
             </div>
 
-            {/* Блок 5: Слух у стойки (сюжетная зацепка) */}
+            {/* Блок 6: Слух у стойки (сюжетная зацепка) */}
             <div className="npc-section-box" style={{ background: 'rgba(56, 189, 248, 0.05)', borderColor: 'rgba(56, 189, 248, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8' }}>
@@ -389,11 +439,11 @@ export default function TavernGenerator() {
                 «{currentTavern.rumor}»
               </div>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                💡 Зацепка для квеста: вклинивай в разговор, если игроки решат завести беседу с местными.
+                💡 Зацепка для квеста: вклинивай в разговор, если игроки решат поболтать с завсегдатаями.
               </span>
             </div>
 
-            {/* Блок 6: Внезапное происшествие прямо сейчас */}
+            {/* Блок 7: Внезапное происшествие прямо сейчас */}
             <div className="npc-section-box" style={{ background: 'rgba(244, 63, 94, 0.05)', borderColor: 'rgba(244, 63, 94, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f43f5e' }}>
@@ -416,8 +466,8 @@ export default function TavernGenerator() {
               <button type="button" className="micro-btn" onClick={() => handleRerollField('keeper')}>
                 👤 Трактирщик
               </button>
-              <button type="button" className="micro-btn" onClick={() => handleRerollField('specialty')}>
-                🍲 Угощения
+              <button type="button" className="micro-btn" onClick={() => handleRerollField('menu')}>
+                🍲 Меню / Регион
               </button>
               <button type="button" className="micro-btn" onClick={() => handleRerollField('rumor')}>
                 📜 Слух
@@ -470,7 +520,7 @@ export default function TavernGenerator() {
                   <span className="item-icon">{item.concept.icon}</span>
                   <div className="item-info">
                     <span className="item-name">«{item.name}»</span>
-                    <span className="item-meta">{item.concept.name} • {item.keeper.name}</span>
+                    <span className="item-meta">{item.region?.name || item.concept.name} • {item.keeper.name}</span>
                   </div>
                   <button 
                     type="button" 

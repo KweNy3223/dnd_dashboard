@@ -3136,3 +3136,11 @@ canvas.game-canvas:active {
   padding: 3px 0;
   border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
 }
+
+.tavern-exotic-box {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px dashed rgba(245, 158, 11, 0.4);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-top: 10px;
+}
