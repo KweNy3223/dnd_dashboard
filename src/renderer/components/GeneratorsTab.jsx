@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Sparkles, 
   Dices, 
   User, 
   Beer,
+  Store,
   Volume2, 
   Eye, 
   Brain, 
@@ -27,11 +28,15 @@ import {
   generateRandomNPC 
 } from '../data/npcData.js';
 import TavernGenerator from './TavernGenerator.jsx';
+import ShopGenerator from './ShopGenerator.jsx';
 
 export default function GeneratorsTab() {
   const location = useLocation();
+  const navigate = useNavigate();
   // Тип генератора определяется по подмаршруту
-  const activeGenerator = location.pathname.endsWith('/tavern') ? 'tavern' : 'npc';
+  let activeGenerator = 'npc';
+  if (location.pathname.endsWith('/tavern')) activeGenerator = 'tavern';
+  else if (location.pathname.endsWith('/shops')) activeGenerator = 'shops';
 
   // Фильтры NPC
   const [selectedRace, setSelectedRace] = useState('any');
@@ -93,6 +98,33 @@ export default function GeneratorsTab() {
     }
     const npc = generateRandomNPC(options);
     setCurrentNPC(npc);
+  };
+
+  // Быстрый перенос торговца из генератора лавок в генератор NPC
+  const handleOpenMerchantInNpc = (merchant) => {
+    if (!merchant) return;
+    const foundRaceEntry = Object.entries(RACES_DATA).find(([key, r]) => 
+      r.name.toLowerCase() === merchant.race.toLowerCase()
+    );
+    const raceKey = foundRaceEntry ? foundRaceEntry[0] : 'any';
+    const genderKey = merchant.gender === 'Мужчина' ? 'male' : merchant.gender === 'Женщина' ? 'female' : 'any';
+    const foundOcc = OCCUPATIONS.find(o => o.name.toLowerCase() === merchant.occupation.toLowerCase());
+    const occName = foundOcc ? foundOcc.name : 'any';
+
+    const npc = generateRandomNPC({
+      race: raceKey,
+      gender: genderKey,
+      occupation: occName
+    });
+    npc.fullName = merchant.name;
+    npc.occupation = merchant.occupation;
+
+    setSelectedRace(raceKey);
+    setSelectedGender(genderKey);
+    setSelectedOccupation(occName);
+    setCurrentNPC(npc);
+
+    navigate('/generators/npc');
   };
 
   // Перегенерация отдельных параметров
@@ -472,6 +504,10 @@ export default function GeneratorsTab() {
 
       <div style={{ display: activeGenerator === 'tavern' ? 'block' : 'none' }}>
         <TavernGenerator />
+      </div>
+
+      <div style={{ display: activeGenerator === 'shops' ? 'block' : 'none' }}>
+        <ShopGenerator onOpenInNpc={handleOpenMerchantInNpc} />
       </div>
     </div>
   );

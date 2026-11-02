@@ -190,6 +190,14 @@ function AppContent() {
                 >
                   <Beer size={18} /> Таверны и Заведения
                 </NavLink>
+
+                <NavLink 
+                  to="/generators/shops" 
+                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Store size={18} /> Лавки и Торговцы
+                </NavLink>
               </>
             ) : (
               <>
@@ -274,6 +282,7 @@ function AppContent() {
             <Route path="/generators" element={<GeneratorsTab />} />
             <Route path="/generators/npc" element={<GeneratorsTab />} />
             <Route path="/generators/tavern" element={<GeneratorsTab />} />
+            <Route path="/generators/shops" element={<GeneratorsTab />} />
 
             {/* СТРАНИЦА 2: СПРАВОЧНИК ЦЕН */}
             <Route path="/prices" element={<PricesTab />} />
