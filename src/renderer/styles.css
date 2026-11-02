@@ -3376,3 +3376,30 @@ canvas.game-canvas:active {
 .con-check-fail {
   color: #fca5a5;
 }
+
+/* Кнопка разворачивания полного ассортимента лавки */
+.catalog-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(212, 175, 55, 0.35);
+  border-radius: 6px;
+  color: var(--accent-gold);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.catalog-toggle-btn:hover {
+  background: rgba(212, 175, 55, 0.1);
+  border-color: var(--accent-gold);
+  color: #ffffff;
+}
+

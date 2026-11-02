@@ -34,7 +34,7 @@ function getRandomSubset(array, count) {
 
 /**
  * Генератор лавки и торговца D&D 5e
- * @param {Object} options - { typeId, wealthId }
+ * @param {Object} options - { typeId, wealthId, forceRandom }
  */
 export function generateRandomShop(options = {}) {
   // 1. Тип заведения
@@ -46,13 +46,17 @@ export function generateRandomShop(options = {}) {
     shopType = SHOP_TYPES[Math.floor(Math.random() * SHOP_TYPES.length)];
   }
 
-  // 2. Уровень достатка / Квартал
+  // 2. Уровень достатка / Квартал (по умолчанию "Торговый квартал города" / medium)
   let wealthTier = null;
   if (options.wealthId && options.wealthId !== 'any') {
     wealthTier = WEALTH_TIERS.find(w => w.id === options.wealthId);
   }
   if (!wealthTier) {
-    wealthTier = WEALTH_TIERS[Math.floor(Math.random() * WEALTH_TIERS.length)];
+    if (options.forceRandom) {
+      wealthTier = WEALTH_TIERS[Math.floor(Math.random() * WEALTH_TIERS.length)];
+    } else {
+      wealthTier = WEALTH_TIERS.find(w => w.id === 'medium') || WEALTH_TIERS[0];
+    }
   }
 
   // 3. Название
@@ -65,9 +69,9 @@ export function generateRandomShop(options = {}) {
   const atmosList = ATMOSPHERES[shopType.id] || ATMOSPHERES.armory;
   const atmosphere = atmosList[Math.floor(Math.random() * atmosList.length)];
 
-  // 6. Витрина товаров (3-4 позиции из каталога для данного типа и уровня достатка)
-  const availableGoods = GOODS_CATALOG[shopType.id]?.[wealthTier.id] || GOODS_CATALOG.armory.medium;
-  const showcase = getRandomSubset(availableGoods, Math.min(4, availableGoods.length));
+  // 6. Товары: ходовые (витрина 4 шт.) и полный каталог лавки
+  const allGoods = GOODS_CATALOG[shopType.id]?.[wealthTier.id] || GOODS_CATALOG.armory.medium;
+  const showcase = getRandomSubset(allGoods, Math.min(4, allGoods.length));
 
   // 7. Секретный лот "Из-под прилавка"
   const availableSecrets = SECRET_LOTS[shopType.id] || SECRET_LOTS.armory;
@@ -87,6 +91,7 @@ export function generateRandomShop(options = {}) {
     merchant,
     atmosphere,
     showcase,
+    allGoods,
     secretLot,
     security,
     rumor

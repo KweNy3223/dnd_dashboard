@@ -12,7 +12,9 @@ import {
   MessageSquare, 
   Sparkles, 
   ArrowRight, 
-  ShoppingBag 
+  ShoppingBag,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { 
   SHOP_TYPES, 
@@ -29,16 +31,18 @@ import {
 
 export default function ShopGenerator({ onOpenInNpc }) {
   const [selectedType, setSelectedType] = useState('any');
-  const [selectedWealth, setSelectedWealth] = useState('any');
+  // По умолчанию дефолтный район — Торговый квартал города (medium)
+  const [selectedWealth, setSelectedWealth] = useState('medium');
+  const [isCatalogExpanded, setIsCatalogExpanded] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Активная лавка (сохраняется в localStorage)
   const [currentShop, setCurrentShop] = useState(() => {
     try {
       const cached = localStorage.getItem('dnd_active_shop');
-      return cached ? JSON.parse(cached) : generateRandomShop();
+      return cached ? JSON.parse(cached) : generateRandomShop({ wealthId: 'medium' });
     } catch {
-      return generateRandomShop();
+      return generateRandomShop({ wealthId: 'medium' });
     }
   });
 
@@ -70,16 +74,17 @@ export default function ShopGenerator({ onOpenInNpc }) {
     }
   }, [savedShops]);
 
-  // Генерация лавки по фильтрам
+  // Генерация лавки по фильтрам (с дефолтным районом Торговый квартал)
   const handleGenerate = (forceRandom = false) => {
     const typeId = forceRandom ? 'any' : selectedType;
-    const wealthId = forceRandom ? 'any' : selectedWealth;
+    const wealthId = forceRandom ? 'any' : (selectedWealth || 'medium');
     if (forceRandom) {
       setSelectedType('any');
-      setSelectedWealth('any');
+      setSelectedWealth('medium');
     }
-    const shop = generateRandomShop({ typeId, wealthId });
+    const shop = generateRandomShop({ typeId, wealthId, forceRandom });
     setCurrentShop(shop);
+    setIsCatalogExpanded(false); // сбрасываем аккордеон при новой генерации
   };
 
   // Микро-перегенерация отдельных полей
@@ -126,7 +131,10 @@ export default function ShopGenerator({ onOpenInNpc }) {
   // Копирование информации о лавке в буфер обмена
   const handleCopy = () => {
     if (!currentShop) return;
-    const { merchant, showcase, secretLot, security } = currentShop;
+    const { merchant, showcase, allGoods, secretLot, security } = currentShop;
+    const allGoodsList = allGoods || GOODS_CATALOG[currentShop.type.id]?.[currentShop.wealth.id] || showcase;
+    const itemsToCopy = isCatalogExpanded ? allGoodsList : showcase;
+
     const text = [
       `🏪 Лавка: ${currentShop.name} (${currentShop.type.name})`,
       `📍 Район: ${currentShop.wealth.name}`,
@@ -135,8 +143,8 @@ export default function ShopGenerator({ onOpenInNpc }) {
       `   Запах: ${currentShop.atmosphere.smell}`,
       `   Звуки: ${currentShop.atmosphere.sound}`,
       ``,
-      `📦 ВИТРИНА ТОВАРОВ:`,
-      ...showcase.map(item => `• ${item.name} (${item.price}) — ${item.desc}`),
+      `📦 ${isCatalogExpanded ? 'ПОЛНЫЙ АССОРТИМЕНТ ТОВАРОВ' : 'ХОДОВЫЕ ТОВАРЫ НА ВИТРИНЕ'}:`,
+      ...itemsToCopy.map(item => `• ${item.name} (${item.price}) — ${item.desc}`),
       ``,
       `⭐ ТОВАР ИЗ-ПОД ПРИЛАВКА:`,
       `   ${secretLot.name} (${secretLot.price})`,
@@ -153,6 +161,12 @@ export default function ShopGenerator({ onOpenInNpc }) {
       setTimeout(() => setCopied(false), 1800);
     });
   };
+
+  // Полный список товаров лавки для текущего типа и района
+  const allGoodsList = currentShop?.allGoods || 
+    GOODS_CATALOG[currentShop?.type?.id]?.[currentShop?.wealth?.id] || 
+    currentShop?.showcase || 
+    [];
 
   return (
     <div>
@@ -188,19 +202,19 @@ export default function ShopGenerator({ onOpenInNpc }) {
             </select>
           </div>
 
-          {/* Достаток / Квартал */}
+          {/* Достаток / Квартал (по умолчанию Торговый квартал) */}
           <div className="filter-item">
             <label>Район / Достаток:</label>
             <select 
               value={selectedWealth} 
               onChange={(e) => setSelectedWealth(e.target.value)}
               className="curtain-select filter-select"
-              style={{ minWidth: '220px' }}
+              style={{ minWidth: '230px' }}
             >
-              <option value="any">🎲 Любой район</option>
-              {WEALTH_TIERS.map(w => (
-                <option key={w.id} value={w.id}>{w.icon} {w.name}</option>
-              ))}
+              <option value="medium">🏪 Торговый квартал (по умолчанию)</option>
+              <option value="poor">🏚️ Деревня / Трущобы</option>
+              <option value="wealthy">🏛️ Богатый квартал столицы</option>
+              <option value="any">🎲 Случайный район</option>
             </select>
           </div>
         </div>
@@ -342,19 +356,23 @@ export default function ShopGenerator({ onOpenInNpc }) {
               </div>
             </div>
 
-            {/* Блок 3: Витрина ходовых товаров */}
+            {/* Блок 3: Витрина ходовых товаров + Разворачиваемый полный каталог */}
             <div className="npc-section-box tavern-menu-box" style={{ background: 'rgba(234, 179, 8, 0.03)', borderColor: 'rgba(234, 179, 8, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShoppingBag size={15} color="var(--accent-gold)" /> Витрина товаров ({currentShop.wealth.name})
+                  <ShoppingBag size={15} color="var(--accent-gold)" /> 
+                  {isCatalogExpanded 
+                    ? `Полный ассортимент лавки (${allGoodsList.length} поз.)`
+                    : `Ходовые товары на витрине (${currentShop.wealth.name})`}
                 </span>
                 <button type="button" className="reroll-btn" onClick={() => handleRerollField('showcase')}>
-                  <RotateCcw size={11} /> Другие товары
+                  <RotateCcw size={11} /> Другие ходовые
                 </button>
               </div>
 
+              {/* Список отображаемых товаров: 4 ходовых или весь расширенный каталог */}
               <div className="menu-items-list" style={{ marginTop: '4px' }}>
-                {currentShop.showcase.map((item, idx) => (
+                {(isCatalogExpanded ? allGoodsList : currentShop.showcase).map((item, idx) => (
                   <div key={idx} className="menu-item-card">
                     <div className="menu-item-top">
                       <span className="menu-item-name">{item.name}</span>
@@ -368,6 +386,22 @@ export default function ShopGenerator({ onOpenInNpc }) {
                   </div>
                 ))}
               </div>
+
+              {/* Кнопка развернуть / свернуть весь ассортимент */}
+              {allGoodsList.length > (currentShop.showcase?.length || 0) && (
+                <button 
+                  type="button" 
+                  className="catalog-toggle-btn"
+                  onClick={() => setIsCatalogExpanded(!isCatalogExpanded)}
+                >
+                  {isCatalogExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                  <span>
+                    {isCatalogExpanded 
+                      ? 'Свернуть до ходовых товаров витрины' 
+                      : `Развернуть весь ассортимент лавки (${allGoodsList.length} позиций)`}
+                  </span>
+                </button>
+              )}
             </div>
 
             {/* Блок 4: ⭐ Товар из-под прилавка */}
@@ -465,7 +499,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
                 👤 Торговец
               </button>
               <button type="button" className="micro-btn" onClick={() => handleRerollField('showcase')}>
-                📦 Витрина
+                📦 Ходовые
               </button>
               <button type="button" className="micro-btn" onClick={() => handleRerollField('secretLot')}>
                 ⭐ Секретный лот
