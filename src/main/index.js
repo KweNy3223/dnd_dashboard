@@ -3,8 +3,10 @@ const path = require('path');
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1280,
+    height: 880,
+    minWidth: 1024,
+    minHeight: 700,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -13,7 +15,7 @@ function createWindow() {
     }
   });
 
-win.removeMenu();
+  win.removeMenu();
 
   if (app.isPackaged) {
     // Если это собранный .exe файл - грузим из папки

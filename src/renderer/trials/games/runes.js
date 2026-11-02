@@ -198,8 +198,10 @@ export class RunesGame {
 
   setupCanvas() {
     if (!this.canvas) return;
-    const size = Math.min(480, Math.min(window.innerWidth - 48, 480));
-    const dpr = window.devicePixelRatio || 1;
+    const maxByHeight = typeof window !== 'undefined' && window.innerHeight ? Math.max(340, window.innerHeight - 380) : 420;
+    const maxByWidth = typeof window !== 'undefined' && window.innerWidth ? Math.max(320, window.innerWidth - 420) : 420;
+    const size = Math.min(420, Math.min(maxByWidth, maxByHeight));
+    const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
 
     this.canvas.width = size * dpr;
     this.canvas.height = size * dpr;
@@ -209,6 +211,17 @@ export class RunesGame {
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.scale(dpr, dpr);
     this.logicalSize = size;
+
+    if (this.rings && this.rings.length > 0) {
+      const baseRadius = Math.round(this.logicalSize * 0.125);
+      const ringThickness = Math.round(this.logicalSize * 0.14);
+      this.rings.forEach((ring, r) => {
+        ring.innerR = baseRadius + r * ringThickness;
+        ring.outerR = ring.innerR + ringThickness - 4;
+        ring.midR = (ring.innerR + ring.outerR) / 2;
+      });
+      this.traceManaBeams();
+    }
   }
 
   bindEvents() {
@@ -306,13 +319,21 @@ export class RunesGame {
       { sector: 6, angle: 270, rune: '⚡', name: 'Алтарь Бури', defaultColor: '#f59e0b', connected: false }
     ];
 
-    // Число активных алтарей: 2 алтаря (для максимальной лёгкости и без визуальной каши)
-    const activeCount = dc >= 20 ? 3 : 2;
-    const shuffledAnchors = [...allAnchors].sort(() => Math.random() - 0.5);
-    this.anchors = shuffledAnchors.slice(0, activeCount).sort((a, b) => a.sector - b.sector);
+    // Число активных алтарей:
+    // DC >= 20 (высокая сложность): ВСЕ 4 АЛТАРЯ
+    // DC >= 15 (средняя сложность): 3 алтаря
+    // DC < 15 (легкая сложность): 2 алтаря
+    const activeCount = dc >= 20 ? 4 : dc >= 15 ? 3 : 2;
 
-    const baseRadius = 56;
-    const ringThickness = 60; // Широкие, легко читаемые ободья
+    if (activeCount === 4) {
+      this.anchors = allAnchors.map(a => ({ ...a, connected: false }));
+    } else {
+      const shuffledAnchors = [...allAnchors].sort(() => Math.random() - 0.5);
+      this.anchors = shuffledAnchors.slice(0, activeCount).sort((a, b) => a.sector - b.sector);
+    }
+
+    const baseRadius = Math.round(this.logicalSize * 0.125);
+    const ringThickness = Math.round(this.logicalSize * 0.14); // Широкие, легко читаемые ободья
 
     // Построение гарантированного неконфликтующего решения
     let success = false;
@@ -632,7 +653,7 @@ export class RunesGame {
     }
 
     // Луч дошел точно до сектора стихийного алтаря!
-    const targetR = this.logicalSize * 0.44;
+    const targetR = this.logicalSize * 0.43;
     const rad = (matchedAnchor.angle * Math.PI) / 180;
 
     // Продлеваем луч от внешнего кольца до алтаря
@@ -1228,7 +1249,8 @@ export class RunesGame {
   }
 
   drawAnchors(ctx, cx, cy) {
-    const endR = this.logicalSize * 0.44;
+    const endR = this.logicalSize * 0.43;
+    const altarRadius = Math.max(14, Math.round(this.logicalSize * 0.042));
     const lastRing = this.rings[this.rings.length - 1];
 
     this.anchors.forEach(anchor => {
@@ -1241,7 +1263,7 @@ export class RunesGame {
       // 1. Направляющий энергетический рельс от внешнего кольца к алтарю
       if (lastRing) {
         const rStart = lastRing.outerR + 3;
-        const rEnd = endR - 22;
+        const rEnd = endR - altarRadius - 2;
         ctx.beginPath();
         ctx.moveTo(cx + Math.cos(rad) * rStart, cy + Math.sin(rad) * rStart);
         ctx.lineTo(cx + Math.cos(rad) * rEnd, cy + Math.sin(rad) * rEnd);
@@ -1261,7 +1283,7 @@ export class RunesGame {
 
       // 2. Постамент алтаря
       ctx.beginPath();
-      ctx.arc(ax, ay, 20, 0, Math.PI * 2);
+      ctx.arc(ax, ay, altarRadius, 0, Math.PI * 2);
       ctx.globalAlpha = 1.0;
 
       if (anchor.connected) {
@@ -1280,14 +1302,14 @@ export class RunesGame {
       // Внутреннее светящееся кольцо при активности
       if (anchor.connected) {
         ctx.beginPath();
-        ctx.arc(ax, ay, 15, 0, Math.PI * 2);
+        ctx.arc(ax, ay, altarRadius * 0.75, 0, Math.PI * 2);
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
         ctx.stroke();
       }
 
       // Стихийный символ
-      ctx.font = '16px sans-serif';
+      ctx.font = `${Math.round(altarRadius * 0.85)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(anchor.rune, ax, ay);
@@ -1311,7 +1333,7 @@ export class RunesGame {
   spawnManaSparkles(angleDeg, count = 20, color = '#38bdf8') {
     const rad = (angleDeg * Math.PI) / 180;
     const center = this.logicalSize / 2;
-    const targetR = this.logicalSize * 0.44;
+    const targetR = this.logicalSize * 0.43;
     const originX = center + Math.cos(rad) * targetR;
     const originY = center + Math.sin(rad) * targetR;
 
