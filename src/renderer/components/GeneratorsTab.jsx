@@ -26,6 +26,7 @@ import {
   SECRETS_MOTIVATIONS, 
   generateRandomNPC 
 } from '../data/npcData.js';
+import TavernGenerator from './TavernGenerator.jsx';
 
 export default function GeneratorsTab() {
   const location = useLocation();
@@ -455,20 +456,7 @@ export default function GeneratorsTab() {
       )}
 
       {activeGenerator === 'tavern' && (
-        <div className="tavern-placeholder-view">
-          <div className="tavern-placeholder-card">
-            <Beer size={48} color="var(--accent-gold)" style={{ marginBottom: '14px' }} />
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '22px', color: 'var(--text-title)' }}>
-              Генератор Таверн и Заведений
-            </h3>
-            <p style={{ maxWidth: '520px', margin: '0 auto 24px auto', fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-              Раздел готов к разработке! Здесь будут атмосферные названия, фирменная выпивка и похлёбки с ценами, завсегдатаи, слухи у трактирной стойки и внезапные происшествия прямо в зале.
-            </p>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '20px', background: 'rgba(212, 175, 55, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', color: 'var(--accent-gold)', fontSize: '13px', fontWeight: 600 }}>
-              <span>💬 Ожидает обсуждения деталей с Артёмом</span>
-            </div>
-          </div>
-        </div>
+        <TavernGenerator />
       )}
     </div>
   );
