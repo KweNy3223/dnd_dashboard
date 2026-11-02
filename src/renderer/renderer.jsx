@@ -17,7 +17,10 @@ import {
   Swords,
   Sparkles,
   User,
-  Beer
+  Beer,
+  Scroll,
+  Compass,
+  Gem
 } from 'lucide-react';
 
 // Компоненты
@@ -180,7 +183,7 @@ function AppContent() {
                   className={`nav-tab ${location.pathname === '/generators/npc' || location.pathname === '/generators' ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <User size={18} /> Генератор NPC
+                  <User size={17} /> NPC
                 </NavLink>
 
                 <NavLink 
@@ -188,7 +191,7 @@ function AppContent() {
                   className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Beer size={18} /> Таверны и Заведения
+                  <Beer size={17} /> Таверны
                 </NavLink>
 
                 <NavLink 
@@ -196,7 +199,39 @@ function AppContent() {
                   className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Store size={18} /> Лавки и Торговцы
+                  <Store size={17} /> Лавки
+                </NavLink>
+
+                <NavLink 
+                  to="/generators/quests" 
+                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Scroll size={17} /> Заказы
+                </NavLink>
+
+                <NavLink 
+                  to="/generators/encounters" 
+                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Swords size={17} /> Энкаунтеры
+                </NavLink>
+
+                <NavLink 
+                  to="/generators/dungeon" 
+                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Compass size={17} /> Подземелья
+                </NavLink>
+
+                <NavLink 
+                  to="/generators/loot" 
+                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Gem size={17} /> Сокровища
                 </NavLink>
               </>
             ) : (
@@ -283,6 +318,10 @@ function AppContent() {
             <Route path="/generators/npc" element={<GeneratorsTab />} />
             <Route path="/generators/tavern" element={<GeneratorsTab />} />
             <Route path="/generators/shops" element={<GeneratorsTab />} />
+            <Route path="/generators/quests" element={<GeneratorsTab />} />
+            <Route path="/generators/encounters" element={<GeneratorsTab />} />
+            <Route path="/generators/dungeon" element={<GeneratorsTab />} />
+            <Route path="/generators/loot" element={<GeneratorsTab />} />
 
             {/* СТРАНИЦА 2: СПРАВОЧНИК ЦЕН */}
             <Route path="/prices" element={<PricesTab />} />

@@ -29,6 +29,10 @@ import {
 } from '../data/npcData.js';
 import TavernGenerator from './TavernGenerator.jsx';
 import ShopGenerator from './ShopGenerator.jsx';
+import QuestGenerator from './QuestGenerator.jsx';
+import EncounterGenerator from './EncounterGenerator.jsx';
+import DungeonGenerator from './DungeonGenerator.jsx';
+import LootGenerator from './LootGenerator.jsx';
 
 export default function GeneratorsTab() {
   const location = useLocation();
@@ -37,6 +41,10 @@ export default function GeneratorsTab() {
   let activeGenerator = 'npc';
   if (location.pathname.endsWith('/tavern')) activeGenerator = 'tavern';
   else if (location.pathname.endsWith('/shops')) activeGenerator = 'shops';
+  else if (location.pathname.endsWith('/quests')) activeGenerator = 'quests';
+  else if (location.pathname.endsWith('/encounters')) activeGenerator = 'encounters';
+  else if (location.pathname.endsWith('/dungeon')) activeGenerator = 'dungeon';
+  else if (location.pathname.endsWith('/loot')) activeGenerator = 'loot';
 
   // Фильтры NPC
   const [selectedRace, setSelectedRace] = useState('any');
@@ -508,6 +516,22 @@ export default function GeneratorsTab() {
 
       <div style={{ display: activeGenerator === 'shops' ? 'block' : 'none' }}>
         <ShopGenerator onOpenInNpc={handleOpenMerchantInNpc} />
+      </div>
+
+      <div style={{ display: activeGenerator === 'quests' ? 'block' : 'none' }}>
+        <QuestGenerator />
+      </div>
+
+      <div style={{ display: activeGenerator === 'encounters' ? 'block' : 'none' }}>
+        <EncounterGenerator />
+      </div>
+
+      <div style={{ display: activeGenerator === 'dungeon' ? 'block' : 'none' }}>
+        <DungeonGenerator />
+      </div>
+
+      <div style={{ display: activeGenerator === 'loot' ? 'block' : 'none' }}>
+        <LootGenerator />
       </div>
     </div>
   );
