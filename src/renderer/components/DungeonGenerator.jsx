@@ -61,9 +61,11 @@ export default function DungeonGenerator() {
     }
   }, [savedRooms]);
 
-  const handleGenerate = () => {
+  const handleGenerate = (forceRandom = false) => {
     setSkillRoll(null);
-    setCurrentRoom(generateRandomDungeonRoom(selectedTheme));
+    const theme = forceRandom ? 'any' : selectedTheme;
+    if (forceRandom) setSelectedTheme('any');
+    setCurrentRoom(generateRandomDungeonRoom(theme));
   };
 
   const handleRollSkill = (type) => {
@@ -72,7 +74,7 @@ export default function DungeonGenerator() {
     const targetDC = type === 'perception' ? currentRoom.perceptionDC : currentRoom.investigationDC;
     const isSuccess = roll >= targetDC;
     setSkillRoll({
-      type: type === 'perception' ? 'Внимательность' : 'Анализ',
+      type: type === 'perception' ? 'Внимательность (ловушки)' : 'Анализ (тайники)',
       roll,
       dc: targetDC,
       isSuccess
@@ -113,85 +115,104 @@ export default function DungeonGenerator() {
   };
 
   return (
-    <div className="npc-generator-container">
-      {/* ЛЕВАЯ ПАНЕЛЬ: Фильтры */}
-      <div className="npc-controls-panel">
-        <h3 className="controls-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Compass size={20} color="var(--accent-primary)" />
-          Параметры данжа
-        </h3>
-
-        <div className="control-group">
-          <label>Тип подземелья</label>
-          <select 
-            value={selectedTheme} 
-            onChange={(e) => setSelectedTheme(e.target.value)}
-          >
-            {DUNGEON_THEMES.map(theme => (
-              <option key={theme.id} value={theme.id}>{theme.label}</option>
-            ))}
-          </select>
+    <div>
+      {/* Шапка подраздела */}
+      <div className="generators-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Compass size={26} color="var(--accent-primary)" />
+          <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>
+            Генератор Комнат и Данжей
+          </h2>
         </div>
-
-        <button 
-          type="button" 
-          className="generate-main-btn"
-          onClick={handleGenerate}
-        >
-          <Dices size={18} /> Сгенерировать зал
-        </button>
-
-        {currentRoom && (
-          <div className="npc-card" style={{ marginTop: '20px', padding: '16px' }}>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Dices size={15} color="var(--accent-gold)" /> Проверки отряда
-            </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <button 
-                type="button" 
-                className="con-roll-btn"
-                style={{ width: '100%', justifyContent: 'space-between' }}
-                onClick={() => handleRollSkill('perception')}
-              >
-                <span>Внимательность (Заметить ловушку)</span>
-                <strong>Сл {currentRoom.perceptionDC}</strong>
-              </button>
-              <button 
-                type="button" 
-                className="con-roll-btn"
-                style={{ width: '100%', justifyContent: 'space-between' }}
-                onClick={() => handleRollSkill('investigation')}
-              >
-                <span>Анализ (Найти тайник)</span>
-                <strong>Сл {currentRoom.investigationDC}</strong>
-              </button>
-            </div>
-
-            {skillRoll && (
-              <div style={{ marginTop: '12px', padding: '10px', borderRadius: '6px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', fontSize: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 'bold', color: skillRoll.isSuccess ? '#4ade80' : '#ef4444' }}>
-                    {skillRoll.type}: d20 = {skillRoll.roll}
-                  </span>
-                  <span style={{ 
-                    padding: '2px 6px', 
-                    borderRadius: '4px', 
-                    fontSize: '11px',
-                    backgroundColor: skillRoll.isSuccess ? 'rgba(74, 222, 128, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    color: skillRoll.isSuccess ? '#4ade80' : '#f87171',
-                    fontWeight: 'bold'
-                  }}>
-                    {skillRoll.isSuccess ? 'УСПЕХ' : 'ПРОВАЛ'} (Сл {skillRoll.dc})
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+          Атмосферные залы подземелий: габариты, звуки и запахи, интерактивные механизмы, опасности и секреты.
+        </p>
       </div>
 
-      {/* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ: Карточка комнаты */}
-      <div className="npc-display-panel">
+      {/* Горизонтальная панель фильтров */}
+      <div className="generators-toolbar">
+        <div className="filters-group">
+          <div className="filter-item">
+            <label>Тип подземелья:</label>
+            <select 
+              value={selectedTheme} 
+              onChange={(e) => setSelectedTheme(e.target.value)}
+              className="curtain-select filter-select"
+            >
+              {DUNGEON_THEMES.map(theme => (
+                <option key={theme.id} value={theme.id}>{theme.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="gen-buttons-group">
+          <button 
+            type="button" 
+            className="trials-btn primary gen-main-btn"
+            onClick={() => handleGenerate(false)}
+          >
+            <Dices size={18} /> Сгенерировать зал
+          </button>
+          <button 
+            type="button" 
+            className="trials-btn secondary"
+            onClick={() => handleGenerate(true)}
+            title="Случайная тема"
+          >
+            <RotateCcw size={16} /> Рандом
+          </button>
+          <button 
+            type="button" 
+            className="trials-btn secondary"
+            onClick={() => handleRollSkill('perception')}
+            title="Бросить внимательность на ловушку"
+          >
+            <Eye size={16} /> Внимательность
+          </button>
+          <button 
+            type="button" 
+            className="trials-btn secondary"
+            onClick={() => handleRollSkill('investigation')}
+            title="Бросить анализ на поиск тайника"
+          >
+            <Sparkles size={16} /> Анализ
+          </button>
+        </div>
+      </div>
+
+      {/* Результат проверки кубика d20 */}
+      {skillRoll && (
+        <div style={{ 
+          marginTop: '14px', 
+          padding: '10px 16px', 
+          borderRadius: '8px', 
+          backgroundColor: 'var(--bg-module)', 
+          border: '1px solid var(--border-color)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          fontSize: '13px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontWeight: 'bold', color: skillRoll.isSuccess ? '#4ade80' : '#ef4444' }}>
+              🎲 {skillRoll.type}: d20 = {skillRoll.roll} — {skillRoll.isSuccess ? 'УСПЕХ' : 'ПРОВАЛ'} (Сл {skillRoll.dc})
+            </span>
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setSkillRoll(null)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
+          >
+            Скрыть
+          </button>
+        </div>
+      )}
+
+      {/* Основная сетка: Карточка комнаты слева (1fr) + Записная книжка справа (320px) */}
+      <div className="generators-main-layout">
+        
+        {/* Карточка комнаты */}
         {currentRoom && (
           <div className="npc-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             
@@ -222,14 +243,14 @@ export default function DungeonGenerator() {
                   type="button" 
                   className="card-tool-btn"
                   onClick={handleCopy}
-                  title="Скопировать описание зала"
+                  title="Скопировать описание"
                 >
                   {copied ? <Check size={18} color="#22c55e" /> : <Copy size={18} />}
                 </button>
                 <button 
                   type="button" 
                   className="card-tool-btn"
-                  onClick={handleGenerate}
+                  onClick={() => handleGenerate(false)}
                   title="Сгенерировать заново"
                 >
                   <RotateCcw size={18} />
@@ -237,8 +258,8 @@ export default function DungeonGenerator() {
               </div>
             </div>
 
-            {/* Архитектура и кладка */}
-            <div style={{ backgroundColor: 'var(--bg-input)', padding: '14px 16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            {/* Архитектура */}
+            <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px 16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-primary)', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>
                 <Ruler size={16} /> Архитектура и кладка
               </div>
@@ -252,8 +273,8 @@ export default function DungeonGenerator() {
               <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={16} color="var(--accent-gold)" /> Атмосфера чувств
               </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-                <div style={{ backgroundColor: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                <div style={{ backgroundColor: 'var(--bg-app)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#facc15', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>
                     <Eye size={14} /> Зрение и Свет
                   </div>
@@ -262,7 +283,7 @@ export default function DungeonGenerator() {
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ backgroundColor: 'var(--bg-app)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>
                     <Volume2 size={14} /> Звуки и Эхо
                   </div>
@@ -271,7 +292,7 @@ export default function DungeonGenerator() {
                   </div>
                 </div>
 
-                <div style={{ backgroundColor: 'var(--bg-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ backgroundColor: 'var(--bg-app)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>
                     <Wind size={14} /> Запах и Воздух
                   </div>
@@ -282,7 +303,7 @@ export default function DungeonGenerator() {
               </div>
             </div>
 
-            {/* Интерактивный объект и загадка */}
+            {/* Интерактивный объект и механизм */}
             <div style={{ backgroundColor: 'rgba(56, 189, 248, 0.08)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 'bold', fontSize: '14px', marginBottom: '6px' }}>
                 <Puzzle size={17} /> Интерактивный объект / Механизм
@@ -293,10 +314,10 @@ export default function DungeonGenerator() {
             </div>
 
             {/* Опасность и Тайник */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
               <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>
-                  <AlertTriangle size={16} /> Опасность / Ловушка (Внимательность Сл {currentRoom.perceptionDC})
+                  <AlertTriangle size={16} /> Ловушка (Внимательность Сл {currentRoom.perceptionDC})
                 </div>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
                   {currentRoom.hazard}
@@ -305,7 +326,7 @@ export default function DungeonGenerator() {
 
               <div style={{ backgroundColor: 'rgba(212, 175, 55, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>
-                  <Sparkles size={16} /> Скрытая находка (Анализ Сл {currentRoom.investigationDC})
+                  <Sparkles size={16} /> Скрытый тайник (Анализ Сл {currentRoom.investigationDC})
                 </div>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
                   {currentRoom.treasure}
@@ -315,45 +336,64 @@ export default function DungeonGenerator() {
 
           </div>
         )}
-      </div>
 
-      {/* ПРАВАЯ ПАНЕЛЬ: Сохраненные залы */}
-      <div className="npc-saved-panel">
-        <h3 className="saved-title">
-          <span>Сохранённые залы</span>
-          <span className="saved-count">{savedRooms.length}</span>
-        </h3>
-
-        <div className="saved-list">
-          {savedRooms.length === 0 ? (
-            <div className="saved-empty-state">
-              <span>⭐</span>
-              <p>Нажмите значок закладки, чтобы сохранить комнату подземелья.</p>
+        {/* Правая панель: Сохраненные залы */}
+        <div className="saved-npcs-sidebar">
+          <div className="saved-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Bookmark size={16} color="var(--accent-gold)" />
+              <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)' }}>
+                Залы подземелья ({savedRooms.length})
+              </h4>
             </div>
-          ) : (
-            savedRooms.map(item => (
-              <div 
-                key={item.id} 
-                className={`saved-npc-item ${currentRoom?.id === item.id ? 'active' : ''}`}
-                onClick={() => setCurrentRoom(item)}
+            {savedRooms.length > 0 && (
+              <button 
+                type="button" 
+                className="clean-btn" 
+                onClick={() => setSavedRooms([])}
+                title="Очистить список"
               >
-                <span className="item-icon">🗝️</span>
-                <div className="item-info">
-                  <span className="item-name">{item.title}</span>
-                  <span className="item-meta">{item.themeLabel} • Сл {item.investigationDC}</span>
-                </div>
-                <button 
-                  type="button" 
-                  className="item-delete-btn" 
-                  onClick={(e) => removeSavedRoom(item.id, e)}
-                  title="Удалить"
-                >
-                  <Trash2 size={14} />
-                </button>
+                Очистить
+              </button>
+            )}
+          </div>
+
+          <p style={{ margin: '4px 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.35' }}>
+            Сохраняйте описания комнат для построения карты приключения.
+          </p>
+
+          <div className="saved-list">
+            {savedRooms.length === 0 ? (
+              <div className="saved-empty-state">
+                <span>🗝️</span>
+                <p>Нажмите значок закладки, чтобы сохранить зал в план данжа.</p>
               </div>
-            ))
-          )}
+            ) : (
+              savedRooms.map(item => (
+                <div 
+                  key={item.id} 
+                  className={`saved-npc-item ${currentRoom?.id === item.id ? 'active' : ''}`}
+                  onClick={() => setCurrentRoom(item)}
+                >
+                  <span className="item-icon">🗝️</span>
+                  <div className="item-info">
+                    <span className="item-name">{item.title}</span>
+                    <span className="item-meta">{item.themeLabel} • {item.size.split('(')[0]}</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    className="item-delete-btn" 
+                    onClick={(e) => removeSavedRoom(item.id, e)}
+                    title="Удалить"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
+
       </div>
     </div>
   );

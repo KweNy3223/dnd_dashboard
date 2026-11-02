@@ -10,8 +10,7 @@ import {
   Trash2, 
   RotateCcw,
   Dices,
-  Trophy,
-  Package
+  Trophy
 } from 'lucide-react';
 import { 
   LOOT_TIERS, 
@@ -70,8 +69,14 @@ export default function LootGenerator() {
     }
   }, [savedLoots]);
 
-  const handleGenerate = () => {
-    setCurrentLoot(generateRandomLoot(selectedTier, selectedType));
+  const handleGenerate = (forceRandom = false) => {
+    if (forceRandom) {
+      setSelectedTier('tier1');
+      setSelectedType('hoard');
+      setCurrentLoot(generateRandomLoot('tier1', 'hoard'));
+    } else {
+      setCurrentLoot(generateRandomLoot(selectedTier, selectedType));
+    }
   };
 
   const isSaved = savedLoots.some(l => l.id === currentLoot?.id);
@@ -109,97 +114,98 @@ export default function LootGenerator() {
       `🪙 Монеты: ${coinsStr} (Общая стоимость в золоте: ~${currentLoot.coinTotalGp} ЗМ)\n\n` +
       `💎 Самоцветы и драгоценности:\n${gemsStr}\n\n` +
       `✨ Магические предметы и свитки:\n${magicStr}\n\n` +
-      `👑 ИТОГОВАЯ ЦЕННОСТЬ: ~${currentLoot.totalValueGp} ЗМ`;
+      `👑 ИТОГОВАЯ ЦЕННОСТЬ: ~${currentLoot.totalValueGp} ЗМ (доля каждого из ${partyCount} игр.: ~${perPlayerGp} ЗМ)`;
 
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Расчет доли на игрока
   const perPlayerGp = currentLoot && partyCount > 0 
     ? (currentLoot.totalValueGp / partyCount).toFixed(1)
     : 0;
 
   return (
-    <div className="npc-generator-container">
-      {/* ЛЕВАЯ ПАНЕЛЬ: Фильтры */}
-      <div className="npc-controls-panel">
-        <h3 className="controls-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Coins size={20} color="var(--accent-gold)" />
-          Параметры добычи
-        </h3>
-
-        <div className="control-group">
-          <label>Тип сокровищ</label>
-          <select 
-            value={selectedType} 
-            onChange={(e) => setSelectedType(e.target.value)}
-          >
-            {LOOT_TYPES.map(t => (
-              <option key={t.id} value={t.id}>{t.label}</option>
-            ))}
-          </select>
+    <div>
+      {/* Шапка подраздела */}
+      <div className="generators-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Gem size={26} color="var(--accent-gold)" />
+          <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>
+            Генератор Сокровищ и Добычи
+          </h2>
         </div>
+        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+          Сокровищницы боссов и карманная добыча по таблицам DMG 5e с самоцветами, магическими свитками и делителем на отряд.
+        </p>
+      </div>
 
-        <div className="control-group">
-          <label>Уровень опасности (CR)</label>
-          <select 
-            value={selectedTier} 
-            onChange={(e) => setSelectedTier(e.target.value)}
-          >
-            {LOOT_TIERS.map(tier => (
-              <option key={tier.id} value={tier.id}>{tier.label}</option>
-            ))}
-          </select>
-        </div>
+      {/* Горизонтальная панель фильтров */}
+      <div className="generators-toolbar">
+        <div className="filters-group">
+          <div className="filter-item">
+            <label>Тип сокровищ:</label>
+            <select 
+              value={selectedType} 
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="curtain-select filter-select"
+            >
+              {LOOT_TYPES.map(t => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+          </div>
 
-        <button 
-          type="button" 
-          className="generate-main-btn"
-          onClick={handleGenerate}
-        >
-          <Dices size={18} /> Сгенерировать сокровища
-        </button>
+          <div className="filter-item">
+            <label>Уровень опасности (CR):</label>
+            <select 
+              value={selectedTier} 
+              onChange={(e) => setSelectedTier(e.target.value)}
+              className="curtain-select filter-select"
+            >
+              {LOOT_TIERS.map(tier => (
+                <option key={tier.id} value={tier.id}>{tier.label}</option>
+              ))}
+            </select>
+          </div>
 
-        {/* Делитель добычи */}
-        <div className="npc-card" style={{ marginTop: '20px', padding: '16px' }}>
-          <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Users size={15} color="#38bdf8" /> Раздел между игроками
-          </h4>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-            <label style={{ fontSize: '12px', color: 'var(--text-muted)' }}>В отряде:</label>
+          <div className="filter-item">
+            <label>Игроков в отряде:</label>
             <input 
               type="number" 
               min="1" 
               max="12" 
               value={partyCount} 
               onChange={(e) => setPartyCount(Math.max(1, parseInt(e.target.value) || 1))}
-              style={{
-                width: '65px',
-                padding: '6px 10px',
-                borderRadius: '6px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-input)',
-                color: 'var(--text-title)',
-                fontSize: '13px',
-                textAlign: 'center'
-              }}
+              className="curtain-select filter-select"
+              style={{ width: '80px', minWidth: '80px', textAlign: 'center' }}
             />
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>игроков</span>
           </div>
+        </div>
 
-          <div style={{ padding: '8px 10px', borderRadius: '6px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', fontSize: '12px' }}>
-            <div style={{ color: 'var(--text-muted)' }}>Доля каждого:</div>
-            <strong style={{ fontSize: '15px', color: 'var(--accent-gold)' }}>
-              ≈ {perPlayerGp} ЗМ
-            </strong>
-          </div>
+        <div className="gen-buttons-group">
+          <button 
+            type="button" 
+            className="trials-btn primary gen-main-btn"
+            onClick={() => handleGenerate(false)}
+          >
+            <Dices size={18} /> Сгенерировать лут
+          </button>
+          <button 
+            type="button" 
+            className="trials-btn secondary"
+            onClick={() => handleGenerate(true)}
+            title="Сбросить фильтры"
+          >
+            <RotateCcw size={16} /> Рандом
+          </button>
         </div>
       </div>
 
-      {/* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ: Карточка добычи */}
-      <div className="npc-display-panel">
+      {/* Основная сетка: Карточка лута слева (1fr) + Записная книжка справа (320px) */}
+      <div className="generators-main-layout">
+        
+        {/* Карточка сокровищ */}
         {currentLoot && (
           <div className="npc-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             
@@ -212,7 +218,7 @@ export default function LootGenerator() {
                     {currentLoot.typeLabel}
                   </h2>
                   <span className="card-character-sub">
-                    {currentLoot.tierLabel} • Общая ценность: ~{currentLoot.totalValueGp} ЗМ
+                    {currentLoot.tierLabel} • Доля на 1 игрока: ≈ {perPlayerGp} ЗМ
                   </span>
                 </div>
               </div>
@@ -237,7 +243,7 @@ export default function LootGenerator() {
                 <button 
                   type="button" 
                   className="card-tool-btn"
-                  onClick={handleGenerate}
+                  onClick={() => handleGenerate(false)}
                   title="Сгенерировать заново"
                 >
                   <RotateCcw size={18} />
@@ -246,13 +252,13 @@ export default function LootGenerator() {
             </div>
 
             {/* Блок монет */}
-            <div style={{ backgroundColor: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <div style={{ backgroundColor: 'var(--bg-app)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Coins size={16} /> Звонкая монета
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Coins size={16} /> Монеты
                 </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Эквивалент: <strong style={{ color: 'var(--text-title)' }}>{currentLoot.coinTotalGp} ЗМ</strong>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                  Эквивалент: <strong style={{ color: 'var(--accent-gold)' }}>{currentLoot.coinTotalGp.toLocaleString()} ЗМ</strong>
                 </span>
               </div>
 
@@ -286,15 +292,20 @@ export default function LootGenerator() {
               </div>
             </div>
 
-            {/* Блок драгоценностей и камней */}
+            {/* Блок самоцветов и драгоценностей */}
             <div>
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 10px 0', fontSize: '14px', color: 'var(--text-title)' }}>
-                <Gem size={16} color="#38bdf8" />
-                Самоцветы и предметы искусства ({currentLoot.gemsTotalGp} ЗМ)
-              </h4>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0 10px 0' }}>
+                <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Gem size={16} color="#38bdf8" />
+                  Самоцветы и предметы искусства
+                </h4>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                  Сумма: <strong style={{ color: 'var(--text-title)' }}>{currentLoot.gemsTotalGp} ЗМ</strong>
+                </span>
+              </div>
 
               {currentLoot.gemsAndArt.length === 0 ? (
-                <div style={{ padding: '14px', borderRadius: '8px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '13px' }}>
+                <div style={{ padding: '12px 14px', borderRadius: '8px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '13px' }}>
                   В этой добыче нет драгоценных камней или предметов искусства.
                 </div>
               ) : (
@@ -308,7 +319,7 @@ export default function LootGenerator() {
                         justifyContent: 'space-between',
                         padding: '10px 14px',
                         borderRadius: '6px',
-                        backgroundColor: 'var(--bg-input)',
+                        backgroundColor: 'var(--bg-app)',
                         border: '1px solid var(--border-color)',
                         fontSize: '13px'
                       }}
@@ -339,22 +350,22 @@ export default function LootGenerator() {
 
             {/* Блок магических предметов */}
             <div>
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 10px 0', fontSize: '14px', color: 'var(--text-title)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 10px 0', fontSize: '14px', color: 'var(--text-title)' }}>
                 <Sparkles size={16} color="var(--accent-gold)" />
                 Магические находки и свитки
               </h4>
 
               {currentLoot.magicItems.length === 0 ? (
-                <div style={{ padding: '14px', borderRadius: '8px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '13px' }}>
+                <div style={{ padding: '12px 14px', borderRadius: '8px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '13px' }}>
                   Магических предметов не обнаружено.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {currentLoot.magicItems.map((magic, idx) => (
                     <div 
                       key={idx}
                       style={{
-                        padding: '12px 14px',
+                        padding: '10px 14px',
                         borderRadius: '8px',
                         backgroundColor: 'rgba(212, 175, 55, 0.06)',
                         border: '1px solid rgba(212, 175, 55, 0.25)',
@@ -389,45 +400,64 @@ export default function LootGenerator() {
 
           </div>
         )}
-      </div>
 
-      {/* ПРАВАЯ ПАНЕЛЬ: Сохраненный лут */}
-      <div className="npc-saved-panel">
-        <h3 className="saved-title">
-          <span>Сохранённые сокровища</span>
-          <span className="saved-count">{savedLoots.length}</span>
-        </h3>
-
-        <div className="saved-list">
-          {savedLoots.length === 0 ? (
-            <div className="saved-empty-state">
-              <span>⭐</span>
-              <p>Нажмите значок закладки, чтобы сохранить найденный клад.</p>
+        {/* Правая панель: Сохраненный лут */}
+        <div className="saved-npcs-sidebar">
+          <div className="saved-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Bookmark size={16} color="var(--accent-gold)" />
+              <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)' }}>
+                Сундук трофеев ({savedLoots.length})
+              </h4>
             </div>
-          ) : (
-            savedLoots.map(item => (
-              <div 
-                key={item.id} 
-                className={`saved-npc-item ${currentLoot?.id === item.id ? 'active' : ''}`}
-                onClick={() => setCurrentLoot(item)}
+            {savedLoots.length > 0 && (
+              <button 
+                type="button" 
+                className="clean-btn" 
+                onClick={() => setSavedLoots([])}
+                title="Очистить список"
               >
-                <span className="item-icon">💎</span>
-                <div className="item-info">
-                  <span className="item-name">{item.typeLabel}</span>
-                  <span className="item-meta">{item.tierLabel} • ~{item.totalValueGp} ЗМ</span>
-                </div>
-                <button 
-                  type="button" 
-                  className="item-delete-btn" 
-                  onClick={(e) => removeSavedLoot(item.id, e)}
-                  title="Удалить"
-                >
-                  <Trash2 size={14} />
-                </button>
+                Очистить
+              </button>
+            )}
+          </div>
+
+          <p style={{ margin: '4px 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.35' }}>
+            Сохраняйте выпавшие сокровища для раздачи игрокам в конце сессии.
+          </p>
+
+          <div className="saved-list">
+            {savedLoots.length === 0 ? (
+              <div className="saved-empty-state">
+                <span>💎</span>
+                <p>Нажмите значок закладки, чтобы сохранить найденный клад.</p>
               </div>
-            ))
-          )}
+            ) : (
+              savedLoots.map(item => (
+                <div 
+                  key={item.id} 
+                  className={`saved-npc-item ${currentLoot?.id === item.id ? 'active' : ''}`}
+                  onClick={() => setCurrentLoot(item)}
+                >
+                  <span className="item-icon">💎</span>
+                  <div className="item-info">
+                    <span className="item-name">{item.typeLabel}</span>
+                    <span className="item-meta">{item.tierLabel} • ~{item.totalValueGp} ЗМ</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    className="item-delete-btn" 
+                    onClick={(e) => removeSavedLoot(item.id, e)}
+                    title="Удалить"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
+
       </div>
     </div>
   );

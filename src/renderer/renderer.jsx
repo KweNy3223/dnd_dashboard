@@ -164,99 +164,38 @@ function AppContent() {
               <Menu size={20} />
             </button>
             <h2 className="app-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {isGeneratorsRoute ? (
-                <>
-                  <Sparkles size={20} color="var(--accent-gold)" />
-                  <span>Генераторы</span>
-                </>
-              ) : (
-                'DnD Dashboard'
-              )}
+              DnD Dashboard
             </h2>
           </div>
 
-          <nav className="navbar-center" style={{ display: 'flex', gap: '15px' }}>
-            {isGeneratorsRoute ? (
-              <>
-                <NavLink 
-                  to="/generators/npc" 
-                  className={`nav-tab ${location.pathname === '/generators/npc' || location.pathname === '/generators' ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <User size={17} /> NPC
-                </NavLink>
+          <nav className="navbar-center" style={{ display: 'flex', gap: '10px' }}>
+            <NavLink to="/" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <LayoutDashboard size={17} /> Стол
+            </NavLink>
 
-                <NavLink 
-                  to="/generators/tavern" 
-                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Beer size={17} /> Таверны
-                </NavLink>
+            <NavLink 
+              to="/generators" 
+              className={`nav-tab ${isGeneratorsRoute ? 'active' : ''}`} 
+              style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Sparkles size={17} /> Генераторы
+            </NavLink>
 
-                <NavLink 
-                  to="/generators/shops" 
-                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Store size={17} /> Лавки
-                </NavLink>
+            <NavLink to="/prices" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Store size={17} /> Цены
+            </NavLink>
 
-                <NavLink 
-                  to="/generators/quests" 
-                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Scroll size={17} /> Заказы
-                </NavLink>
+            <NavLink to="/calculator" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Calculator size={17} /> Калькулятор лута
+            </NavLink>
 
-                <NavLink 
-                  to="/generators/encounters" 
-                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Swords size={17} /> Энкаунтеры
-                </NavLink>
-
-                <NavLink 
-                  to="/generators/dungeon" 
-                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Compass size={17} /> Подземелья
-                </NavLink>
-
-                <NavLink 
-                  to="/generators/loot" 
-                  className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Gem size={17} /> Сокровища
-                </NavLink>
-              </>
-            ) : (
-              <>
-                <NavLink to="/" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <LayoutDashboard size={18} /> Стол
-                </NavLink>
-
-                <NavLink to="/prices" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Store size={18} /> Справочник цен
-                </NavLink>
-
-                <NavLink to="/calculator" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Calculator size={18} /> Калькулятор лута
-                </NavLink>
-
-                <NavLink to="/rules" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <BookOpen size={18} /> Справочник
-                </NavLink>
-                
-                <NavLink to="/settings" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Settings size={18} /> Настройки
-                </NavLink>
-              </>
-            )}
+            <NavLink to="/rules" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <BookOpen size={17} /> Справочник
+            </NavLink>
+            
+            <NavLink to="/settings" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Settings size={17} /> Настройки
+            </NavLink>
           </nav>
 
           <div className="navbar-right"></div>

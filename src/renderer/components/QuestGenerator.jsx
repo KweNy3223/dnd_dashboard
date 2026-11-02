@@ -13,8 +13,7 @@ import {
   Check, 
   Trash2, 
   RotateCcw,
-  Sparkles,
-  ShieldAlert
+  Sparkles
 } from 'lucide-react';
 import { 
   QUEST_CATEGORIES, 
@@ -62,20 +61,22 @@ export default function QuestGenerator() {
     }
   }, [savedQuests]);
 
-  const handleGenerate = () => {
+  const handleGenerate = (forceRandom = false) => {
     setInvestigationRoll(null);
-    setCurrentQuest(generateRandomQuest(selectedCategory));
+    const cat = forceRandom ? 'any' : selectedCategory;
+    if (forceRandom) setSelectedCategory('any');
+    setCurrentQuest(generateRandomQuest(cat));
   };
 
   const handleRollInvestigation = () => {
     const roll = Math.floor(Math.random() * 20) + 1;
     let hint = '';
     if (roll >= 15) {
-      hint = 'Отличный результат! Игроки точно выясняют, где правда, а где выдумка.';
+      hint = 'Отличный результат (15+)! Игроки безошибочно распознают правду и вымысел.';
     } else if (roll >= 10) {
-      hint = 'Успех: отряду удаётся отсеять самую дикую байку пьяницы.';
+      hint = 'Успех (10+): отряду удаётся отсеять самую дикую байку пьяницы.';
     } else {
-      hint = 'Провал: отряд поверил в местную байку или слух воспринят превратно.';
+      hint = 'Провал (<10): отряд поверил в байку или слух воспринят превратно.';
     }
     setInvestigationRoll({ roll, hint });
   };
@@ -114,65 +115,97 @@ export default function QuestGenerator() {
   };
 
   return (
-    <div className="npc-generator-container">
-      {/* ЛЕВАЯ ПАНЕЛЬ: Фильтры */}
-      <div className="npc-controls-panel">
-        <h3 className="controls-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Scroll size={20} color="var(--accent-gold)" />
-          Параметры заказа
-        </h3>
+    <div>
+      {/* Шапка подраздела */}
+      <div className="generators-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Scroll size={26} color="var(--accent-gold)" />
+          <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>
+            Генератор Заказов и Слухов
+          </h2>
+        </div>
+        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
+          Доска объявлений таверны или гильдии: контракты с заказчиками, сюжетными твистами и городскими сплетнями.
+        </p>
+      </div>
 
-        <div className="control-group">
-          <label>Категория поручения</label>
-          <select 
-            value={selectedCategory} 
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            {QUEST_CATEGORIES.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.label}</option>
-            ))}
-          </select>
+      {/* Горизонтальная панель фильтров */}
+      <div className="generators-toolbar">
+        <div className="filters-group">
+          <div className="filter-item">
+            <label>Категория поручения:</label>
+            <select 
+              value={selectedCategory} 
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="curtain-select filter-select"
+            >
+              {QUEST_CATEGORIES.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        <button 
-          type="button" 
-          className="generate-main-btn"
-          onClick={handleGenerate}
-        >
-          <Dices size={18} /> Сгенерировать заказ
-        </button>
-
-        <div className="npc-card" style={{ marginTop: '20px', padding: '16px' }}>
-          <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Sparkles size={16} color="var(--accent-gold)" /> Наведение справок
-          </h4>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 12px 0', lineHeight: '1.4' }}>
-            Бросьте d20 (Анализ / Проницательность), чтобы определить, насколько точно герои распознают слухи.
-          </p>
+        <div className="gen-buttons-group">
           <button 
             type="button" 
-            className="con-roll-btn"
-            style={{ width: '100%', justifyContent: 'center' }}
-            onClick={handleRollInvestigation}
+            className="trials-btn primary gen-main-btn"
+            onClick={() => handleGenerate(false)}
           >
-            <Dices size={14} /> Бросить проверку d20
+            <Dices size={18} /> Сгенерировать заказ
           </button>
-
-          {investigationRoll && (
-            <div style={{ marginTop: '10px', padding: '8px 10px', borderRadius: '6px', backgroundColor: 'var(--bg-input)', border: '1px solid var(--border-color)', fontSize: '12px' }}>
-              <div style={{ fontWeight: 'bold', color: investigationRoll.roll >= 10 ? '#4ade80' : '#ef4444' }}>
-                Результат d20: {investigationRoll.roll}
-              </div>
-              <div style={{ color: 'var(--text-muted)', marginTop: '4px' }}>
-                {investigationRoll.hint}
-              </div>
-            </div>
-          )}
+          <button 
+            type="button" 
+            className="trials-btn secondary"
+            onClick={() => handleGenerate(true)}
+            title="Случайная категория"
+          >
+            <RotateCcw size={16} /> Рандом
+          </button>
+          <button 
+            type="button" 
+            className="trials-btn secondary"
+            onClick={handleRollInvestigation}
+            title="Бросок проверки наведения справок"
+          >
+            <Sparkles size={16} /> Справка d20
+          </button>
         </div>
       </div>
 
-      {/* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ: Карточка заказа */}
-      <div className="npc-display-panel">
+      {/* Результат броска d20 (если сделан) */}
+      {investigationRoll && (
+        <div style={{ 
+          marginTop: '14px', 
+          padding: '10px 16px', 
+          borderRadius: '8px', 
+          backgroundColor: 'var(--bg-module)', 
+          border: '1px solid var(--border-color)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          fontSize: '13px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontWeight: 'bold', color: investigationRoll.roll >= 10 ? '#4ade80' : '#ef4444' }}>
+              🎲 d20 Анализ / Проницательность = {investigationRoll.roll}
+            </span>
+            <span style={{ color: 'var(--text-muted)' }}>— {investigationRoll.hint}</span>
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setInvestigationRoll(null)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
+          >
+            Скрыть
+          </button>
+        </div>
+      )}
+
+      {/* Основная сетка: Карточка заказа слева (1fr) + Записная книжка справа (320px) */}
+      <div className="generators-main-layout">
+        
+        {/* Карточка заказа */}
         {currentQuest && (
           <div className="npc-card" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             
@@ -185,7 +218,7 @@ export default function QuestGenerator() {
                     {currentQuest.title}
                   </h2>
                   <span className="card-character-sub">
-                    Объявление на городской доске поручений
+                    Заказ на доске объявлений • Сроки: {currentQuest.urgency}
                   </span>
                 </div>
               </div>
@@ -203,14 +236,14 @@ export default function QuestGenerator() {
                   type="button" 
                   className="card-tool-btn"
                   onClick={handleCopy}
-                  title="Скопировать описание квеста"
+                  title="Скопировать заказ"
                 >
                   {copied ? <Check size={18} color="#22c55e" /> : <Copy size={18} />}
                 </button>
                 <button 
                   type="button" 
                   className="card-tool-btn"
-                  onClick={handleGenerate}
+                  onClick={() => handleGenerate(false)}
                   title="Сгенерировать заново"
                 >
                   <RotateCcw size={18} />
@@ -218,13 +251,13 @@ export default function QuestGenerator() {
               </div>
             </div>
 
-            {/* Блок 1: Заказчик и Цель */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
-              <div style={{ backgroundColor: 'var(--bg-input)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            {/* Заказчик и Место */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
+              <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
                   <User size={16} /> Заказчик
                 </div>
-                <div style={{ fontWeight: '600', color: 'var(--text-title)', marginBottom: '4px' }}>
+                <div style={{ fontWeight: '600', color: 'var(--text-title)', marginBottom: '4px', fontSize: '14px' }}>
                   {currentQuest.client}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
@@ -232,11 +265,11 @@ export default function QuestGenerator() {
                 </div>
               </div>
 
-              <div style={{ backgroundColor: 'var(--bg-input)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
                   <MapPin size={16} /> Локация и Сроки
                 </div>
-                <div style={{ fontWeight: '500', color: 'var(--text-title)', marginBottom: '4px' }}>
+                <div style={{ fontWeight: '500', color: 'var(--text-title)', marginBottom: '4px', fontSize: '14px' }}>
                   {currentQuest.location}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--accent-red)', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -245,21 +278,21 @@ export default function QuestGenerator() {
               </div>
             </div>
 
-            {/* Блок 2: Задача */}
-            <div style={{ backgroundColor: 'var(--bg-input)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            {/* Суть поручения */}
+            <div style={{ backgroundColor: 'var(--bg-app)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: 'bold' }}>
-                Суть контракта:
+                Суть задачи:
               </div>
               <p style={{ margin: 0, color: 'var(--text-title)', fontSize: '15px', lineHeight: '1.5', fontWeight: '500' }}>
                 {currentQuest.goal}
               </p>
             </div>
 
-            {/* Блок 3: Подводный камень и Награда */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+            {/* Подводный камень и Награда */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
               <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
-                  <AlertTriangle size={16} /> Тайный твист / Осложнение
+                  <AlertTriangle size={16} /> Скрытый сюжетный твист
                 </div>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
                   {currentQuest.twist}
@@ -268,7 +301,7 @@ export default function QuestGenerator() {
 
               <div style={{ backgroundColor: 'rgba(212, 175, 55, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
-                  <Coins size={16} /> Обещанная награда
+                  <Coins size={16} /> Награда за выполнение
                 </div>
                 <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)', fontWeight: 'bold', lineHeight: '1.4' }}>
                   {currentQuest.reward}
@@ -276,35 +309,34 @@ export default function QuestGenerator() {
               </div>
             </div>
 
-            {/* Блок 4: Слухи в округе */}
+            {/* Слухи */}
             <div>
-              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '10px 0 12px 0', fontSize: '15px', color: 'var(--text-title)' }}>
-                <MessageSquare size={18} color="var(--accent-primary)" />
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 10px 0', fontSize: '15px', color: 'var(--text-title)' }}>
+                <MessageSquare size={17} color="var(--accent-primary)" />
                 Слухи и кривотолки в таверне
               </h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {currentQuest.rumors.map((rumor, idx) => (
                   <div key={idx} style={{ 
-                    padding: '12px 14px', 
+                    padding: '10px 14px', 
                     borderRadius: '8px', 
-                    backgroundColor: 'var(--bg-input)', 
+                    backgroundColor: 'var(--bg-app)', 
                     border: '1px solid var(--border-color)',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '4px'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ 
-                        fontSize: '11px', 
-                        fontWeight: 'bold', 
-                        padding: '2px 8px', 
-                        borderRadius: '4px',
-                        backgroundColor: rumor.type === 'truth' ? 'rgba(34, 197, 94, 0.15)' : (rumor.type === 'halftruth' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)'),
-                        color: rumor.type === 'truth' ? '#4ade80' : (rumor.type === 'halftruth' ? '#facc15' : '#f87171')
-                      }}>
-                        {rumor.label}
-                      </span>
-                    </div>
+                    <span style={{ 
+                      fontSize: '11px', 
+                      fontWeight: 'bold', 
+                      padding: '1px 7px', 
+                      borderRadius: '4px',
+                      alignSelf: 'flex-start',
+                      backgroundColor: rumor.type === 'truth' ? 'rgba(34, 197, 94, 0.15)' : (rumor.type === 'halftruth' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)'),
+                      color: rumor.type === 'truth' ? '#4ade80' : (rumor.type === 'halftruth' ? '#facc15' : '#f87171')
+                    }}>
+                      {rumor.label}
+                    </span>
                     <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
                       «{rumor.text}»
                     </p>
@@ -315,45 +347,64 @@ export default function QuestGenerator() {
 
           </div>
         )}
-      </div>
 
-      {/* ПРАВАЯ ПАНЕЛЬ: Сохраненные квесты */}
-      <div className="npc-saved-panel">
-        <h3 className="saved-title">
-          <span>Сохранённые заказы</span>
-          <span className="saved-count">{savedQuests.length}</span>
-        </h3>
-
-        <div className="saved-list">
-          {savedQuests.length === 0 ? (
-            <div className="saved-empty-state">
-              <span>⭐</span>
-              <p>Нажмите значок закладки, чтобы сохранить заказ на будущее.</p>
+        {/* Правая панель: Сохраненные заказы */}
+        <div className="saved-npcs-sidebar">
+          <div className="saved-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Bookmark size={16} color="var(--accent-gold)" />
+              <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)' }}>
+                Книга заказов ({savedQuests.length})
+              </h4>
             </div>
-          ) : (
-            savedQuests.map(item => (
-              <div 
-                key={item.id} 
-                className={`saved-npc-item ${currentQuest?.id === item.id ? 'active' : ''}`}
-                onClick={() => setCurrentQuest(item)}
+            {savedQuests.length > 0 && (
+              <button 
+                type="button" 
+                className="clean-btn" 
+                onClick={() => setSavedQuests([])}
+                title="Очистить список"
               >
-                <span className="item-icon">📜</span>
-                <div className="item-info">
-                  <span className="item-name">{item.title}</span>
-                  <span className="item-meta">{item.client} • {item.reward.split(',')[0]}</span>
-                </div>
-                <button 
-                  type="button" 
-                  className="item-delete-btn" 
-                  onClick={(e) => removeSavedQuest(item.id, e)}
-                  title="Удалить"
-                >
-                  <Trash2 size={14} />
-                </button>
+                Очистить
+              </button>
+            )}
+          </div>
+
+          <p style={{ margin: '4px 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.35' }}>
+            Сохраняйте заказы, взятые партией, чтобы быстро освежить в памяти детали контракта.
+          </p>
+
+          <div className="saved-list">
+            {savedQuests.length === 0 ? (
+              <div className="saved-empty-state">
+                <span>📜</span>
+                <p>Нажмите закладку на карточке заказа, чтобы сохранить его.</p>
               </div>
-            ))
-          )}
+            ) : (
+              savedQuests.map(item => (
+                <div 
+                  key={item.id} 
+                  className={`saved-npc-item ${currentQuest?.id === item.id ? 'active' : ''}`}
+                  onClick={() => setCurrentQuest(item)}
+                >
+                  <span className="item-icon">📜</span>
+                  <div className="item-info">
+                    <span className="item-name">{item.title}</span>
+                    <span className="item-meta">{item.client} • {item.reward.split(',')[0]}</span>
+                  </div>
+                  <button 
+                    type="button" 
+                    className="item-delete-btn" 
+                    onClick={(e) => removeSavedQuest(item.id, e)}
+                    title="Удалить"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
         </div>
+
       </div>
     </div>
   );
