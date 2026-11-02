@@ -168,7 +168,7 @@ export class RunesGame {
 
         <div class="lock-controls-guide" style="margin-top: 14px;">
           <div class="guide-pill">
-            <span class="guide-key">1, 2, 3, 4</span>
+            <span class="guide-key">1, 2, 3</span>
             <span>Выбор кольца</span>
           </div>
           <div class="guide-pill">
@@ -213,11 +213,16 @@ export class RunesGame {
     this.logicalSize = size;
 
     if (this.rings && this.rings.length > 0) {
-      const baseRadius = Math.round(this.logicalSize * 0.125);
-      const ringThickness = Math.round(this.logicalSize * 0.14);
+      const numRings = this.rings.length;
+      const startR = Math.round(this.logicalSize * 0.115);
+      const endR = Math.round(this.logicalSize * 0.385);
+      const gap = 3;
+      const totalAvailable = endR - startR - (numRings - 1) * gap;
+      const ringThickness = Math.floor(totalAvailable / numRings);
+
       this.rings.forEach((ring, r) => {
-        ring.innerR = baseRadius + r * ringThickness;
-        ring.outerR = ring.innerR + ringThickness - 4;
+        ring.innerR = startR + r * (ringThickness + gap);
+        ring.outerR = ring.innerR + ringThickness;
         ring.midR = (ring.innerR + ring.outerR) / 2;
       });
       this.traceManaBeams();
@@ -308,8 +313,8 @@ export class RunesGame {
 
     const dc = dnd.dc || 15;
 
-    // Ровно 2 широких, просторных кольца для кристальной ясности и лёгкости
-    const numRings = 2;
+    // Ровно 3 концентрических кольца арканной печати (Внутреннее, Среднее, Внешнее)
+    const numRings = 3;
 
     // Все 4 стихийных алтаря строго в кардинальных точках: 0° (Огонь), 90° (Вода), 180° (Земля), 270° (Буря)
     const allAnchors = [
@@ -332,19 +337,24 @@ export class RunesGame {
       this.anchors = shuffledAnchors.slice(0, activeCount).sort((a, b) => a.sector - b.sector);
     }
 
-    const baseRadius = Math.round(this.logicalSize * 0.125);
-    const ringThickness = Math.round(this.logicalSize * 0.14); // Широкие, легко читаемые ободья
+    const startR = Math.round(this.logicalSize * 0.115);
+    const endR = Math.round(this.logicalSize * 0.385);
+    const gap = 3;
+    const totalAvailable = endR - startR - (numRings - 1) * gap;
+    const ringThickness = Math.floor(totalAvailable / numRings);
+
+    const ringNames = ['Внутреннее', 'Среднее', 'Внешнее'];
 
     // Построение гарантированного неконфликтующего решения
     let success = false;
     while (!success) {
       this.rings = Array.from({ length: numRings }, (_, r) => {
-        const innerR = baseRadius + r * ringThickness;
-        const outerR = innerR + ringThickness - 4;
+        const innerR = startR + r * (ringThickness + gap);
+        const outerR = innerR + ringThickness;
         const midR = (innerR + outerR) / 2;
         return {
           index: r,
-          name: r === 0 ? 'Внутреннее' : 'Внешнее',
+          name: ringNames[r] || `Кольцо ${r + 1}`,
           innerR,
           outerR,
           midR,
@@ -360,10 +370,19 @@ export class RunesGame {
       let ok = true;
       for (const a of this.anchors) {
         const s = a.sector;
+        // Элегантные, легко считываемые пути:
+        // Либо сквозной радиальный луч, либо ровно одна плавная S-образная дуга (изгиб и возврат)
         const candidatePaths = [
-          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.STRAIGHT } ],
-          [ { r: 0, s: s, type: NODE_TYPES.TURN_CW }, { r: 1, s: (s + 1) % 8, type: NODE_TYPES.TURN_CCW } ],
-          [ { r: 0, s: s, type: NODE_TYPES.TURN_CCW }, { r: 1, s: (s + 7) % 8, type: NODE_TYPES.TURN_CW } ]
+          // 1. Прямой радиальный луч через все 3 кольца
+          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.STRAIGHT }, { r: 2, s: s, type: NODE_TYPES.STRAIGHT } ],
+          // 2. Внутренняя S-дуга вправо (поворот на кольце 0, возврат на кольце 1, прямо на кольце 2)
+          [ { r: 0, s: s, type: NODE_TYPES.TURN_CW }, { r: 1, s: (s + 1) % 8, type: NODE_TYPES.TURN_CCW }, { r: 2, s: s, type: NODE_TYPES.STRAIGHT } ],
+          // 3. Внутренняя S-дуга влево (поворот на кольце 0, возврат на кольце 1, прямо на кольце 2)
+          [ { r: 0, s: s, type: NODE_TYPES.TURN_CCW }, { r: 1, s: (s + 7) % 8, type: NODE_TYPES.TURN_CW }, { r: 2, s: s, type: NODE_TYPES.STRAIGHT } ],
+          // 4. Внешняя S-дуга вправо (прямо на кольце 0, поворот на кольце 1, возврат на кольце 2 прямо в алтарь)
+          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.TURN_CW }, { r: 2, s: (s + 1) % 8, type: NODE_TYPES.TURN_CCW } ],
+          // 5. Внешняя S-дуга влево (прямо на кольце 0, поворот на кольце 1, возврат на кольце 2 прямо в алтарь)
+          [ { r: 0, s: s, type: NODE_TYPES.STRAIGHT }, { r: 1, s: s, type: NODE_TYPES.TURN_CCW }, { r: 2, s: (s + 7) % 8, type: NODE_TYPES.TURN_CW } ]
         ].sort(() => Math.random() - 0.5);
 
         let placed = false;
@@ -975,6 +994,15 @@ export class RunesGame {
     const dr = rOut - rIn;
     const k = dr * 0.45;
 
+    // Масштабирование толщины линий, стрелок и портов под ширину обода кольца
+    const chevronSize = Math.max(2.8, Math.min(4.0, dr * 0.095));
+    const bedWidth = Math.max(8.5, Math.min(13, dr * 0.32));
+    const rimWidth = Math.max(6.2, Math.min(9.5, dr * 0.23));
+    const innerWidth = Math.max(3.6, Math.min(5.5, dr * 0.14));
+    const tubeWidth = Math.max(1.5, Math.min(2.4, dr * 0.06));
+    const portR = Math.max(3.2, Math.min(4.5, dr * 0.11));
+    const innerPortR = portR * 0.5;
+
     // Геометрия Безье для поворотов
     let p0, cp1, cp2, p3;
     if (node.type === NODE_TYPES.TURN_CW) {
@@ -1019,28 +1047,28 @@ export class RunesGame {
     // 1. Внешняя глубокая тёмная постель желоба
     renderPath();
     ctx.strokeStyle = 'rgba(7, 9, 15, 0.95)';
-    ctx.lineWidth = 14;
+    ctx.lineWidth = bedWidth;
     ctx.lineCap = 'round';
     ctx.stroke();
 
     // 2. Металлические латунные бортики
     renderPath();
     ctx.strokeStyle = isSelected ? 'rgba(245, 158, 11, 0.85)' : 'rgba(212, 175, 55, 0.65)';
-    ctx.lineWidth = 10;
+    ctx.lineWidth = rimWidth;
     ctx.lineCap = 'round';
     ctx.stroke();
 
     // 3. Внутренняя полость канала
     renderPath();
     ctx.strokeStyle = 'rgba(15, 23, 42, 0.95)';
-    ctx.lineWidth = 6;
+    ctx.lineWidth = innerWidth;
     ctx.lineCap = 'round';
     ctx.stroke();
 
     // 4. Светящаяся кристаллическая трубка (хорошо заметна даже без запитки маной!)
     renderPath();
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = tubeWidth;
     ctx.lineCap = 'round';
     ctx.stroke();
 
@@ -1050,25 +1078,25 @@ export class RunesGame {
     if (node.type === NODE_TYPES.STRAIGHT) {
       const r1 = rIn + dr * 0.35;
       const r2 = rIn + dr * 0.7;
-      drawFlowChevron(ctx, Math.cos(rad) * r1, Math.sin(rad) * r1, rad, 4.2, chevronColor);
-      drawFlowChevron(ctx, Math.cos(rad) * r2, Math.sin(rad) * r2, rad, 4.2, chevronColor);
+      drawFlowChevron(ctx, Math.cos(rad) * r1, Math.sin(rad) * r1, rad, chevronSize, chevronColor);
+      drawFlowChevron(ctx, Math.cos(rad) * r2, Math.sin(rad) * r2, rad, chevronSize, chevronColor);
     } else if (node.type === NODE_TYPES.TURN_CW || node.type === NODE_TYPES.TURN_CCW) {
       [0.35, 0.7].forEach(t => {
         const pt = getBezierPt(p0, cp1, cp2, p3, t);
         const tan = getBezierTan(p0, cp1, cp2, p3, t);
         const ang = Math.atan2(tan.y, tan.x);
-        drawFlowChevron(ctx, pt.x, pt.y, ang, 4.2, chevronColor);
+        drawFlowChevron(ctx, pt.x, pt.y, ang, chevronSize, chevronColor);
       });
     } else if (node.type === NODE_TYPES.FORK) {
       // Прямой ствол
       const r1 = rIn + dr * 0.4;
       const r2 = rIn + dr * 0.75;
-      drawFlowChevron(ctx, Math.cos(rad) * r1, Math.sin(rad) * r1, rad, 3.8, chevronColor);
-      drawFlowChevron(ctx, Math.cos(rad) * r2, Math.sin(rad) * r2, rad, 3.8, chevronColor);
+      drawFlowChevron(ctx, Math.cos(rad) * r1, Math.sin(rad) * r1, rad, chevronSize * 0.9, chevronColor);
+      drawFlowChevron(ctx, Math.cos(rad) * r2, Math.sin(rad) * r2, rad, chevronSize * 0.9, chevronColor);
       // Ветвь
       const pt = getBezierPt(p0, cp1, cp2, p3, 0.65);
       const tan = getBezierTan(p0, cp1, cp2, p3, 0.65);
-      drawFlowChevron(ctx, pt.x, pt.y, Math.atan2(tan.y, tan.x), 3.8, chevronColor);
+      drawFlowChevron(ctx, pt.x, pt.y, Math.atan2(tan.y, tan.x), chevronSize * 0.9, chevronColor);
     }
 
     // --- КОНТАКТНЫЕ ПОРТЫ НА ОБОДЬЯХ КОЛЬЦА ---
@@ -1077,7 +1105,7 @@ export class RunesGame {
       const py = Math.sin(angle) * radius;
 
       ctx.beginPath();
-      ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+      ctx.arc(px, py, portR, 0, Math.PI * 2);
       ctx.fillStyle = '#0f172a';
       ctx.strokeStyle = isSelected ? '#fbbf24' : '#d4af37';
       ctx.lineWidth = 1.6;
@@ -1085,7 +1113,7 @@ export class RunesGame {
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+      ctx.arc(px, py, innerPortR, 0, Math.PI * 2);
       ctx.fillStyle = '#fde047';
       ctx.fill();
     };
