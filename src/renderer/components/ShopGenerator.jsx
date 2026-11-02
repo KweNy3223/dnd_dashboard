@@ -6,16 +6,13 @@ import {
   Check, 
   Trash2, 
   RotateCcw, 
-  Dices, 
+  User, 
   Flame, 
   ShieldAlert, 
   MessageSquare, 
   Sparkles, 
-  ArrowRight,
-  Shield,
-  Eye,
-  ShoppingBag,
-  ExternalLink
+  ArrowRight, 
+  ShoppingBag 
 } from 'lucide-react';
 import { 
   SHOP_TYPES, 
@@ -208,81 +205,84 @@ export default function ShopGenerator({ onOpenInNpc }) {
           </div>
         </div>
 
-        {/* Кнопки генерации */}
-        <div className="generators-actions">
+        {/* Кнопки генерации в фирменном стиле приложения */}
+        <div className="gen-buttons-group">
           <button 
             type="button" 
-            className="fantasy-btn primary"
+            className="trials-btn primary gen-main-btn"
             onClick={() => handleGenerate(false)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <Dices size={16} /> Сгенерировать лавку
+            <Store size={18} /> Сгенерировать лавку
           </button>
-
           <button 
             type="button" 
-            className="fantasy-btn secondary"
+            className="trials-btn secondary"
             onClick={() => handleGenerate(true)}
             title="Сбросить фильтры и сгенерировать полностью случайную лавку"
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <RotateCcw size={15} /> Полный рандом
+            <RotateCcw size={16} /> Полный рандом
           </button>
         </div>
       </div>
 
-      {/* Основной двухколоночный контент */}
+      {/* Основная сетка: Карточка лавки слева + Записная книжка справа */}
       <div className="generators-main-layout">
         
-        {/* Левая колонка: Карточка текущей лавки */}
+        {/* Карточка текущей лавки */}
         {currentShop && (
-          <div className="npc-display-card">
+          <div className="npc-card tavern-card">
             
-            {/* Заголовок заведения */}
+            {/* Шапка карточки */}
             <div className="npc-card-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1, minWidth: 0 }}>
-                <span style={{ fontSize: '38px', lineHeight: 1 }}>{currentShop.type.icon}</span>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                    <h3 className="npc-title-name" style={{ color: 'var(--accent-gold)' }}>
-                      {currentShop.name}
-                    </h3>
-                  </div>
-                  
-                  {/* Бейджи типа и достатка */}
-                  <div className="npc-badges-row">
-                    <span className="badge-tag">{currentShop.type.name}</span>
-                    <span className="badge-tag" style={{ background: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.3)', color: '#93c5fd' }}>
-                      {currentShop.wealth.icon} {currentShop.wealth.name}
-                    </span>
-                  </div>
+              <div className="npc-avatar-box tavern-avatar-box">
+                <span style={{ fontSize: '28px' }}>{currentShop.type.icon}</span>
+              </div>
+
+              <div className="npc-title-box">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h3 className="npc-name">{currentShop.name}</h3>
+                  <button 
+                    type="button" 
+                    className="reroll-btn" 
+                    onClick={() => handleRerollField('name')} 
+                    title="Сменить название"
+                  >
+                    <RotateCcw size={11} /> Другое имя
+                  </button>
+                </div>
+                
+                {/* Мета-теги лавки */}
+                <div className="npc-meta-row">
+                  <span className="npc-tag highlight">{currentShop.type.name}</span>
+                  <span className="npc-tag" style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
+                    {currentShop.wealth.icon} {currentShop.wealth.name}
+                  </span>
                 </div>
               </div>
 
-              {/* Кнопки закладок и копирования */}
-              <div className="npc-header-buttons">
+              {/* Кнопки сохранения и копирования */}
+              <div className="npc-actions-box">
                 <button 
                   type="button" 
-                  className={`npc-action-btn ${isCurrentSaved ? 'saved' : ''}`}
+                  className={`trials-btn secondary icon-btn ${isCurrentSaved ? 'active' : ''}`}
                   onClick={toggleSaveCurrent}
-                  title={isCurrentSaved ? "Удалить из записной книжки" : "Сохранить лавку"}
+                  title={isCurrentSaved ? 'Удалить из сохранённых' : 'Сохранить лавку'}
                 >
-                  {isCurrentSaved ? <Bookmark size={18} fill="currentColor" /> : <Bookmark size={18} />}
+                  <Bookmark size={17} color={isCurrentSaved ? 'var(--accent-gold)' : 'currentColor'} />
                 </button>
-
                 <button 
                   type="button" 
-                  className="npc-action-btn"
+                  className="trials-btn secondary icon-btn"
                   onClick={handleCopy}
-                  title="Скопировать описание лавки"
+                  title="Скопировать описание в буфер"
                 >
-                  {copied ? <Check size={18} color="#4ade80" /> : <Copy size={18} />}
+                  {copied ? <Check size={17} color="#22c55e" /> : <Copy size={17} />}
                 </button>
               </div>
             </div>
 
-            {/* Блок 1: Владелец лавки (с кнопкой быстрого перехода в Генератор NPC) */}
-            <div className="npc-section-box" style={{ background: 'rgba(255, 255, 255, 0.02)' }}>
+            {/* Блок 1: Владелец лавки */}
+            <div className="npc-section-box">
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Store size={15} color="var(--accent-gold)" /> Торговец за прилавком
@@ -293,36 +293,33 @@ export default function ShopGenerator({ onOpenInNpc }) {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-title)' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <strong style={{ color: 'var(--text-title)', fontSize: '14.5px' }}>
                     {currentShop.merchant.name}
-                  </span>
-                  <span className="badge-tag">{currentShop.merchant.race}</span>
-                  <span className="badge-tag" style={{ background: 'rgba(148, 163, 184, 0.15)', borderColor: 'rgba(148, 163, 184, 0.3)', color: '#cbd5e1' }}>
-                    {currentShop.merchant.gender}
-                  </span>
-                  <span className="badge-tag" style={{ background: 'rgba(234, 179, 8, 0.15)', borderColor: 'rgba(234, 179, 8, 0.35)', color: '#fde047' }}>
-                    💼 {currentShop.merchant.occupation}
-                  </span>
+                  </strong>
+                  <span className="npc-tag">{currentShop.merchant.race}</span>
+                  <span className="npc-tag">{currentShop.merchant.gender}</span>
+                  <span className="npc-tag highlight">💼 {currentShop.merchant.occupation}</span>
                 </div>
 
-                {/* Кнопка открытия в генераторе NPC */}
+                {/* Кнопка быстрого перехода в Генератор NPC */}
                 {onOpenInNpc && (
                   <button 
                     type="button" 
-                    className="con-roll-btn"
+                    className="trials-btn secondary"
                     onClick={() => onOpenInNpc(currentShop.merchant)}
                     title="Перейти в Генератор NPC и детально проработать голос и характер торговца"
-                    style={{ padding: '4px 10px', fontSize: '11.5px' }}
+                    style={{ padding: '4px 10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
-                    <span>👤 Открыть в NPC</span>
+                    <User size={13} />
+                    <span>Открыть в NPC</span>
                     <ArrowRight size={13} />
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Блок 2: Обстановка и атмосфера */}
+            {/* Блок 2: Атмосфера и интерьер */}
             <div className="npc-section-box">
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -346,7 +343,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
             </div>
 
             {/* Блок 3: Витрина ходовых товаров */}
-            <div className="npc-section-box" style={{ background: 'rgba(234, 179, 8, 0.03)', borderColor: 'rgba(234, 179, 8, 0.25)' }}>
+            <div className="npc-section-box tavern-menu-box" style={{ background: 'rgba(234, 179, 8, 0.03)', borderColor: 'rgba(234, 179, 8, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <ShoppingBag size={15} color="var(--accent-gold)" /> Витрина товаров ({currentShop.wealth.name})
@@ -360,14 +357,12 @@ export default function ShopGenerator({ onOpenInNpc }) {
                 {currentShop.showcase.map((item, idx) => (
                   <div key={idx} className="menu-item-card">
                     <div className="menu-item-top">
-                      <span className="menu-item-name" style={{ color: 'var(--text-title)' }}>
-                        {item.name}
-                      </span>
+                      <span className="menu-item-name">{item.name}</span>
                       <span style={{ fontWeight: 700, color: 'var(--accent-gold)', fontSize: '12.5px' }}>
                         {item.price}
                       </span>
                     </div>
-                    <div className="menu-item-desc" style={{ color: 'var(--text-primary)', opacity: 0.9 }}>
+                    <div className="menu-item-desc">
                       {item.desc}
                     </div>
                   </div>
@@ -377,7 +372,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
 
             {/* Блок 4: ⭐ Товар из-под прилавка */}
             {currentShop.secretLot && (
-              <div className="npc-section-box" style={{ background: 'rgba(168, 85, 247, 0.05)', borderColor: 'rgba(168, 85, 247, 0.35)' }}>
+              <div className="npc-section-box" style={{ background: 'rgba(168, 85, 247, 0.04)', borderColor: 'rgba(168, 85, 247, 0.25)' }}>
                 <div className="section-title-row">
                   <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#c084fc' }}>
                     <Sparkles size={15} color="#c084fc" /> Товар из-под прилавка (Особый лот)
@@ -388,6 +383,9 @@ export default function ShopGenerator({ onOpenInNpc }) {
                 </div>
 
                 <div className="menu-highlight-card exotic" style={{ margin: 0 }}>
+                  <div className="menu-badge-label" style={{ color: '#c084fc' }}>
+                    🌟 Редкий артефакт / Сомнительный товар
+                  </div>
                   <div className="menu-highlight-title-row">
                     <span className="menu-highlight-title" style={{ color: '#f3e8ff' }}>
                       {currentShop.secretLot.name}
@@ -397,7 +395,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
                     </span>
                   </div>
                   
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', marginTop: '6px', lineHeight: '1.45' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '12px', marginTop: '6px', lineHeight: '1.45' }}>
                     <div>
                       <strong style={{ color: '#d8b4fe' }}>📜 Происхождение: </strong>
                       <span style={{ color: '#f3e8ff' }}>{currentShop.secretLot.history}</span>
@@ -411,7 +409,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
               </div>
             )}
 
-            {/* Блок 5: Охрана и защита от кражи (Для плутов партии) */}
+            {/* Блок 5: Охрана и защита от кражи (Для плутов) */}
             <div className="npc-section-box" style={{ background: 'rgba(239, 68, 68, 0.04)', borderColor: 'rgba(239, 68, 68, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f87171' }}>
@@ -422,17 +420,17 @@ export default function ShopGenerator({ onOpenInNpc }) {
                 </button>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12px' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-title)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '12.5px' }}>
+                  <strong style={{ color: 'var(--text-title)' }}>
                     {currentShop.security.badge}
-                  </span>
+                  </strong>
                   <span style={{ color: 'var(--text-muted)' }}>
                     {currentShop.security.desc}
                   </span>
                 </div>
 
-                <span className="con-roll-outcome fail" style={{ fontSize: '11px', whiteSpace: 'nowrap' }}>
+                <span className="npc-tag" style={{ color: '#f87171', borderColor: 'rgba(239, 68, 68, 0.4)', background: 'rgba(239, 68, 68, 0.1)', fontWeight: 700, fontSize: '12px', padding: '4px 10px' }}>
                   🎯 {currentShop.security.dc}
                 </span>
               </div>
@@ -440,7 +438,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
 
             {/* Блок 6: Слух или забота торговца (Опционально) */}
             {currentShop.rumor && (
-              <div className="npc-section-box" style={{ background: 'rgba(56, 189, 248, 0.03)', borderColor: 'rgba(56, 189, 248, 0.25)' }}>
+              <div className="npc-section-box" style={{ background: 'rgba(56, 189, 248, 0.05)', borderColor: 'rgba(56, 189, 248, 0.25)' }}>
                 <div className="section-title-row">
                   <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8' }}>
                     <MessageSquare size={15} color="#38bdf8" /> Слух или забота лавочника (зацепка)
@@ -449,17 +447,19 @@ export default function ShopGenerator({ onOpenInNpc }) {
                     <RotateCcw size={11} /> Другой слух
                   </button>
                 </div>
-                <div style={{ fontSize: '12px', fontStyle: 'italic', color: '#e0f2fe', lineHeight: '1.45' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.45', fontStyle: 'italic' }}>
                   «{currentShop.rumor}»
                 </div>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  💡 Зацепка для квеста: торговец может упомянуть это, если расспросить о новостях.
+                </span>
               </div>
             )}
 
-            {/* Нижняя панель микро-перегенерации */}
+            {/* Нижняя панель быстрых микро-рероллов */}
             <div className="npc-micro-rerolls">
-              <span className="micro-label">Перебросить:</span>
               <button type="button" className="micro-btn" onClick={() => handleRerollField('name')}>
-                🏷️ Название
+                🔄 Название
               </button>
               <button type="button" className="micro-btn" onClick={() => handleRerollField('merchant')}>
                 👤 Торговец
@@ -510,7 +510,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
             {savedShops.length === 0 ? (
               <div className="saved-empty-state">
                 <span>🏪</span>
-                <p>Нажмите значок закладки на карточке лавки, чтобы сохранить её в кампанию.</p>
+                <p>Нажмите закладку на карточке лавки, чтобы сохранить её в кампанию.</p>
               </div>
             ) : (
               savedShops.map(item => (
@@ -521,7 +521,7 @@ export default function ShopGenerator({ onOpenInNpc }) {
                 >
                   <span className="item-icon">{item.type.icon}</span>
                   <div className="item-info">
-                    <span className="item-name">{item.name}</span>
+                    <span className="item-name">«{item.name}»</span>
                     <span className="item-meta">{item.type.name} • {item.merchant.name}</span>
                   </div>
                   <button 
