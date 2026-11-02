@@ -4,20 +4,16 @@ import {
   Bed, 
   Utensils, 
   User, 
-  Sparkles, 
   Bookmark, 
   Copy, 
   Check, 
   Trash2, 
   RotateCcw,
-  Volume2,
   Flame,
   MessageSquare,
   AlertTriangle,
   Compass,
-  MapPin,
-  ChevronDown,
-  ChevronUp
+  Wine
 } from 'lucide-react';
 import { 
   TAVERN_CONCEPTS, 
@@ -76,16 +72,13 @@ export default function TavernGenerator() {
       const k = TAVERN_KEEPERS[Math.floor(Math.random() * TAVERN_KEEPERS.length)];
       setCurrentTavern({ ...currentTavern, keeper: k });
     } else if (field === 'menu') {
-      // Случайный другой регион и его меню
       const r = TAVERN_REGIONS[Math.floor(Math.random() * TAVERN_REGIONS.length)];
       setCurrentTavern({
         ...currentTavern,
         region: r,
         menu: {
-          specialDrink: r.specialDrink,
-          specialDish: r.specialDish,
-          exoticDish: r.exoticDish,
-          items: r.menuItems
+          food: r.food,
+          drinks: r.drinks
         }
       });
     } else if (field === 'rumor') {
@@ -117,22 +110,37 @@ export default function TavernGenerator() {
   // Копирование в буфер обмена
   const handleCopy = () => {
     if (!currentTavern) return;
+    const { menu } = currentTavern;
     const text = [
       `🍺 Таверна: "${currentTavern.name}" (${currentTavern.concept.name})`,
       `🗺️ Регион: ${currentTavern.region.icon} ${currentTavern.region.name}`,
       `👤 Трактирщик: ${currentTavern.keeper.name} (${currentTavern.keeper.race}, ${currentTavern.keeper.gender})`,
       `   ${currentTavern.keeper.quirk}`,
-      `   Отношение: ${currentTavern.keeper.attitude}`,
+      `   Отношение к героям: ${currentTavern.keeper.attitude}`,
       `🕯️ Атмосфера: ${currentTavern.atmosphere.visual}`,
       `   Запах: ${currentTavern.atmosphere.smell}`,
       `   Звуки: ${currentTavern.atmosphere.sound}`,
-      `🍲 Меню кухни (${currentTavern.region.name}):`,
-      `   - Фирменное: ${currentTavern.menu.specialDish.name} (${currentTavern.menu.specialDish.price})`,
-      `   - Выпивка: ${currentTavern.menu.specialDrink.name} (${currentTavern.menu.specialDrink.price})`,
-      `   - Экзотика: ${currentTavern.menu.exoticDish.name} (${currentTavern.menu.exoticDish.price})`,
+      ``,
+      `🍲 КУХНЯ И БЛЮДА:`,
+      `⭐ Фирменное: ${menu.food.signature.name} — ${menu.food.signature.price}`,
+      `   ${menu.food.signature.desc}`,
+      `🌟 Экзотика: ${menu.food.exotic.name} — ${menu.food.exotic.price}`,
+      `   ${menu.food.exotic.desc}`,
+      ...menu.food.dishes.map(d => `• ${d.name} (${d.price}) — ${d.desc}`),
+      ``,
+      `🍺 ПОГРЕБ И ВЫПИВКА:`,
+      `⭐ Фирменная: ${menu.drinks.signature.name} — ${menu.drinks.signature.price}`,
+      `   ${menu.drinks.signature.desc}`,
+      `🍷 Редкое/Особое: ${menu.drinks.special.name} — ${menu.drinks.special.price}`,
+      `   ${menu.drinks.special.desc}`,
+      ...menu.drinks.items.map(d => `• ${d.name} (${d.price}) — ${d.desc}`),
+      ``,
+      `🛏️ НОЧЛЕГ:`,
+      ...currentTavern.rooms.map(r => `• ${r.tier}: ${r.price}`),
+      ``,
       `👥 Завсегдатаи: ${currentTavern.patrons}`,
       `📜 Слух у стойки: "${currentTavern.rumor}"`,
-      `⚡ Событие прямо сейчас: "${currentTavern.event}"`
+      `⚡ Происшествие: "${currentTavern.event}"`
     ].join('\n');
 
     navigator.clipboard.writeText(text).then(() => {
@@ -140,6 +148,8 @@ export default function TavernGenerator() {
       setTimeout(() => setCopied(false), 1800);
     });
   };
+
+  const { menu } = currentTavern || {};
 
   return (
     <div>
@@ -152,7 +162,7 @@ export default function TavernGenerator() {
           </h2>
         </div>
         <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Создание атмосферных трактиров с региональным колоритным меню, экзотическими блюдами, ночлегом и слухами.
+          Создание атмосферных трактиров с раздельным меню блюд и погреба, экзотическими деликатесами, ночлегом и слухами.
         </p>
       </div>
 
@@ -177,7 +187,7 @@ export default function TavernGenerator() {
 
           {/* Регион / Биом */}
           <div className="filter-item">
-            <label>Тип региона (колорит кухни):</label>
+            <label>Регион мира (колорит кухни):</label>
             <select 
               value={selectedRegion} 
               onChange={(e) => setSelectedRegion(e.target.value)}
@@ -310,81 +320,152 @@ export default function TavernGenerator() {
               </div>
             </div>
 
-            {/* Блок 3: ПОЛНОЦЕННОЕ РЕГИОНАЛЬНОЕ МЕНЮ КУХНИ */}
-            <div className="npc-section-box tavern-menu-box" style={{ background: 'rgba(234, 179, 8, 0.04)', borderColor: 'rgba(234, 179, 8, 0.25)' }}>
+            {/* Блок 3: ПОЛНОЦЕННОЕ РАЗДЕЛЬНОЕ МЕНЮ КУХНИ И ВЫПИВКИ */}
+            <div className="npc-section-box tavern-menu-box" style={{ background: 'rgba(234, 179, 8, 0.03)', borderColor: 'rgba(234, 179, 8, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Utensils size={15} color="var(--accent-gold)" /> Трактирное меню: {currentTavern.region.name}
+                  <Utensils size={15} color="var(--accent-gold)" /> Трактирное меню ({currentTavern.region.name})
                 </span>
                 <button type="button" className="reroll-btn" onClick={() => handleRerollField('menu')}>
                   <RotateCcw size={11} /> Другая кухня / регион
                 </button>
               </div>
 
-              {/* 1. Фирменные угощения */}
-              <div className="tavern-specialties-grid">
-                <div className="tavern-specialty-card">
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                    🍺 Фирменная выпивка
-                  </span>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '3px' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--text-title)', fontSize: '13px' }}>
-                      {currentTavern.menu.specialDrink.name}
+              {/* Две отдельные колонки: Кухня и Погреб */}
+              <div className="tavern-menus-layout">
+                
+                {/* КОЛОНКА 1: КУХНЯ И БЛЮДА */}
+                <div className="tavern-menu-col">
+                  <div className="menu-col-header">
+                    <span className="menu-col-title" style={{ color: '#fbbf24' }}>
+                      <Utensils size={14} /> Кухня и Трактирные Блюда
                     </span>
-                    <span className="price-tag">{currentTavern.menu.specialDrink.price}</span>
                   </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                    {currentTavern.menu.specialDrink.note}
-                  </span>
-                </div>
 
-                <div className="tavern-specialty-card">
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
-                    🍲 Фирменное блюдо
-                  </span>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '3px' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--text-title)', fontSize: '13px' }}>
-                      {currentTavern.menu.specialDish.name}
-                    </span>
-                    <span className="price-tag">{currentTavern.menu.specialDish.price}</span>
-                  </div>
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                    {currentTavern.menu.specialDish.note}
-                  </span>
-                </div>
-              </div>
-
-              {/* 2. Экзотический деликатес региона */}
-              <div className="tavern-exotic-box">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#fde68a' }}>
-                    {currentTavern.menu.exoticDish.name}
-                  </span>
-                  <span className="price-tag" style={{ background: 'rgba(245, 158, 11, 0.25)', borderColor: '#f59e0b', color: '#fde68a' }}>
-                    {currentTavern.menu.exoticDish.price}
-                  </span>
-                </div>
-                <div style={{ fontSize: '11.5px', color: 'var(--text-primary)', marginTop: '4px' }}>
-                  {currentTavern.menu.exoticDish.note}
-                </div>
-              </div>
-
-              {/* 3. Список других блюд и напитков региона */}
-              <div style={{ marginTop: '10px' }}>
-                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                  📋 Другие угощения в меню:
-                </span>
-                <div className="tavern-std-menu-grid" style={{ marginTop: '6px' }}>
-                  {currentTavern.menu.items.map((item, i) => (
-                    <div key={i} className="std-menu-row">
-                      <span style={{ color: 'var(--text-primary)' }}>
-                        {item.type === 'drink' ? '🍺 ' : '🥣 '}
-                        {item.name}
-                      </span>
-                      <span style={{ fontWeight: 600, color: 'var(--accent-gold)' }}>{item.price}</span>
+                  {/* 1.1 Фирменное блюдо шефа */}
+                  {menu?.food?.signature && (
+                    <div className="menu-highlight-card">
+                      <div className="menu-badge-label" style={{ color: 'var(--accent-gold)' }}>
+                        ⭐ Фирменное блюдо таверны
+                      </div>
+                      <div className="menu-highlight-title-row">
+                        <span className="menu-highlight-title">
+                          {menu.food.signature.name}
+                        </span>
+                        <span className="price-tag">{menu.food.signature.price}</span>
+                      </div>
+                      <div className="menu-highlight-desc">
+                        {menu.food.signature.desc}
+                      </div>
                     </div>
-                  ))}
+                  )}
+
+                  {/* 1.2 Экзотический деликатес региона */}
+                  {menu?.food?.exotic && (
+                    <div className="menu-highlight-card exotic">
+                      <div className="menu-badge-label" style={{ color: '#c084fc' }}>
+                        🌟 Экзотический деликатес региона
+                      </div>
+                      <div className="menu-highlight-title-row">
+                        <span className="menu-highlight-title" style={{ color: '#f3e8ff' }}>
+                          {menu.food.exotic.name}
+                        </span>
+                        <span className="price-tag" style={{ background: 'rgba(168, 85, 247, 0.2)', borderColor: '#a855f7', color: '#f3e8ff' }}>
+                          {menu.food.exotic.price}
+                        </span>
+                      </div>
+                      <div className="menu-highlight-desc" style={{ color: '#e9d5ff' }}>
+                        {menu.food.exotic.desc}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 1.3 Обычные блюда кухни с подробным описанием */}
+                  <div className="menu-items-list">
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>
+                      🥣 Трактирные кушанья в меню:
+                    </span>
+                    {menu?.food?.dishes?.map((dish, i) => (
+                      <div key={i} className="menu-item-card">
+                        <div className="menu-item-top">
+                          <span className="menu-item-name">{dish.name}</span>
+                          <span style={{ fontWeight: 700, color: 'var(--accent-gold)', fontSize: '12px' }}>
+                            {dish.price}
+                          </span>
+                        </div>
+                        <div className="menu-item-desc">{dish.desc}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+
+                {/* КОЛОНКА 2: ПОГРЕБ И ВЫПИВКА */}
+                <div className="tavern-menu-col">
+                  <div className="menu-col-header">
+                    <span className="menu-col-title" style={{ color: '#38bdf8' }}>
+                      <Beer size={14} /> Погреб и Трактирная Выпивка
+                    </span>
+                  </div>
+
+                  {/* 2.1 Фирменная выпивка таверны */}
+                  {menu?.drinks?.signature && (
+                    <div className="menu-highlight-card" style={{ borderLeftColor: '#38bdf8', background: 'rgba(56, 189, 248, 0.07)', borderColor: 'rgba(56, 189, 248, 0.35)' }}>
+                      <div className="menu-badge-label" style={{ color: '#38bdf8' }}>
+                        ⭐ Фирменная выпивка заведения
+                      </div>
+                      <div className="menu-highlight-title-row">
+                        <span className="menu-highlight-title">
+                          {menu.drinks.signature.name}
+                        </span>
+                        <span className="price-tag" style={{ background: 'rgba(56, 189, 248, 0.2)', borderColor: '#38bdf8', color: '#e0f2fe' }}>
+                          {menu.drinks.signature.price}
+                        </span>
+                      </div>
+                      <div className="menu-highlight-desc">
+                        {menu.drinks.signature.desc}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2.2 Редкое / Особое пойло */}
+                  {menu?.drinks?.special && (
+                    <div className="menu-highlight-card special">
+                      <div className="menu-badge-label" style={{ color: '#f87171' }}>
+                        🍷 Редкая коллекция / Особый градус
+                      </div>
+                      <div className="menu-highlight-title-row">
+                        <span className="menu-highlight-title" style={{ color: '#fee2e2' }}>
+                          {menu.drinks.special.name}
+                        </span>
+                        <span className="price-tag" style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444', color: '#fee2e2' }}>
+                          {menu.drinks.special.price}
+                        </span>
+                      </div>
+                      <div className="menu-highlight-desc" style={{ color: '#fecaca' }}>
+                        {menu.drinks.special.desc}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 2.3 Обычные напитки погреба с подробным описанием */}
+                  <div className="menu-items-list">
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>
+                      🍺 Бочковые эли, вина и взвары:
+                    </span>
+                    {menu?.drinks?.items?.map((drink, i) => (
+                      <div key={i} className="menu-item-card">
+                        <div className="menu-item-top">
+                          <span className="menu-item-name">{drink.name}</span>
+                          <span style={{ fontWeight: 700, color: '#38bdf8', fontSize: '12px' }}>
+                            {drink.price}
+                          </span>
+                        </div>
+                        <div className="menu-item-desc">{drink.desc}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
               </div>
             </div>
 

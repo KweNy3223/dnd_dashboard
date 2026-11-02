@@ -14,7 +14,6 @@ export const TAVERN_EVENTS = tavernDatabase.events;
  */
 export function generateTavernName() {
   const { adjectives, nouns, uniqueNames } = tavernDatabase.nameComponents;
-  // 30% шанс на уникальное готовое название
   if (Math.random() < 0.3 && uniqueNames && uniqueNames.length > 0) {
     return uniqueNames[Math.floor(Math.random() * uniqueNames.length)];
   }
@@ -24,7 +23,7 @@ export function generateTavernName() {
 }
 
 /**
- * Генератор таверны D&D 5e с региональным меню и раздельным ночлегом
+ * Генератор таверны D&D 5e с раздельной кухней, выпивкой и ночлегом
  * @param {Object} options - { conceptId, regionId }
  */
 export function generateRandomTavern(options = {}) {
@@ -72,10 +71,8 @@ export function generateRandomTavern(options = {}) {
     keeper,
     atmosphere,
     menu: {
-      specialDrink: region.specialDrink,
-      specialDish: region.specialDish,
-      exoticDish: region.exoticDish,
-      items: region.menuItems
+      food: region.food,
+      drinks: region.drinks
     },
     rooms: TAVERN_ROOM_TIERS,
     patrons,
