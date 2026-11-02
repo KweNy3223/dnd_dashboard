@@ -69,6 +69,35 @@ function drawFlowChevron(ctx, x, y, angle, size = 4.5, color = 'rgba(251, 191, 3
   ctx.restore();
 }
 
+// Вспомогательная функция генерации всех возможных непересекающихся путей через кольца
+function generateCandidatePaths(numRings, startSector, targetSector) {
+  const paths = [];
+  function backtrack(ringIdx, currentSector, currentSteps) {
+    if (ringIdx === numRings) {
+      if (currentSector === targetSector) {
+        paths.push([...currentSteps]);
+      }
+      return;
+    }
+    // Прямой канал
+    currentSteps.push({ r: ringIdx, s: currentSector, type: NODE_TYPES.STRAIGHT });
+    backtrack(ringIdx + 1, currentSector, currentSteps);
+    currentSteps.pop();
+
+    // Поворот по часовой (+45°)
+    currentSteps.push({ r: ringIdx, s: currentSector, type: NODE_TYPES.TURN_CW });
+    backtrack(ringIdx + 1, (currentSector + 1) % 8, currentSteps);
+    currentSteps.pop();
+
+    // Поворот против часовой (-45°)
+    currentSteps.push({ r: ringIdx, s: currentSector, type: NODE_TYPES.TURN_CCW });
+    backtrack(ringIdx + 1, (currentSector + 7) % 8, currentSteps);
+    currentSteps.pop();
+  }
+  backtrack(0, startSector, []);
+  return paths;
+}
+
 export class RunesGame {
   constructor(container, app) {
     this.container = container;
@@ -282,35 +311,6 @@ export class RunesGame {
     window.removeEventListener('keydown', this.boundKeyDown);
     window.removeEventListener('resize', this.boundResize);
   }
-
-// Вспомогательная функция генерации всех возможных непересекающихся путей через кольца
-function generateCandidatePaths(numRings, startSector, targetSector) {
-  const paths = [];
-  function backtrack(ringIdx, currentSector, currentSteps) {
-    if (ringIdx === numRings) {
-      if (currentSector === targetSector) {
-        paths.push([...currentSteps]);
-      }
-      return;
-    }
-    // Прямой канал
-    currentSteps.push({ r: ringIdx, s: currentSector, type: NODE_TYPES.STRAIGHT });
-    backtrack(ringIdx + 1, currentSector, currentSteps);
-    currentSteps.pop();
-
-    // Поворот по часовой (+45°)
-    currentSteps.push({ r: ringIdx, s: currentSector, type: NODE_TYPES.TURN_CW });
-    backtrack(ringIdx + 1, (currentSector + 1) % 8, currentSteps);
-    currentSteps.pop();
-
-    // Поворот против часовой (-45°)
-    currentSteps.push({ r: ringIdx, s: currentSector, type: NODE_TYPES.TURN_CCW });
-    backtrack(ringIdx + 1, (currentSector + 7) % 8, currentSteps);
-    currentSteps.pop();
-  }
-  backtrack(0, startSector, []);
-  return paths;
-}
 
   // =========================================================================
   // --- ПРОЦЕДУРНЫЙ ГЕНЕРАТОР ГОЛОВОЛОМКИ (100% ГАРАНТИЯ ПРОХОДИМОСТИ) ---
