@@ -58,7 +58,7 @@ function AppContent() {
     };
 
     if (moduleName === 'Инициатива') {
-      newModule.data = { participants: [{ id: 1, name: '', init: '', hp: '', conditions: '' }], isPinned: false, isMinimized: false };
+      newModule.data = { participants: [{ id: 1, name: '', init: '', ac: '', hp: '', conditions: '' }], isPinned: false, isMinimized: false };
     }
     
     if (moduleName === 'Кубики') {

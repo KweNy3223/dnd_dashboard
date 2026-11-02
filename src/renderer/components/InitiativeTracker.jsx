@@ -19,7 +19,7 @@ export default function InitiativeTracker({
   const handleAddParticipant = () => {
     // Ищем самый большой ID и прибавляем 1, чтобы не было дубликатов
     const newId = participants.length > 0 ? Math.max(...participants.map(p => p.id)) + 1 : 1;
-    setParticipants([...participants, { id: newId, name: '', init: '', hp: '', conditions: '' }]);
+    setParticipants([...participants, { id: newId, name: '', init: '', ac: '', hp: '', conditions: '' }]);
   };
 
   const handleRemoveParticipant = (id) => {
@@ -42,10 +42,10 @@ export default function InitiativeTracker({
       default={{ 
         x: layout?.x || 100, 
         y: layout?.y || 100, 
-        width: layout?.width || 350, 
+        width: layout?.width || 360, 
         height: layout?.height || 450 
       }}
-      minWidth={300}
+      minWidth={310}
       minHeight={200}
       bounds="parent"
       dragHandleClassName="tracker-header"
@@ -123,12 +123,13 @@ export default function InitiativeTracker({
               <input
                 type="number"
                 placeholder="Иниц."
+                title="Инициатива"
                 value={p.init}
                 onChange={(e) => handleUpdateParticipant(p.id, 'init', e.target.value)}
                 style={{ 
-                  width: '55px', 
-                  minWidth: '55px', 
-                  padding: '8px 4px', 
+                  width: '48px', 
+                  minWidth: '48px', 
+                  padding: '8px 2px', 
                   borderRadius: '4px', 
                   border: '1px solid var(--border-color)', 
                   background: 'var(--bg-input)', 
@@ -137,20 +138,42 @@ export default function InitiativeTracker({
                   textAlign: 'center' 
                 }}
               />
+
+              <input
+                type="number"
+                placeholder="КД"
+                title="Класс Доспеха (КД)"
+                value={p.ac ?? ''}
+                onChange={(e) => handleUpdateParticipant(p.id, 'ac', e.target.value)}
+                style={{ 
+                  width: '44px', 
+                  minWidth: '44px', 
+                  padding: '8px 2px', 
+                  borderRadius: '4px', 
+                  border: '1px solid var(--border-color)', 
+                  background: 'var(--bg-input)', 
+                  color: '#38bdf8', 
+                  fontWeight: '600',
+                  boxSizing: 'border-box', 
+                  textAlign: 'center' 
+                }}
+              />
               
               <input
                 type="number"
                 placeholder="ХП"
+                title="Очки здоровья (ХП)"
                 value={p.hp}
                 onChange={(e) => handleUpdateParticipant(p.id, 'hp', e.target.value)}
                 style={{ 
-                  width: '55px', 
-                  minWidth: '55px', 
-                  padding: '8px 4px', 
+                  width: '48px', 
+                  minWidth: '48px', 
+                  padding: '8px 2px', 
                   borderRadius: '4px', 
                   border: '1px solid var(--border-color)', 
                   background: 'var(--bg-input)', 
-                  color: 'white', 
+                  color: '#4ade80', 
+                  fontWeight: '600',
                   boxSizing: 'border-box', 
                   textAlign: 'center' 
                 }}
