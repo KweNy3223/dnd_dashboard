@@ -2530,3 +2530,449 @@ canvas.game-canvas:active {
   font-size: 16px;
   flex-shrink: 0;
 }
+
+/* =====================================================================
+   10. ГЕНЕРАТОРЫ (GENERATORS & NPC BUILDER)
+   ===================================================================== */
+.generators-container {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  height: calc(100vh - 40px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.generators-header {
+  margin-bottom: 20px;
+}
+
+.generators-toolbar {
+  background-color: var(--bg-module);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 14px 18px;
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.filters-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.filter-select {
+  min-width: 160px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.gen-buttons-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.gen-main-btn {
+  padding: 8px 18px !important;
+  font-size: 13.5px !important;
+}
+
+.generators-main-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  margin-top: 20px;
+  align-items: start;
+}
+
+.npc-card {
+  background-color: var(--bg-module);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.2);
+  animation: modal-pop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.npc-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 14px;
+}
+
+.npc-avatar-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(212, 175, 55, 0.12);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.npc-race-emoji {
+  font-size: 26px;
+}
+
+.npc-title-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.npc-name {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-title);
+  letter-spacing: 0.2px;
+}
+
+.npc-epithet-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(212, 175, 55, 0.18);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: var(--accent-gold);
+}
+
+.npc-meta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 5px;
+}
+
+.npc-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.npc-tag.highlight {
+  color: var(--accent-gold);
+  border-color: rgba(212, 175, 55, 0.3);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.npc-tag.subtle {
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.25);
+  background: rgba(168, 85, 247, 0.06);
+}
+
+.npc-actions-box {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.icon-btn {
+  padding: 7px 10px !important;
+}
+
+.icon-btn.active {
+  background: rgba(212, 175, 55, 0.2) !important;
+  border-color: var(--accent-gold) !important;
+}
+
+.npc-section-box {
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.npc-section-box.voice-box {
+  background: rgba(245, 158, 11, 0.05);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.section-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-title);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.reroll-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 3px 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+
+.reroll-btn:hover {
+  border-color: var(--accent-gold);
+  color: var(--text-title);
+  background: var(--bg-hover);
+}
+
+.voice-details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.voice-row {
+  display: flex;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.voice-label {
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.voice-text {
+  color: var(--text-primary);
+}
+
+.acting-tip-row {
+  background: rgba(0, 0, 0, 0.25);
+  padding: 6px 8px;
+  border-radius: 6px;
+  border-left: 3px solid #f59e0b;
+  margin-top: 4px;
+}
+
+.acting-tip-text {
+  color: #fde68a;
+  font-weight: 500;
+}
+
+.npc-quote-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-top: 4px;
+  border: 1px dashed rgba(245, 158, 11, 0.3);
+}
+
+.quote-icon {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.quote-text {
+  margin: 0;
+  font-style: italic;
+  color: #fef08a;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.section-content-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.npc-micro-rerolls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 4px;
+}
+
+.micro-btn {
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.micro-btn:hover {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  background: var(--bg-hover);
+}
+
+.saved-npcs-sidebar {
+  background-color: var(--bg-module);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 220px);
+}
+
+.saved-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.clean-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.clean-btn:hover {
+  color: #ef4444;
+}
+
+.saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.saved-empty-state {
+  text-align: center;
+  padding: 30px 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.saved-empty-state span {
+  font-size: 24px;
+  opacity: 0.5;
+}
+
+.saved-npc-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-app);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.saved-npc-item:hover {
+  border-color: var(--accent-gold);
+  background: var(--bg-hover);
+}
+
+.saved-npc-item.active {
+  border-color: var(--accent-gold);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.item-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-title);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-meta {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.item-delete-btn:hover {
+  opacity: 1;
+  color: #ef4444;
+}
+
+@media (max-width: 900px) {
+  .generators-main-layout {
+    grid-template-columns: 1fr;
+  }
+}

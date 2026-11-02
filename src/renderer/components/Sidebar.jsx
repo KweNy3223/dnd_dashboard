@@ -64,6 +64,15 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
             <span>Мастерская Испытаний</span>
           </NavLink>
 
+          <NavLink 
+            to="/generators" 
+            className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+            onClick={onClose}
+          >
+            <Sparkles size={19} className="sidebar-icon" />
+            <span>Генераторы</span>
+          </NavLink>
+
           <div className="sidebar-section-label">СПРАВОЧНИКИ</div>
 
           <NavLink 

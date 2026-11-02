@@ -14,7 +14,8 @@ import {
   Store, 
   Calculator,
   Menu,
-  Swords
+  Swords,
+  Sparkles
 } from 'lucide-react';
 
 // Компоненты
@@ -30,6 +31,7 @@ import CalculatorTab from './components/CalculatorTab.jsx';
 import RulesTab from './components/RulesTab.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import TrialsTab from './components/TrialsTab.jsx';
+import GeneratorsTab from './components/GeneratorsTab.jsx';
 
 function AppContent() {
   const location = useLocation();
@@ -163,6 +165,10 @@ function AppContent() {
               <LayoutDashboard size={18} /> Стол
             </NavLink>
 
+            <NavLink to="/generators" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Sparkles size={18} /> Генераторы
+            </NavLink>
+
             <NavLink to="/prices" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Store size={18} /> Справочник цен
             </NavLink>
@@ -233,6 +239,9 @@ function AppContent() {
 
             {/* СТРАНИЦА: МАСТЕРСКАЯ ИСПЫТАНИЙ */}
             <Route path="/trials" element={<TrialsTab onOpenSidebar={() => setIsSidebarOpen(true)} />} />
+
+            {/* СТРАНИЦА: ГЕНЕРАТОРЫ */}
+            <Route path="/generators" element={<GeneratorsTab />} />
 
             {/* СТРАНИЦА 2: СПРАВОЧНИК ЦЕН */}
             <Route path="/prices" element={<PricesTab />} />
