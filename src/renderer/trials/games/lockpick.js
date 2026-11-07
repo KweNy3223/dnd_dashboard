@@ -6,6 +6,7 @@
 
 import { audio } from '../audio.js';
 import { dnd } from '../dnd-engine.js';
+import { getCurrentLanguage } from '../../i18n/translate.js';
 
 export class LockpickGame {
   constructor(container, app) {
@@ -61,12 +62,17 @@ export class LockpickGame {
     this.startAnimationLoop();
   }
 
+  isEn() {
+    return this.app?.language === 'en' || getCurrentLanguage() === 'en';
+  }
+
   renderDOM() {
+    const isEn = this.isEn();
     this.container.innerHTML = `
       <div class="stage-container lockpick-stage">
         <div class="stage-header">
-          <h2 class="stage-title">🗝️ Взлом замка</h2>
-          <p class="stage-subtitle">Найдите правильный угол отмычки и поверните цилиндр до упора (90°).</p>
+          <h2 class="stage-title">🗝️ ${isEn ? 'Lockpicking' : 'Взлом замка'}</h2>
+          <p class="stage-subtitle">${isEn ? 'Find the sweet spot angle and turn the cylinder completely (90°).' : 'Найдите правильный угол отмычки и поверните цилиндр до упора (90°).'}</p>
         </div>
 
         <div class="canvas-wrapper">
@@ -76,19 +82,19 @@ export class LockpickGame {
         <!-- Подсказка по управлению и кнопка для планшета -->
         <div class="lock-controls-guide">
           <div class="guide-pill">
-            <span class="guide-key">Мышь / Свайп</span>
-            <span>Наклон отмычки</span>
+            <span class="guide-key">${isEn ? 'Mouse / Swipe' : 'Мышь / Свайп'}</span>
+            <span>${isEn ? 'Aim pick' : 'Наклон отмычки'}</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">ПРОБЕЛ / ЛКМ</span>
-            <span>Поворот замка</span>
+            <span class="guide-key">${isEn ? 'SPACE / LMB' : 'ПРОБЕЛ / ЛКМ'}</span>
+            <span>${isEn ? 'Turn cylinder' : 'Поворот замка'}</span>
           </div>
         </div>
 
         <!-- Сенсорная педаль поворота для телефонов и планшетов -->
         <div style="display: flex; justify-content: center; margin-top: 14px;">
           <button type="button" class="btn fantasy-btn primary" id="btnTouchTurn" style="min-width: 220px; padding: 12px 24px; font-size: 1rem;">
-            <span>⚙️</span> Удерживайте для поворота
+            <span>⚙️</span> ${isEn ? 'Hold to turn' : 'Удерживайте для поворота'}
           </button>
         </div>
       </div>
@@ -459,22 +465,23 @@ export class LockpickGame {
       ctx.restore();
     } else {
       // Сообщение о поломке отмычки
+      const isEn = this.isEn();
       ctx.save();
       ctx.font = '700 16px Inter, sans-serif';
       ctx.fillStyle = '#ef4444';
       ctx.textAlign = 'center';
       ctx.shadowColor = 'rgba(0,0,0,0.9)';
       ctx.shadowBlur = 10;
-      ctx.fillText('💥 ОТМЫЧКА СЛОМАЛАСЬ!', center, center - 70);
+      ctx.fillText(isEn ? '💥 LOCKPICK BROKE!' : '💥 ОТМЫЧКА СЛОМАЛАСЬ!', center, center - 70);
 
       if (this.app.currentPicks > 0) {
         ctx.font = '500 13px Inter, sans-serif';
         ctx.fillStyle = '#e8c36a';
-        ctx.fillText(`Берём новую... (Осталось: ${this.app.currentPicks})`, center, center - 48);
+        ctx.fillText(isEn ? `Taking a new one... (Remaining: ${this.app.currentPicks})` : `Берём новую... (Осталось: ${this.app.currentPicks})`, center, center - 48);
       } else {
         ctx.font = '700 13px Inter, sans-serif';
         ctx.fillStyle = '#f87171';
-        ctx.fillText('Все отмычки исчерпаны!', center, center - 48);
+        ctx.fillText(isEn ? 'All lockpicks depleted!' : 'Все отмычки исчерпаны!', center, center - 48);
       }
       ctx.restore();
     }

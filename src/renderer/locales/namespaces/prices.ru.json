@@ -1,0 +1,33 @@
+{
+  "prices": {
+    "title": "Справочник цен D&D 5e",
+    "searchPlaceholder": "Поиск по названию предмета...",
+    "scopeAll": "Везде",
+    "scopeCat": "В категории",
+    "resetSearch": "Сбросить поиск",
+    "nothingFound": "Ничего не найдено",
+    "byQuery": "по запросу",
+    "searchAllSections": "Искать во всех разделах ({count} совпадений)",
+    "searchScope": "Область поиска:",
+    "scopeAllWithCount": "Везде ({count})",
+    "scopeCategoryWithCount": "В разделе «{category}» ({count})",
+    "totalHandbook": "Всего в справочнике: {count} товаров",
+    "foundCount": "Найдено позиций: {count}",
+    "table": {
+      "name": "Название предмета",
+      "weight": "Вес (фунты)",
+      "cost": "Стоимость"
+    },
+    "categories": {
+      "all": "Все товары",
+      "tavernAndFood": "Таверна и еда",
+      "adventuringGear": "Снаряжение",
+      "weapons": "Оружие",
+      "armor": "Броня",
+      "tools": "Инструменты",
+      "mounts": "Транспорт",
+      "tradeGoods": "Торговые товары",
+      "services": "Услуги"
+    }
+  }
+}

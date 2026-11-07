@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { 
   Store, 
   Beer, 
@@ -37,6 +38,7 @@ const currencyColors = {
 };
 
 export default function PricesTab() {
+  const { t, language } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('weapons');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchScope, setSearchScope] = useState('all'); // 'all' | 'category'
@@ -65,7 +67,11 @@ export default function PricesTab() {
       if (cat.id === 'all') return;
       const rawList = pricesData[cat.id] || [];
       const filtered = query
-        ? rawList.filter((item) => item.name.toLowerCase().includes(query))
+        ? rawList.filter((item) => {
+            const nameRu = (item.name || '').toLowerCase();
+            const nameEn = (item.name_en || '').toLowerCase();
+            return nameRu.includes(query) || nameEn.includes(query);
+          })
         : rawList;
       counts[cat.id] = filtered.length;
       totalAll += filtered.length;
@@ -97,7 +103,11 @@ export default function PricesTab() {
       return source;
     }
 
-    return source.filter((item) => item.name.toLowerCase().includes(query));
+    return source.filter((item) => {
+      const nameRu = (item.name || '').toLowerCase();
+      const nameEn = (item.name_en || '').toLowerCase();
+      return nameRu.includes(query) || nameEn.includes(query);
+    });
   }, [activeCategory, query, searchScope, allItems]);
 
   const activeCategoryObj = categories.find((c) => c.id === activeCategory);
@@ -109,12 +119,12 @@ export default function PricesTab() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
           <Store size={28} color="var(--accent-primary)" />
-          Справочник цен
+          {t('prices.title')}
         </h2>
 
         {/* Быстрый бейдж общего количества */}
         <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-          {query ? `Найдено: ${displayedItems.length}` : `Всего в справочнике: ${allItems.length} товаров`}
+          {query ? t('prices.foundCount', { count: displayedItems.length }) : t('prices.totalHandbook', { count: allItems.length })}
         </span>
       </div>
 
@@ -162,7 +172,7 @@ export default function PricesTab() {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <Icon size={17} />
-                  <span>{cat.label}</span>
+                  <span>{t(`prices.categories.${cat.id}`) || cat.label}</span>
                 </div>
                 <span style={{ 
                   fontSize: '11px', 
@@ -198,10 +208,10 @@ export default function PricesTab() {
             borderRadius: '8px',
             padding: '8px 14px'
           }}>
-            <Search size={18} color={query ? 'var(--accent-gold)' : 'var(--text-muted)'} />
+            <Search size={18} color={query ? 'var(--text-title)' : 'var(--text-muted)'} />
             <input 
               type="text"
-              placeholder="Поиск предмета по названию (меч, зелье, факел, доспех, эль)..."
+              placeholder={t('prices.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{
@@ -217,7 +227,7 @@ export default function PricesTab() {
               <button 
                 type="button"
                 onClick={() => setSearchQuery('')}
-                title="Очистить поиск"
+                title={t('prices.resetSearch')}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -246,7 +256,7 @@ export default function PricesTab() {
               fontSize: '12px'
             }}>
               <span style={{ color: 'var(--text-muted)' }}>
-                Область поиска:
+                {t('prices.searchScope')}
               </span>
               <div style={{ display: 'flex', gap: '6px' }}>
                 <button
@@ -264,7 +274,7 @@ export default function PricesTab() {
                     fontWeight: searchScope === 'all' ? '600' : 'normal'
                   }}
                 >
-                  Везде ({categoryCounts.all})
+                  {t('prices.scopeAllWithCount', { count: categoryCounts.all })}
                 </button>
                 <button
                   type="button"
@@ -281,7 +291,10 @@ export default function PricesTab() {
                     fontWeight: searchScope === 'category' ? '600' : 'normal'
                   }}
                 >
-                  В разделе «{activeCategoryObj?.label}» ({categoryCounts[activeCategory] || 0})
+                  {t('prices.scopeCategoryWithCount', {
+                    category: t(`prices.categories.${activeCategory}`) || activeCategoryObj?.label,
+                    count: categoryCounts[activeCategory] || 0
+                  })}
                 </button>
               </div>
             </div>
@@ -305,9 +318,9 @@ export default function PricesTab() {
               borderBottom: '2px solid var(--border-color)',
               backgroundColor: 'var(--bg-module)'
             }}>
-              <span>Название предмета</span>
-              <span style={{ textAlign: 'center' }}>Вес (фунты)</span>
-              <span style={{ textAlign: 'right' }}>Стоимость</span>
+              <span>{t('prices.table.name')}</span>
+              <span style={{ textAlign: 'center' }}>{t('prices.table.weight')}</span>
+              <span style={{ textAlign: 'right' }}>{t('prices.table.cost')}</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -318,7 +331,7 @@ export default function PricesTab() {
                   <div key={item.id} className="price-row" style={{ padding: '12px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0 }}>
                       <span style={{ fontSize: '15px', fontWeight: '500', color: 'var(--text-title)' }}>
-                        {item.name}
+                        {language === 'en' && item.name_en ? item.name_en : item.name}
                       </span>
                       {showCategoryBadge && (
                         <span style={{
@@ -329,7 +342,7 @@ export default function PricesTab() {
                           color: 'var(--text-muted)',
                           fontWeight: '500'
                         }}>
-                          {item.categoryLabel}
+                          {t(`prices.categories.${item.categoryId}`) || item.categoryLabel}
                         </span>
                       )}
                     </div>
@@ -361,7 +374,7 @@ export default function PricesTab() {
               {displayedItems.length === 0 && (
                 <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
                   <p style={{ margin: '0 0 10px 0', fontSize: '15px', color: 'var(--text-title)' }}>
-                    Ничего не найдено {query && <>по запросу <strong style={{ color: 'var(--accent-gold)' }}>«{query}»</strong></>}
+                    {t('prices.nothingFound')} {query && <>{t('prices.byQuery')} <strong style={{ color: 'var(--text-title)' }}>«{query}»</strong></>}
                   </p>
                   {query && searchScope === 'category' && categoryCounts.all > 0 ? (
                     <button
@@ -381,7 +394,7 @@ export default function PricesTab() {
                         fontWeight: '500'
                       }}
                     >
-                      Искать во всех разделах ({categoryCounts.all} совпадений) <ArrowRight size={14} />
+                      {t('prices.searchAllSections', { count: categoryCounts.all })} <ArrowRight size={14} />
                     </button>
                   ) : (
                     <button
@@ -397,7 +410,7 @@ export default function PricesTab() {
                         fontSize: '13px'
                       }}
                     >
-                      Сбросить поиск
+                      {t('prices.resetSearch')}
                     </button>
                   )}
                 </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { 
   Beer, 
   Bed, 
@@ -18,30 +19,61 @@ import {
 } from 'lucide-react';
 import { 
   TAVERN_CONCEPTS, 
-  TAVERN_REGIONS,
+  TAVERN_REGIONS, 
   TAVERN_KEEPERS, 
   TAVERN_ATMOSPHERES, 
   TAVERN_PATRONS, 
   TAVERN_RUMORS, 
   TAVERN_EVENTS,
+  TAVERN_ROOM_TIERS,
   generateTavernName,
   generateRandomTavern 
 } from '../data/tavernData.js';
+import {
+  TAVERN_KEEPERS_EN,
+  TAVERN_ATMOSPHERES_EN,
+  TAVERN_ROOM_TIERS_EN,
+  TAVERN_PATRONS_EN,
+  TAVERN_RUMORS_EN,
+  TAVERN_EVENTS_EN,
+  REGIONAL_MENUS_EN
+} from '../data/tavernDataEn.js';
 
 export default function TavernGenerator() {
+  const { t, language } = useTranslation();
+  const isEn = language === 'en';
+
   const [selectedConcept, setSelectedConcept] = useState('any');
   const [selectedRegion, setSelectedRegion] = useState('any');
   const [currentTavern, setCurrentTavern] = useState(() => {
     try {
       const cached = localStorage.getItem('dnd_active_tavern');
-      return cached ? JSON.parse(cached) : generateRandomTavern();
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.name_en && parsed.patrons_en && parsed.keeper_en) {
+          return parsed;
+        }
+      }
+      return generateRandomTavern({ language });
     } catch {
-      return generateRandomTavern();
+      return generateRandomTavern({ language });
     }
   });
   const [copied, setCopied] = useState(false);
 
-  // Кеширование активной таверны (сохраняется при переходе между вкладками генераторов и модулями)
+  // Обновление локализованных полей при смене языка
+  useEffect(() => {
+    if (!currentTavern || !currentTavern.name_en || !currentTavern.patrons_en || !currentTavern.keeper_en) {
+      const updated = generateRandomTavern({
+        conceptId: currentTavern?.concept?.id || selectedConcept,
+        regionId: currentTavern?.region?.id || selectedRegion,
+        language
+      });
+      setCurrentTavern(updated);
+    }
+  }, [language]);
+
+  // Кеширование активной таверны
   useEffect(() => {
     if (currentTavern) {
       try {
@@ -52,7 +84,7 @@ export default function TavernGenerator() {
     }
   }, [currentTavern]);
 
-  // Спасброски Телосложения (интерактивные броски d20 на опьянение и непривычные деликатесы)
+  // Спасброски Телосложения
   const [conRolls, setConRolls] = useState({});
 
   const handleRollCon = (itemKey, dc) => {
@@ -78,33 +110,33 @@ export default function TavernGenerator() {
             type="button" 
             className="con-roll-btn"
             onClick={() => handleRollCon(itemKey, conCheck.dc)}
-            title="Сделать бросок d20 на Телосложение"
+            title={isEn ? "Roll d20 Constitution check" : "Сделать бросок d20 на Телосложение"}
           >
-            <Dices size={12} /> Бросить d20
+            <Dices size={12} /> {t('generators.taverns.rollCon')}
           </button>
         </div>
 
         {outcome && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
             <span className={`con-roll-outcome ${outcome.isPass ? 'pass' : 'fail'}`}>
-              d20: {outcome.roll} — {outcome.isPass ? 'УСПЕХ' : 'ПРОВАЛ'} (Сл {conCheck.dc})
+              d20: {outcome.roll} — {outcome.isPass ? t('generators.taverns.pass') : t('generators.taverns.fail')} ({isEn ? 'DC' : 'Сл'} {conCheck.dc})
             </span>
           </div>
         )}
 
         <div className="con-check-desc-row">
           <div className="con-check-pass">
-            <strong>✅ Успех:</strong> {conCheck.onPass}
+            <strong>✅ {t('generators.taverns.conSuccess')}</strong> {conCheck.onPass}
           </div>
           <div className="con-check-fail">
-            <strong>❌ Провал:</strong> {conCheck.onFail}
+            <strong>❌ {t('generators.taverns.conFail')}</strong> {conCheck.onFail}
           </div>
         </div>
       </div>
     );
   };
 
-  // Сохранённые таверны (сессионная записная книжка)
+  // Сохранённые таверны
   const [savedTaverns, setSavedTaverns] = useState(() => {
     try {
       const saved = localStorage.getItem('dnd_saved_taverns');
@@ -130,7 +162,7 @@ export default function TavernGenerator() {
       setSelectedConcept('any');
       setSelectedRegion('any');
     }
-    const tav = generateRandomTavern({ conceptId, regionId });
+    const tav = generateRandomTavern({ conceptId, regionId, language });
     setCurrentTavern(tav);
   };
 
@@ -138,30 +170,66 @@ export default function TavernGenerator() {
   const handleRerollField = (field) => {
     if (!currentTavern) return;
     if (field === 'name') {
-      setCurrentTavern({ ...currentTavern, name: generateTavernName() });
-    } else if (field === 'keeper') {
-      const k = TAVERN_KEEPERS[Math.floor(Math.random() * TAVERN_KEEPERS.length)];
-      setCurrentTavern({ ...currentTavern, keeper: k });
-    } else if (field === 'menu') {
-      const r = TAVERN_REGIONS[Math.floor(Math.random() * TAVERN_REGIONS.length)];
+      const nameRu = generateTavernName(false);
+      const nameEn = generateTavernName(true);
       setCurrentTavern({
         ...currentTavern,
-        region: r,
-        menu: {
-          food: r.food,
-          drinks: r.drinks
-        }
+        name: isEn ? nameEn : nameRu,
+        name_ru: nameRu,
+        name_en: nameEn
+      });
+    } else if (field === 'keeper') {
+      const kIdx = Math.floor(Math.random() * TAVERN_KEEPERS.length);
+      const kRu = TAVERN_KEEPERS[kIdx];
+      const kEn = TAVERN_KEEPERS_EN[kIdx] || kRu;
+      setCurrentTavern({
+        ...currentTavern,
+        keeperIdx: kIdx,
+        keeper: isEn ? kEn : kRu,
+        keeper_ru: kRu,
+        keeper_en: kEn
+      });
+    } else if (field === 'menu') {
+      const r = TAVERN_REGIONS[Math.floor(Math.random() * TAVERN_REGIONS.length)];
+      const regEn = REGIONAL_MENUS_EN[r.id] || {};
+      const menuRu = { food: r.food, drinks: r.drinks };
+      const menuEn = { food: regEn.food || r.food, drinks: regEn.drinks || r.drinks };
+      setCurrentTavern({
+        ...currentTavern,
+        region: {
+          ...r,
+          name: isEn ? (r.name_en || r.name) : r.name,
+          name_ru: r.name,
+          name_en: r.name_en || r.name
+        },
+        menu: isEn ? menuEn : menuRu,
+        menu_ru: menuRu,
+        menu_en: menuEn
       });
     } else if (field === 'rumor') {
-      const r = TAVERN_RUMORS[Math.floor(Math.random() * TAVERN_RUMORS.length)];
-      setCurrentTavern({ ...currentTavern, rumor: r });
+      const rIdx = Math.floor(Math.random() * TAVERN_RUMORS.length);
+      const rRu = TAVERN_RUMORS[rIdx];
+      const rEn = TAVERN_RUMORS_EN[rIdx] || rRu;
+      setCurrentTavern({
+        ...currentTavern,
+        rumor: isEn ? rEn : rRu,
+        rumor_ru: rRu,
+        rumor_en: rEn
+      });
     } else if (field === 'event') {
-      const ev = TAVERN_EVENTS[Math.floor(Math.random() * TAVERN_EVENTS.length)];
-      setCurrentTavern({ ...currentTavern, event: ev });
+      const evIdx = Math.floor(Math.random() * TAVERN_EVENTS.length);
+      const evRu = TAVERN_EVENTS[evIdx];
+      const evEn = TAVERN_EVENTS_EN[evIdx] || evRu;
+      setCurrentTavern({
+        ...currentTavern,
+        event: isEn ? evEn : evRu,
+        event_ru: evRu,
+        event_en: evEn
+      });
     }
   };
 
-  // Сохранить / удалить из избранного
+  // Сохранить / удалить
   const isCurrentSaved = savedTaverns.some(t => t.id === currentTavern?.id);
 
   const toggleSaveCurrent = () => {
@@ -178,44 +246,41 @@ export default function TavernGenerator() {
     setSavedTaverns(savedTaverns.filter(t => t.id !== id));
   };
 
-  // Копирование в буфер обмена
+  // Получение локализованных данных
+  const tavName = isEn ? (currentTavern?.name_en || currentTavern?.name) : (currentTavern?.name_ru || currentTavern?.name);
+  const tavConceptName = isEn ? (currentTavern?.concept?.name_en || currentTavern?.concept?.name) : (currentTavern?.concept?.name_ru || currentTavern?.concept?.name);
+  const tavRegionName = isEn ? (currentTavern?.region?.name_en || currentTavern?.region?.name) : (currentTavern?.region?.name_ru || currentTavern?.region?.name);
+  const tavKeeper = isEn ? (currentTavern?.keeper_en || currentTavern?.keeper) : (currentTavern?.keeper_ru || currentTavern?.keeper);
+  const tavAtmosphere = isEn ? (currentTavern?.atmosphere_en || currentTavern?.atmosphere) : (currentTavern?.atmosphere_ru || currentTavern?.atmosphere);
+  const tavMenu = isEn ? (currentTavern?.menu_en || currentTavern?.menu) : (currentTavern?.menu_ru || currentTavern?.menu);
+  const tavRooms = isEn ? (currentTavern?.rooms_en || TAVERN_ROOM_TIERS_EN) : (currentTavern?.rooms_ru || TAVERN_ROOM_TIERS);
+  const tavPatrons = isEn ? (currentTavern?.patrons_en || currentTavern?.patrons) : (currentTavern?.patrons_ru || currentTavern?.patrons);
+  const tavRumor = isEn ? (currentTavern?.rumor_en || currentTavern?.rumor) : (currentTavern?.rumor_ru || currentTavern?.rumor);
+  const tavEvent = isEn ? (currentTavern?.event_en || currentTavern?.event) : (currentTavern?.event_ru || currentTavern?.event);
+
+  // Копирование в буфер
   const handleCopy = () => {
     if (!currentTavern) return;
-    const { menu } = currentTavern;
-    const text = [
-      `🍺 Таверна: "${currentTavern.name}" (${currentTavern.concept.name})`,
-      `🗺️ Регион: ${currentTavern.region.icon} ${currentTavern.region.name}`,
-      `👤 Трактирщик: ${currentTavern.keeper.name} (${currentTavern.keeper.race}, ${currentTavern.keeper.gender})`,
-      `   ${currentTavern.keeper.quirk}`,
-      `   Отношение к героям: ${currentTavern.keeper.attitude}`,
-      `🕯️ Атмосфера: ${currentTavern.atmosphere.visual}`,
-      `   Запах: ${currentTavern.atmosphere.smell}`,
-      `   Звуки: ${currentTavern.atmosphere.sound}`,
-      ``,
-      `🍲 КУХНЯ И БЛЮДА:`,
-      `⭐ Фирменное: ${menu.food.signature.name} — ${menu.food.signature.price}`,
-      `   ${menu.food.signature.desc}`,
-      menu.food.signature.conCheck ? `   🎲 ${menu.food.signature.conCheck.label}: [Успех: ${menu.food.signature.conCheck.onPass} | Провал: ${menu.food.signature.conCheck.onFail}]` : '',
-      `🌟 Экзотика: ${menu.food.exotic.name} — ${menu.food.exotic.price}`,
-      `   ${menu.food.exotic.desc}`,
-      menu.food.exotic.conCheck ? `   🎲 ${menu.food.exotic.conCheck.label}: [Успех: ${menu.food.exotic.conCheck.onPass} | Провал: ${menu.food.exotic.conCheck.onFail}]` : '',
-      ...menu.food.dishes.map(d => `• ${d.name} (${d.price}) — ${d.desc}`),
-      ``,
-      `🍺 ПОГРЕБ И ВЫПИВКА:`,
-      `⭐ Фирменная: ${menu.drinks.signature.name} — ${menu.drinks.signature.price}`,
-      `   ${menu.drinks.signature.desc}`,
-      menu.drinks.signature.conCheck ? `   🎲 ${menu.drinks.signature.conCheck.label}: [Успех: ${menu.drinks.signature.conCheck.onPass} | Провал: ${menu.drinks.signature.conCheck.onFail}]` : '',
-      `🍷 Редкое/Особое: ${menu.drinks.special.name} — ${menu.drinks.special.price}`,
-      `   ${menu.drinks.special.desc}`,
-      menu.drinks.special.conCheck ? `   🎲 ${menu.drinks.special.conCheck.label}: [Успех: ${menu.drinks.special.conCheck.onPass} | Провал: ${menu.drinks.special.conCheck.onFail}]` : '',
-      ...menu.drinks.items.map(d => `• ${d.name} (${d.price}) — ${d.desc}`),
-      ``,
-      `🛏️ НОЧЛЕГ:`,
-      ...currentTavern.rooms.map(r => `• ${r.tier}: ${r.price}`),
-      ``,
-      `👥 Завсегдатаи: ${currentTavern.patrons}`,
-      `📜 Слух у стойки: "${currentTavern.rumor}"`,
-      `⚡ Происшествие: "${currentTavern.event}"`
+    const text = isEn ? [
+      `🍺 TAVERN: "${tavName}" (${tavConceptName})`,
+      `📍 Region: ${tavRegionName}`,
+      `👤 Keeper: ${tavKeeper?.name} (${tavKeeper?.race}, ${tavKeeper?.gender}) — ${tavKeeper?.quirk}`,
+      `🕯️ Ambience: ${tavAtmosphere?.visual}`,
+      `🥖 Scent: ${tavAtmosphere?.smell} | Sounds: ${tavAtmosphere?.sound}`,
+      `⭐ Specialty: ${tavMenu?.food?.signature?.name} (${tavMenu?.food?.signature?.price})`,
+      `🍷 House Drink: ${tavMenu?.drinks?.signature?.name} (${tavMenu?.drinks?.signature?.price})`,
+      `📜 Rumor: "${tavRumor}"`,
+      `⚡ Sudden Event: ${tavEvent}`
+    ].join('\n') : [
+      `🍺 ТАВЕРНА: «${tavName}» (${tavConceptName})`,
+      `📍 Регион: ${tavRegionName}`,
+      `👤 Хозяин: ${tavKeeper?.name} (${tavKeeper?.race}, ${tavKeeper?.gender}) — ${tavKeeper?.quirk}`,
+      `🕯️ Вид: ${tavAtmosphere?.visual}`,
+      `🥖 Запах: ${tavAtmosphere?.smell} | Звуки: ${tavAtmosphere?.sound}`,
+      `⭐ Фирменное блюдо: ${tavMenu?.food?.signature?.name} (${tavMenu?.food?.signature?.price})`,
+      `🍷 Выпивка: ${tavMenu?.drinks?.signature?.name} (${tavMenu?.drinks?.signature?.price})`,
+      `📜 Слух: «${tavRumor}»`,
+      `⚡ Происшествие: ${tavEvent}`
     ].join('\n');
 
     navigator.clipboard.writeText(text).then(() => {
@@ -224,20 +289,20 @@ export default function TavernGenerator() {
     });
   };
 
-  const { menu } = currentTavern || {};
+  const { food, drinks } = tavMenu || {};
 
   return (
     <div>
       {/* Шапка подраздела */}
       <div className="generators-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Beer size={26} color="var(--accent-gold)" />
+          <Beer size={26} color="#f2f3f5" />
           <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>
-            Генератор Таверн и Заведений
+            {t('generators.taverns.title')}
           </h2>
         </div>
         <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Создание атмосферных трактиров с раздельным меню блюд и погреба, экзотическими деликатесами, ночлегом и слухами.
+          {t('generators.taverns.desc')}
         </p>
       </div>
 
@@ -246,32 +311,32 @@ export default function TavernGenerator() {
         <div className="filters-group">
           {/* Концепт заведения */}
           <div className="filter-item">
-            <label>Концепт заведения:</label>
+            <label>{t('generators.taverns.concept')}</label>
             <select 
               value={selectedConcept} 
               onChange={(e) => setSelectedConcept(e.target.value)}
               className="curtain-select filter-select"
               style={{ minWidth: '210px' }}
             >
-              <option value="any">🎲 Любой концепт</option>
+              <option value="any">🎲 {t('generators.taverns.anyConcept')}</option>
               {TAVERN_CONCEPTS.map(c => (
-                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                <option key={c.id} value={c.id}>{c.icon} {isEn ? (c.name_en || c.name) : c.name}</option>
               ))}
             </select>
           </div>
 
           {/* Регион / Биом */}
           <div className="filter-item">
-            <label>Регион мира (колорит кухни):</label>
+            <label>{t('generators.taverns.region')}</label>
             <select 
               value={selectedRegion} 
               onChange={(e) => setSelectedRegion(e.target.value)}
               className="curtain-select filter-select"
               style={{ minWidth: '220px' }}
             >
-              <option value="any">🎲 Любой регион</option>
+              <option value="any">🎲 {t('generators.taverns.anyRegion')}</option>
               {TAVERN_REGIONS.map(r => (
-                <option key={r.id} value={r.id}>{r.icon} {r.name}</option>
+                <option key={r.id} value={r.id}>{r.icon} {isEn ? (r.name_en || r.name) : r.name}</option>
               ))}
             </select>
           </div>
@@ -283,15 +348,15 @@ export default function TavernGenerator() {
             className="trials-btn primary gen-main-btn"
             onClick={() => handleGenerate(false)}
           >
-            <Beer size={18} /> Сгенерировать заведение
+            <Beer size={18} /> {t('generators.taverns.generateBtn')}
           </button>
           <button 
             type="button" 
             className="trials-btn secondary"
             onClick={() => handleGenerate(true)}
-            title="Сбросить фильтры и сгенерировать полностью случайную таверну"
+            title={isEn ? "Reset filters and generate completely random tavern" : "Сбросить фильтры и сгенерировать полностью случайную таверну"}
           >
-            <RotateCcw size={16} /> Полный рандом
+            <RotateCcw size={16} /> {t('generators.actions.fullRandom')}
           </button>
         </div>
       </div>
@@ -307,20 +372,20 @@ export default function TavernGenerator() {
               </div>
               <div className="npc-title-box">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <h3 className="npc-name">«{currentTavern.name}»</h3>
+                  <h3 className="npc-name">«{tavName}»</h3>
                   <button 
                     type="button" 
                     className="reroll-btn" 
                     onClick={() => handleRerollField('name')} 
-                    title="Сменить название"
+                    title={t('generators.actions.anotherName')}
                   >
-                    <RotateCcw size={11} /> Другое имя
+                    <RotateCcw size={11} /> {t('generators.actions.anotherName')}
                   </button>
                 </div>
                 <div className="npc-meta-row">
-                  <span className="npc-tag highlight">{currentTavern.concept.name}</span>
+                  <span className="npc-tag highlight">{tavConceptName}</span>
                   <span className="npc-tag" style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
-                    {currentTavern.region.icon} {currentTavern.region.name}
+                    {currentTavern.region.icon} {tavRegionName}
                   </span>
                 </div>
               </div>
@@ -330,15 +395,15 @@ export default function TavernGenerator() {
                   type="button" 
                   className={`trials-btn secondary icon-btn ${isCurrentSaved ? 'active' : ''}`}
                   onClick={toggleSaveCurrent}
-                  title={isCurrentSaved ? 'Удалить из сохранённых' : 'Сохранить таверну'}
+                  title={isCurrentSaved ? (isEn ? 'Remove from saved' : 'Удалить из сохранённых') : (isEn ? 'Save tavern' : 'Сохранить таверну')}
                 >
-                  <Bookmark size={17} color={isCurrentSaved ? 'var(--accent-gold)' : 'currentColor'} />
+                  <Bookmark size={17} color={isCurrentSaved ? '#f2f3f5' : 'currentColor'} />
                 </button>
                 <button 
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={handleCopy}
-                  title="Скопировать описание в буфер"
+                  title={isEn ? 'Copy description to clipboard' : 'Скопировать описание в буфер'}
                 >
                   {copied ? <Check size={17} color="#22c55e" /> : <Copy size={17} />}
                 </button>
@@ -349,25 +414,25 @@ export default function TavernGenerator() {
             <div className="npc-section-box">
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <User size={15} color="var(--accent-gold)" /> Хозяин заведения
+                  <User size={15} color="#949ba4" /> {t('generators.taverns.keeper')}
                 </span>
                 <button type="button" className="reroll-btn" onClick={() => handleRerollField('keeper')}>
-                  <RotateCcw size={11} /> Другой хозяин
+                  <RotateCcw size={11} /> {t('generators.actions.anotherKeeper')}
                 </button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px' }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                   <strong style={{ color: 'var(--text-title)', fontSize: '14.5px' }}>
-                    {currentTavern.keeper.name}
+                    {tavKeeper?.name}
                   </strong>
-                  <span className="npc-tag">{currentTavern.keeper.race} ({currentTavern.keeper.gender})</span>
+                  <span className="npc-tag">{tavKeeper?.race} ({tavKeeper?.gender})</span>
                 </div>
                 <div style={{ color: 'var(--text-primary)', lineHeight: '1.45' }}>
-                  {currentTavern.keeper.quirk}
+                  {tavKeeper?.quirk}
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', borderLeft: '2px solid var(--accent-gold)', paddingLeft: '8px', marginTop: '2px' }}>
-                  💡 <strong>Отношение к героям:</strong> {currentTavern.keeper.attitude}
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', borderLeft: '2px solid rgba(255, 255, 255, 0.25)', paddingLeft: '8px', marginTop: '2px' }}>
+                  💡 <strong>{t('generators.taverns.attitude')}</strong> {tavKeeper?.attitude}
                 </div>
               </div>
             </div>
@@ -376,21 +441,21 @@ export default function TavernGenerator() {
             <div className="npc-section-box">
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Flame size={15} color="#f97316" /> Обстановка и атмосфера
+                  <Flame size={15} color="#f97316" /> {t('generators.taverns.atmosphere')}
                 </span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12.5px', lineHeight: '1.45' }}>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>🕯️ Вид: </span>
-                  <span style={{ color: 'var(--text-primary)' }}>{currentTavern.atmosphere.visual}</span>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>🕯️ {t('generators.taverns.sight')} </span>
+                  <span style={{ color: 'var(--text-primary)' }}>{tavAtmosphere?.visual}</span>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>🥖 Запах: </span>
-                  <span style={{ color: 'var(--text-primary)' }}>{currentTavern.atmosphere.smell}</span>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>🥖 {t('generators.taverns.smell')} </span>
+                  <span style={{ color: 'var(--text-primary)' }}>{tavAtmosphere?.smell}</span>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>🎶 Звуки: </span>
-                  <span style={{ color: 'var(--text-primary)' }}>{currentTavern.atmosphere.sound}</span>
+                  <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>🎶 {t('generators.taverns.sounds')} </span>
+                  <span style={{ color: 'var(--text-primary)' }}>{tavAtmosphere?.sound}</span>
                 </div>
               </div>
             </div>
@@ -399,10 +464,10 @@ export default function TavernGenerator() {
             <div className="npc-section-box tavern-menu-box" style={{ background: 'rgba(234, 179, 8, 0.03)', borderColor: 'rgba(234, 179, 8, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Utensils size={15} color="var(--accent-gold)" /> Трактирное меню ({currentTavern.region.name})
+                  <Utensils size={15} color="#949ba4" /> {t('generators.taverns.menuTitle', { region: tavRegionName })}
                 </span>
                 <button type="button" className="reroll-btn" onClick={() => handleRerollField('menu')}>
-                  <RotateCcw size={11} /> Другая кухня / регион
+                  <RotateCcw size={11} /> {t('generators.actions.anotherMenu')}
                 </button>
               </div>
 
@@ -412,61 +477,61 @@ export default function TavernGenerator() {
                 {/* КОЛОНКА 1: КУХНЯ И БЛЮДА */}
                 <div className="tavern-menu-col">
                   <div className="menu-col-header">
-                    <span className="menu-col-title" style={{ color: '#fbbf24' }}>
-                      <Utensils size={14} /> Кухня и Трактирные Блюда
+                    <span className="menu-col-title" style={{ color: 'var(--text-title)' }}>
+                      <Utensils size={14} /> {t('generators.taverns.foodCol')}
                     </span>
                   </div>
 
                   {/* 1.1 Фирменное блюдо шефа */}
-                  {menu?.food?.signature && (
+                  {food?.signature && (
                     <div className="menu-highlight-card">
-                      <div className="menu-badge-label" style={{ color: 'var(--accent-gold)' }}>
-                        ⭐ Фирменное блюдо таверны
+                      <div className="menu-badge-label" style={{ color: 'var(--text-muted)' }}>
+                        ⭐ {t('generators.taverns.signatureDish')}
                       </div>
                       <div className="menu-highlight-title-row">
                         <span className="menu-highlight-title">
-                          {menu.food.signature.name}
+                          {food.signature.name}
                         </span>
-                        <span className="price-tag">{menu.food.signature.price}</span>
+                        <span className="price-tag">{food.signature.price}</span>
                       </div>
                       <div className="menu-highlight-desc">
-                        {menu.food.signature.desc}
+                        {food.signature.desc}
                       </div>
-                      {renderConCheck(menu.food.signature.conCheck, 'food_signature')}
+                      {renderConCheck(food.signature.conCheck, 'food_signature')}
                     </div>
                   )}
 
                   {/* 1.2 Экзотический деликатес региона */}
-                  {menu?.food?.exotic && (
+                  {food?.exotic && (
                     <div className="menu-highlight-card exotic">
                       <div className="menu-badge-label" style={{ color: '#c084fc' }}>
-                        🌟 Экзотический деликатес региона
+                        🌟 {t('generators.taverns.exoticDish')}
                       </div>
                       <div className="menu-highlight-title-row">
                         <span className="menu-highlight-title" style={{ color: '#f3e8ff' }}>
-                          {menu.food.exotic.name}
+                          {food.exotic.name}
                         </span>
                         <span className="price-tag" style={{ background: 'rgba(168, 85, 247, 0.2)', borderColor: '#a855f7', color: '#f3e8ff' }}>
-                          {menu.food.exotic.price}
+                          {food.exotic.price}
                         </span>
                       </div>
                       <div className="menu-highlight-desc" style={{ color: '#e9d5ff' }}>
-                        {menu.food.exotic.desc}
+                        {food.exotic.desc}
                       </div>
-                      {renderConCheck(menu.food.exotic.conCheck, 'food_exotic')}
+                      {renderConCheck(food.exotic.conCheck, 'food_exotic')}
                     </div>
                   )}
 
-                  {/* 1.3 Обычные блюда кухни с подробным описанием */}
+                  {/* 1.3 Обычные блюда кухни */}
                   <div className="menu-items-list">
                     <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>
-                      🥣 Трактирные кушанья в меню:
+                      🥣 {t('generators.taverns.dishes')}
                     </span>
-                    {menu?.food?.dishes?.map((dish, i) => (
+                    {food?.dishes?.map((dish, i) => (
                       <div key={i} className="menu-item-card">
                         <div className="menu-item-top">
                           <span className="menu-item-name">{dish.name}</span>
-                          <span style={{ fontWeight: 700, color: 'var(--accent-gold)', fontSize: '12px' }}>
+                          <span style={{ fontWeight: 700, color: 'var(--text-title)', fontSize: '12px' }}>
                             {dish.price}
                           </span>
                         </div>
@@ -480,58 +545,58 @@ export default function TavernGenerator() {
                 <div className="tavern-menu-col">
                   <div className="menu-col-header">
                     <span className="menu-col-title" style={{ color: '#38bdf8' }}>
-                      <Beer size={14} /> Погреб и Трактирная Выпивка
+                      <Beer size={14} /> {t('generators.taverns.drinksCol')}
                     </span>
                   </div>
 
                   {/* 2.1 Фирменная выпивка таверны */}
-                  {menu?.drinks?.signature && (
+                  {drinks?.signature && (
                     <div className="menu-highlight-card" style={{ borderLeftColor: '#38bdf8', background: 'rgba(56, 189, 248, 0.07)', borderColor: 'rgba(56, 189, 248, 0.35)' }}>
                       <div className="menu-badge-label" style={{ color: '#38bdf8' }}>
-                        ⭐ Фирменная выпивка заведения
+                        ⭐ {t('generators.taverns.signatureDrink')}
                       </div>
                       <div className="menu-highlight-title-row">
                         <span className="menu-highlight-title">
-                          {menu.drinks.signature.name}
+                          {drinks.signature.name}
                         </span>
                         <span className="price-tag" style={{ background: 'rgba(56, 189, 248, 0.2)', borderColor: '#38bdf8', color: '#e0f2fe' }}>
-                          {menu.drinks.signature.price}
+                          {drinks.signature.price}
                         </span>
                       </div>
                       <div className="menu-highlight-desc">
-                        {menu.drinks.signature.desc}
+                        {drinks.signature.desc}
                       </div>
-                      {renderConCheck(menu.drinks.signature.conCheck, 'drinks_signature')}
+                      {renderConCheck(drinks.signature.conCheck, 'drinks_signature')}
                     </div>
                   )}
 
                   {/* 2.2 Редкое / Особое пойло */}
-                  {menu?.drinks?.special && (
+                  {drinks?.special && (
                     <div className="menu-highlight-card special">
                       <div className="menu-badge-label" style={{ color: '#f87171' }}>
-                        🍷 Редкая коллекция / Особый градус
+                        🍷 {t('generators.taverns.specialDrink')}
                       </div>
                       <div className="menu-highlight-title-row">
                         <span className="menu-highlight-title" style={{ color: '#fee2e2' }}>
-                          {menu.drinks.special.name}
+                          {drinks.special.name}
                         </span>
                         <span className="price-tag" style={{ background: 'rgba(239, 68, 68, 0.2)', borderColor: '#ef4444', color: '#fee2e2' }}>
-                          {menu.drinks.special.price}
+                          {drinks.special.price}
                         </span>
                       </div>
                       <div className="menu-highlight-desc" style={{ color: '#fecaca' }}>
-                        {menu.drinks.special.desc}
+                        {drinks.special.desc}
                       </div>
-                      {renderConCheck(menu.drinks.special.conCheck, 'drinks_special')}
+                      {renderConCheck(drinks.special.conCheck, 'drinks_special')}
                     </div>
                   )}
 
-                  {/* 2.3 Обычные напитки погреба с подробным описанием */}
+                  {/* 2.3 Обычные напитки погреба */}
                   <div className="menu-items-list">
                     <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginTop: '4px' }}>
-                      🍺 Бочковые эли, вина и взвары:
+                      🍺 {t('generators.taverns.drinks')}
                     </span>
-                    {menu?.drinks?.items?.map((drink, i) => (
+                    {drinks?.items?.map((drink, i) => (
                       <div key={i} className="menu-item-card">
                         <div className="menu-item-top">
                           <span className="menu-item-name">{drink.name}</span>
@@ -552,12 +617,12 @@ export default function TavernGenerator() {
             <div className="npc-section-box" style={{ background: 'rgba(56, 189, 248, 0.04)', borderColor: 'rgba(56, 189, 248, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8' }}>
-                  <Bed size={15} color="#38bdf8" /> Ночлег и постой (уровни комфорта D&D 5e)
+                  <Bed size={15} color="#38bdf8" /> {t('generators.taverns.lodging')}
                 </span>
               </div>
 
               <div className="tavern-rooms-grid">
-                {currentTavern.rooms.map((room, i) => (
+                {tavRooms?.map((room, i) => (
                   <div key={i} className="tavern-room-item">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                       <span style={{ fontWeight: 600, color: 'var(--text-title)', fontSize: '12px' }}>
@@ -577,11 +642,11 @@ export default function TavernGenerator() {
             <div className="npc-section-box">
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Compass size={15} color="#a855f7" /> Завсегдатаи прямо сейчас
+                  <Compass size={15} color="#a855f7" /> {t('generators.taverns.patrons')}
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', lineHeight: '1.45' }}>
-                {currentTavern.patrons}
+                {tavPatrons}
               </p>
             </div>
 
@@ -589,17 +654,17 @@ export default function TavernGenerator() {
             <div className="npc-section-box" style={{ background: 'rgba(56, 189, 248, 0.05)', borderColor: 'rgba(56, 189, 248, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8' }}>
-                  <MessageSquare size={15} color="#38bdf8" /> Слух у барной стойки
+                  <MessageSquare size={15} color="#38bdf8" /> {t('generators.taverns.rumor')}
                 </span>
                 <button type="button" className="reroll-btn" onClick={() => handleRerollField('rumor')}>
-                  <RotateCcw size={11} /> Другой слух
+                  <RotateCcw size={11} /> {t('generators.actions.anotherRumor')}
                 </button>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.45', fontStyle: 'italic' }}>
-                «{currentTavern.rumor}»
+                «{tavRumor}»
               </div>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                💡 Зацепка для квеста: вклинивай в разговор, если игроки решат поболтать с завсегдатаями.
+                💡 {t('generators.taverns.rumorHint')}
               </span>
             </div>
 
@@ -607,33 +672,33 @@ export default function TavernGenerator() {
             <div className="npc-section-box" style={{ background: 'rgba(244, 63, 94, 0.05)', borderColor: 'rgba(244, 63, 94, 0.25)' }}>
               <div className="section-title-row">
                 <span className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#f43f5e' }}>
-                  <AlertTriangle size={15} color="#f43f5e" /> Происшествие (если заскучали)
+                  <AlertTriangle size={15} color="#f43f5e" /> {t('generators.taverns.event')}
                 </span>
                 <button type="button" className="reroll-btn" onClick={() => handleRerollField('event')}>
-                  <RotateCcw size={11} /> Другое событие
+                  <RotateCcw size={11} /> {t('generators.actions.anotherEvent')}
                 </button>
               </div>
               <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-primary)', lineHeight: '1.45' }}>
-                {currentTavern.event}
+                {tavEvent}
               </p>
             </div>
 
             {/* Быстрые микро-кнопки перегенерации */}
             <div className="npc-micro-rerolls">
               <button type="button" className="micro-btn" onClick={() => handleRerollField('name')}>
-                🔄 Название
+                🔄 {t('generators.taverns.microName')}
               </button>
               <button type="button" className="micro-btn" onClick={() => handleRerollField('keeper')}>
-                👤 Трактирщик
+                👤 {t('generators.taverns.microKeeper')}
               </button>
               <button type="button" className="micro-btn" onClick={() => handleRerollField('menu')}>
-                🍲 Меню / Регион
+                🍲 {t('generators.taverns.microMenu')}
               </button>
               <button type="button" className="micro-btn" onClick={() => handleRerollField('rumor')}>
-                📜 Слух
+                📜 {t('generators.taverns.microRumor')}
               </button>
               <button type="button" className="micro-btn" onClick={() => handleRerollField('event')}>
-                ⚡ Происшествие
+                ⚡ {t('generators.taverns.microEvent')}
               </button>
             </div>
           </div>
@@ -643,9 +708,9 @@ export default function TavernGenerator() {
         <div className="saved-npcs-sidebar">
           <div className="saved-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bookmark size={16} color="var(--accent-gold)" />
+              <Bookmark size={16} color="#949ba4" />
               <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)' }}>
-                Записная книжка ({savedTaverns.length})
+                {t('generators.taverns.notepad', { count: savedTaverns.length })}
               </h4>
             </div>
             {savedTaverns.length > 0 && (
@@ -653,45 +718,50 @@ export default function TavernGenerator() {
                 type="button" 
                 className="clean-btn" 
                 onClick={() => setSavedTaverns([])}
-                title="Очистить список"
+                title={t('generators.actions.clear')}
               >
-                Очистить
+                {t('generators.actions.clear')}
               </button>
             )}
           </div>
 
           <p style={{ margin: '4px 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.35' }}>
-            Сохраняйте заведения, где побывала партия, чтобы быстро вернуться к их ценам, хозяину и атмосфере.
+            {t('generators.taverns.notepadDesc')}
           </p>
 
           <div className="saved-list">
             {savedTaverns.length === 0 ? (
               <div className="saved-empty-state">
                 <span>🍺</span>
-                <p>Нажмите закладку на карточке заведения, чтобы сохранить его в кампанию.</p>
+                <p>{t('generators.taverns.notepadEmpty')}</p>
               </div>
             ) : (
-              savedTaverns.map(item => (
-                <div 
-                  key={item.id} 
-                  className={`saved-npc-item ${currentTavern?.id === item.id ? 'active' : ''}`}
-                  onClick={() => setCurrentTavern(item)}
-                >
-                  <span className="item-icon">{item.concept.icon}</span>
-                  <div className="item-info">
-                    <span className="item-name">«{item.name}»</span>
-                    <span className="item-meta">{item.region?.name || item.concept.name} • {item.keeper.name}</span>
-                  </div>
-                  <button 
-                    type="button" 
-                    className="item-delete-btn" 
-                    onClick={(e) => removeSavedTavern(item.id, e)}
-                    title="Удалить"
+              savedTaverns.map(item => {
+                const sName = isEn ? (item.name_en || item.name) : (item.name_ru || item.name);
+                const sConcept = isEn ? (item.concept?.name_en || item.concept?.name) : (item.concept?.name_ru || item.concept?.name);
+                const sRegion = isEn ? (item.region?.name_en || item.region?.name) : (item.region?.name_ru || item.region?.name);
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`saved-npc-item ${currentTavern?.id === item.id ? 'active' : ''}`}
+                    onClick={() => setCurrentTavern(item)}
                   >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))
+                    <span className="item-icon">{item.concept.icon}</span>
+                    <div className="item-info">
+                      <span className="item-name">«{sName}»</span>
+                      <span className="item-meta">{sConcept} • {sRegion}</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="item-delete-btn" 
+                      onClick={(e) => removeSavedTavern(item.id, e)}
+                      title={t('generators.actions.remove')}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

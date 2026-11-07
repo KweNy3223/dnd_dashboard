@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "title": "D&D 5e Rules Reference",
+    "searchPlaceholder": "Search across all rules, conditions, and AC...",
+    "foundMatches": "Found matches: {count} for «{query}»",
+    "resetSearch": "Clear search",
+    "nothingFound": "No rules found for «{query}»",
+    "tryOtherWords": "Try other search terms, e.g.: advantage, disadvantage, cover, saving throw, AC, rest.",
+    "categories": {
+      "conditions": "Conditions",
+      "combat": "Combat Actions",
+      "cover": "Cover",
+      "exhaustion": "Exhaustion",
+      "vision": "Vision & Light",
+      "rest": "Resting",
+      "movement": "Jumping & Movement",
+      "concentration": "Concentration",
+      "falling": "Falling Damage",
+      "deathSaves": "Death Saving Throws",
+      "underwater": "Underwater Combat",
+      "twoWeapon": "Two-Weapon Fighting",
+      "objects": "Object Statistics & AC"
+    }
+  }
+}

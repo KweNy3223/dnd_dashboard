@@ -14,29 +14,34 @@
 
 import { audio } from '../audio.js';
 import { dnd } from '../dnd-engine.js';
+import { getCurrentLanguage } from '../../i18n/translate.js';
 
 export const LOOT_TYPES = {
   pouch: {
     id: 'pouch',
     name: '💰 Тяжёлый кошель с золотом',
+    name_en: '💰 Heavy pouch of gold',
     weight: 1.05,
     soundType: 'coins'
   },
   keys: {
     id: 'keys',
     name: '🗝️ Связка ключей от темницы',
+    name_en: '🗝️ Dungeon key ring',
     weight: 0.90,
     soundType: 'keys'
   },
   scroll: {
     id: 'scroll',
     name: '📜 Секретное письмо / свиток',
+    name_en: '📜 Secret parchment / scroll',
     weight: 0.78,
     soundType: 'parchment'
   },
   amulet: {
     id: 'amulet',
     name: '💎 Драгоценный амулет на цепочке',
+    name_en: '💎 Jeweled amulet on chain',
     weight: 0.95,
     soundType: 'amulet'
   }
@@ -109,6 +114,10 @@ export class PickpocketGame {
     this.boundResize = this.setupCanvas.bind(this);
   }
 
+  isEn() {
+    return this.app?.language === 'en' || getCurrentLanguage() === 'en';
+  }
+
   setLootType(type) {
     if (type === 'auto') {
       this.lootType = this.app?.getLootType ? this.app.getLootType() : 'pouch';
@@ -132,11 +141,12 @@ export class PickpocketGame {
   }
 
   renderDOM() {
+    const isEn = this.isEn();
     this.container.innerHTML = `
       <div class="stage-container pickpocket-stage">
         <div class="stage-header">
-          <h2 class="stage-title">🪙 Карманная кража</h2>
-          <p class="stage-subtitle" id="pickpocketSubtitle">Тяните добычу аккуратными рывками. При повышении DC вытягивать сложнее!</p>
+          <h2 class="stage-title">${isEn ? '🪙 Pickpocketing' : '🪙 Карманная кража'}</h2>
+          <p class="stage-subtitle" id="pickpocketSubtitle">${isEn ? 'Pull loot with careful tugs. As DC increases, resistance grows significantly!' : 'Тяните добычу аккуратными рывками. При повышении DC вытягивать сложнее!'}</p>
         </div>
 
         <div class="pickpocket-layout">
@@ -145,14 +155,14 @@ export class PickpocketGame {
             <div class="awareness-header">
               <span class="awareness-icon" id="awarenessIcon">🍺</span>
               <div class="awareness-info">
-                <span class="awareness-label">Внимание цели (Passive Perception DC <strong id="hudDcVal">${dnd.dc}</strong> | <span id="hudLootName">Кошель</span>):</span>
-                <span class="awareness-status" id="awarenessStatus">Отвлечён (Смотрит в зал)</span>
+                <span class="awareness-label">${isEn ? 'Target Awareness (Passive Perception DC' : 'Внимание цели (Passive Perception DC'} <strong id="hudDcVal">${dnd.dc}</strong> | <span id="hudLootName">${isEn ? 'Pouch' : 'Кошель'}</span>):</span>
+                <span class="awareness-status" id="awarenessStatus">${isEn ? 'Distracted (Looking into tavern)' : 'Отвлечён (Смотрит в зал)'}</span>
               </div>
             </div>
             
             <div class="suspicion-bar-wrap">
               <div class="suspicion-label-row">
-                <span>Уровень подозрения жертвы:</span>
+                <span>${isEn ? 'Target Suspicion Level:' : 'Уровень подозрения жертвы:'}</span>
                 <span id="suspicionVal" style="font-weight: 700;">0%</span>
               </div>
               <div class="suspicion-track">
@@ -163,7 +173,7 @@ export class PickpocketGame {
             <!-- Шкала натяжения шнура / ритма рывка -->
             <div class="suspicion-bar-wrap" style="margin-top: 4px;">
               <div class="suspicion-label-row">
-                <span>Натяжение пояса (Ритм рывка):</span>
+                <span>${isEn ? 'Belt Tension (Pull Rhythm):' : 'Натяжение пояса (Ритм рывка):'}</span>
                 <span id="tensionVal" style="font-weight: 600; color: #60a5fa;">0%</span>
               </div>
               <div class="tension-track" style="width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; overflow: hidden;">
@@ -178,7 +188,7 @@ export class PickpocketGame {
             
             <div class="extraction-progress-overlay">
               <div class="progress-label-row">
-                <span>Добыча извлечена:</span>
+                <span>${isEn ? 'Loot Extracted:' : 'Добыча извлечена:'}</span>
                 <span id="extractionPercent" style="font-weight: 700; color: var(--accent-gold);">0%</span>
               </div>
               <div class="extraction-track">
@@ -190,23 +200,23 @@ export class PickpocketGame {
           <!-- Кнопка действия -->
           <div class="pickpocket-controls-row">
             <button type="button" class="btn fantasy-btn primary" id="btnTouchSteal" style="min-width: 260px; padding: 12px 28px; font-size: 1rem; font-weight: 700;">
-              <span>🤏</span> Тянуть добычу (Зажать ПРОБЕЛ / ЛКМ)
+              <span>🤏</span> ${isEn ? 'Pull Loot (Hold SPACE / LMB)' : 'Тянуть добычу (Зажать ПРОБЕЛ / ЛКМ)'}
             </button>
           </div>
         </div>
 
         <div class="lock-controls-guide" style="margin-top: 14px;">
           <div class="guide-pill">
-            <span class="guide-key">Ритм рывка</span>
-            <span>Тянуть на долю секунды и отпускать</span>
+            <span class="guide-key">${isEn ? 'Tug Rhythm' : 'Ритм рывка'}</span>
+            <span>${isEn ? 'Tug briefly and release' : 'Тянуть на долю секунды и отпускать'}</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">Сопротивление</span>
-            <span>При высоком DC предмет выходит медленнее</span>
+            <span class="guide-key">${isEn ? 'Resistance' : 'Сопротивление'}</span>
+            <span>${isEn ? 'Higher DC items take more effort' : 'При высоком DC предмет выходит медленнее'}</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">👂 / 👁️ Замри!</span>
-            <span>Остановиться при повороте головы цели</span>
+            <span class="guide-key">${isEn ? 'Freeze!' : '👂 / 👁️ Замри!'}</span>
+            <span>${isEn ? 'Stop when target turns their head' : 'Остановиться при повороте головы цели'}</span>
           </div>
         </div>
       </div>
@@ -315,7 +325,9 @@ export class PickpocketGame {
 
     if (this.hudDcVal) this.hudDcVal.textContent = dc;
     if (this.hudLootName) {
-      this.hudLootName.textContent = lootDef.name.replace(/^[^\s]+\s*/, '');
+      const isEn = this.isEn();
+      const rawName = isEn ? (lootDef.name_en || lootDef.name) : lootDef.name;
+      this.hudLootName.textContent = rawName.replace(/^[^\s]+\s*/, '');
     }
   }
 
@@ -639,21 +651,28 @@ export class PickpocketGame {
 
   updateHUD() {
     if (!this.awarenessIcon || !this.awarenessStatus) return;
+    const isEn = this.isEn();
 
     if (this.targetState === 'DISTRACTED') {
       this.awarenessIcon.textContent = '🍺';
-      this.awarenessStatus.textContent = 'Отвлечён (Смотрит в зал / Пьет эль)';
+      this.awarenessStatus.textContent = isEn
+        ? 'Distracted (Looking away / Drinking ale)'
+        : 'Отвлечён (Смотрит в зал / Пьет эль)';
       this.awarenessStatus.style.color = '#22c55e';
       this.npcAwarenessBox?.classList.remove('suspicious', 'alert');
     } else if (this.targetState === 'SUSPICIOUS') {
       this.awarenessIcon.textContent = '👂';
-      this.awarenessStatus.textContent = 'НАСТОРОЖИЛСЯ! (Прислушивается... Замри!)';
+      this.awarenessStatus.textContent = isEn
+        ? 'ALERTED! (Listening closely... Freeze!)'
+        : 'НАСТОРОЖИЛСЯ! (Прислушивается... Замри!)';
       this.awarenessStatus.style.color = '#f59e0b';
       this.npcAwarenessBox?.classList.add('suspicious');
       this.npcAwarenessBox?.classList.remove('alert');
     } else {
       this.awarenessIcon.textContent = '👁️';
-      this.awarenessStatus.textContent = 'ПРОВЕРЯЕТ КАРМАНЫ! (Не шевелись!)';
+      this.awarenessStatus.textContent = isEn
+        ? 'CHECKING POCKETS! (Do not move!)'
+        : 'ПРОВЕРЯЕТ КАРМАНЫ! (Не шевелись!)';
       this.awarenessStatus.style.color = '#ef4444';
       this.npcAwarenessBox?.classList.remove('suspicious');
       this.npcAwarenessBox?.classList.add('alert');
@@ -1150,7 +1169,7 @@ export class PickpocketGame {
       ctx.fillStyle = '#ef4444';
       ctx.font = 'bold 12px Segoe UI, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('ХВАТКА!', cx, handY + 12);
+      ctx.fillText(this.isEn() ? 'GRIP!' : 'ХВАТКА!', cx, handY + 12);
     }
 
     ctx.restore();

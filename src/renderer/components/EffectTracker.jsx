@@ -1,6 +1,7 @@
 import React from 'react';
 import { Rnd } from 'react-rnd';
 import { Pin, PinOff, ChevronDown, ChevronUp, X, Sparkles, Plus, Trash2, Minus, FastForward } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 
 export default function EffectTracker({ 
   onClose, 
@@ -14,6 +15,8 @@ export default function EffectTracker({
   layout, 
   setLayout 
 }) {
+
+  const { t } = useTranslation();
 
   // --- ФУНКЦИИ УПРАВЛЕНИЯ СПИСКОМ ---
   const handleAddEffect = () => {
@@ -80,7 +83,7 @@ export default function EffectTracker({
       {/* 1. ШАПКА */}
       <div className="tracker-header">
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-          <Sparkles size={20} /> Эффекты
+          <Sparkles size={20} /> {t('modules.effects.title')}
         </h3>
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           <button onClick={() => setIsPinned(!isPinned)}>
@@ -100,9 +103,9 @@ export default function EffectTracker({
         
         {/* Заголовки столбцов */}
         <div style={{ display: 'flex', gap: '6px', padding: '0 8px 6px 8px', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 'bold', textTransform: 'uppercase' }}>
-          <div style={{ flex: 2 }}>Эффект</div>
-          <div style={{ flex: 2 }}>Цель</div>
-          <div style={{ width: '85px', textAlign: 'center' }}>Раунды</div>
+          <div style={{ flex: 2 }}>{t('modules.effects.effect')}</div>
+          <div style={{ flex: 2 }}>{t('modules.effects.target')}</div>
+          <div style={{ width: '85px', textAlign: 'center' }}>{t('modules.effects.rounds')}</div>
           <div style={{ width: '28px' }}></div>
         </div>
 
@@ -118,7 +121,7 @@ export default function EffectTracker({
                 
                 <input
                   type="text"
-                  placeholder="Напр. Сглаз"
+                  placeholder={t('modules.effects.namePlaceholder')}
                   value={e.name}
                   onChange={(evt) => handleUpdateEffect(e.id, 'name', evt.target.value)}
                   style={{ 
@@ -131,7 +134,7 @@ export default function EffectTracker({
                 
                 <input
                   type="text"
-                  placeholder="Гоблин 1"
+                  placeholder={t('modules.effects.targetPlaceholder')}
                   value={e.target}
                   onChange={(evt) => handleUpdateEffect(e.id, 'target', evt.target.value)}
                   style={{ 
@@ -180,7 +183,7 @@ export default function EffectTracker({
         {/* Кнопки управления внизу */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button className="sort-btn" onClick={handleAddEffect} style={{ flex: 1, margin: 0, padding: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-            <Plus size={16} /> Добавить
+            <Plus size={16} /> {t('modules.effects.add')}
           </button>
           
           <button 
@@ -193,7 +196,7 @@ export default function EffectTracker({
               color: 'white'
             }}
           >
-            <FastForward size={16} /> Раунд прошел
+            <FastForward size={16} /> {t('modules.effects.nextRound')}
           </button>
         </div>
 

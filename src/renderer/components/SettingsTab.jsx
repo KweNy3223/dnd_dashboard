@@ -1,5 +1,6 @@
 import React from 'react';
-import { Settings, Moon, Sun, Save, FolderOpen } from 'lucide-react';
+import { Settings, Moon, Sun, Save, FolderOpen, Globe } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 
 export default function SettingsTab({ 
   snapToGrid, 
@@ -8,14 +9,48 @@ export default function SettingsTab({
   setIsDarkTheme, 
   onSave 
 }) {
+  const { t, languageMode, setLanguageMode } = useTranslation();
+
   return (
     <div style={{ padding: '30px', color: 'var(--text-title)', maxWidth: '600px', margin: '0 auto' }}>
       <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-        <Settings size={24} /> Настройки дашборда
+        <Settings size={24} /> {t('settings.title')}
       </h2>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         
+        {/* --- НАСТРОЙКА 0: ЯЗЫК --- */}
+        <div style={{ 
+          backgroundColor: 'var(--bg-module)', 
+          padding: '20px', 
+          borderRadius: '8px', 
+          border: '1px solid var(--border-color)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '16px'
+        }}>
+          <div>
+            <h4 style={{ margin: '0 0 5px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Globe size={18} /> {t('language.label')}
+            </h4>
+            <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+              {t('language.description')}
+            </p>
+          </div>
+          <select
+            value={languageMode}
+            onChange={(e) => setLanguageMode(e.target.value)}
+            className="curtain-select filter-select"
+            style={{ minWidth: '170px' }}
+            aria-label={t('language.label')}
+          >
+            <option value="ru">{t('language.ru')}</option>
+            <option value="en">{t('language.en')}</option>
+            <option value="auto">{t('language.auto')}</option>
+          </select>
+        </div>
+
         {/* --- НАСТРОЙКА 1: ТЕМА --- */}
         <div style={{ 
           backgroundColor: 'var(--bg-module)', 
@@ -28,10 +63,10 @@ export default function SettingsTab({
         }}>
           <div>
             <h4 style={{ margin: '0 0 5px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {isDarkTheme ? <Moon size={18} /> : <Sun size={18} />} Внешний вид
+              {isDarkTheme ? <Moon size={18} /> : <Sun size={18} />} {t('settings.appearance')}
             </h4>
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
-              Переключение между светлой и темной темой
+              {t('settings.appearanceDesc')}
             </p>
           </div>
           <label className="toggle-switch">
@@ -55,9 +90,9 @@ export default function SettingsTab({
           alignItems: 'center'
         }}>
           <div>
-            <h4 style={{ margin: '0 0 5px 0' }}>Привязка к сетке</h4>
+            <h4 style={{ margin: '0 0 5px 0' }}>{t('settings.snapGrid')}</h4>
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
-              Модули будут перемещаться по невидимой сетке (шаг 50px)
+              {t('settings.snapGridDesc')}
             </p>
           </div>
           <label className="toggle-switch">
@@ -81,9 +116,9 @@ export default function SettingsTab({
           alignItems: 'center'
         }}>
           <div>
-            <h4 style={{ margin: '0 0 5px 0' }}>Данные дашборда</h4>
+            <h4 style={{ margin: '0 0 5px 0' }}>{t('settings.data')}</h4>
             <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
-              Сохранение и загрузка состояния модулей
+              {t('settings.dataDesc')}
             </p>
           </div>
           
@@ -93,7 +128,7 @@ export default function SettingsTab({
               className="sort-btn" 
               style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px' }}
             >
-              <FolderOpen size={16} /> Загрузить
+              <FolderOpen size={16} /> {t('common.load')}
             </button>
             
             <button 
@@ -109,7 +144,7 @@ export default function SettingsTab({
                 color: '#fff'
               }}
             >
-              <Save size={16} /> Сохранить
+              <Save size={16} /> {t('common.save')}
             </button>
           </div>
         </div>

@@ -1,0 +1,33 @@
+{
+  "prices": {
+    "title": "D&D 5e Price Handbook",
+    "searchPlaceholder": "Search items by name...",
+    "scopeAll": "All items",
+    "scopeCat": "In category",
+    "resetSearch": "Reset search",
+    "nothingFound": "Nothing found",
+    "byQuery": "for query",
+    "searchAllSections": "Search all categories ({count} matches)",
+    "searchScope": "Search scope:",
+    "scopeAllWithCount": "Everywhere ({count})",
+    "scopeCategoryWithCount": "In \"{category}\" ({count})",
+    "totalHandbook": "Total in handbook: {count} items",
+    "foundCount": "Items found: {count}",
+    "table": {
+      "name": "Item name",
+      "weight": "Weight (lb)",
+      "cost": "Cost"
+    },
+    "categories": {
+      "all": "All goods",
+      "tavernAndFood": "Tavern & Food",
+      "adventuringGear": "Adventuring Gear",
+      "weapons": "Weapons",
+      "armor": "Armor",
+      "tools": "Tools & Kits",
+      "mounts": "Mounts & Vehicles",
+      "tradeGoods": "Trade Goods",
+      "services": "Services & Expenses"
+    }
+  }
+}

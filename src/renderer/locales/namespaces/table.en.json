@@ -1,0 +1,77 @@
+{
+  "modules": {
+    "initiative": {
+      "title": "Initiative",
+      "name": "Name",
+      "init": "Init",
+      "initTitle": "Initiative",
+      "ac": "AC",
+      "acTitle": "Armor Class (AC)",
+      "hp": "HP",
+      "hpTitle": "Hit Points (HP)",
+      "add": "Add",
+      "sort": "Sort"
+    },
+    "dice": {
+      "title": "Dice Roller",
+      "result": "Result of {dice} roll:",
+      "prompt": "Choose a quantity and roll the dice",
+      "quantity": "Quantity",
+      "modifier": "Modifier",
+      "clearHistory": "Clear history"
+    },
+    "notes": {
+      "title": "Notes",
+      "placeholder": "Quest outlines, NPC names...",
+      "load": "Load",
+      "clear": "Clear"
+    },
+    "timer": {
+      "title": "Timer",
+      "minusMinute": "-1 min",
+      "minusTen": "-10 sec",
+      "plusTen": "+10 sec",
+      "plusMinute": "+1 min"
+    },
+    "effects": {
+      "title": "Effects",
+      "effect": "Effect",
+      "target": "Target",
+      "rounds": "Rounds",
+      "namePlaceholder": "E.g. Hex",
+      "targetPlaceholder": "Goblin 1",
+      "add": "Add",
+      "nextRound": "Round passed"
+    },
+    "boss": {
+      "title": "Boss",
+      "namePlaceholder": "Epic Enemy Name...",
+      "health": "HEALTH",
+      "legendaryResistances": "Leg. Resistances",
+      "legendaryActions": "Leg. Actions",
+      "restoreActions": "Restore actions"
+    }
+  },
+  "calculator": {
+    "title": "Loot Calculator",
+    "enterCoins": "Enter the coins you found:",
+    "clear": "Clear",
+    "totalValue": "Total value:",
+    "inPlatinum": "In platinum (pp):",
+    "inGold": "In gold (gp):",
+    "inElectrum": "In electrum (ep):",
+    "inSilver": "In silver (sp):",
+    "inCopper": "In copper (cp):",
+    "rates": "Reference: Exchange rates",
+    "ratePp": "1 pp (Platinum) = 10 gp = 1,000 cp",
+    "rateGp": "1 gp (Gold) = 2 ep = 10 sp = 100 cp",
+    "rateEp": "1 ep (Electrum) = 5 sp = 50 cp",
+    "rateSp": "1 sp (Silver) = 10 cp",
+    "rateCp": "1 cp (Copper) = base coin",
+    "pp": "pp (Platinum)",
+    "gp": "gp (Gold)",
+    "ep": "ep (Electrum)",
+    "sp": "sp (Silver)",
+    "cp": "cp (Copper)"
+  }
+}

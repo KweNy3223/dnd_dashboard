@@ -10,6 +10,7 @@
 
 import { audio } from '../audio.js';
 import { dnd } from '../dnd-engine.js';
+import { getCurrentLanguage } from '../../i18n/translate.js';
 
 // Типы элементов на секторах рунических колец
 export const NODE_TYPES = {
@@ -108,6 +109,10 @@ export class RunesGame {
     this.boundResize = this.setupCanvas.bind(this);
   }
 
+  isEn() {
+    return this.app?.language === 'en' || getCurrentLanguage() === 'en';
+  }
+
   init() {
     this.renderDOM();
     this.setupCanvas();
@@ -117,18 +122,21 @@ export class RunesGame {
   }
 
   renderDOM() {
+    const isEn = this.isEn();
     this.container.innerHTML = `
       <div class="stage-container runes-stage">
         <div class="stage-header">
-          <h2 class="stage-title">🔮 Магические руны: Арканная Цепь</h2>
-          <p class="stage-subtitle">Вращайте кольца печати, совмещая золотые желоба со светящимися лучами из ядра, чтобы замкнуть стихийные алтари.</p>
+          <h2 class="stage-title">${isEn ? '🔮 Arcane Runes: Conduits of Power' : '🔮 Магические руны: Арканная Цепь'}</h2>
+          <p class="stage-subtitle">${isEn ? 'Rotate ward rings, aligning golden conduits with mana beams from the core to empower elemental altars.' : 'Вращайте кольца печати, совмещая золотые желоба со светящимися лучами из ядра, чтобы замкнуть стихийные алтари.'}</p>
         </div>
 
         <!-- Подсказка для понимания правил -->
         <div class="runes-hint-banner">
           <span class="hint-icon">💡</span>
           <span class="hint-text">
-            <strong>Как играть:</strong> Мана бьёт из центрального ядра по 4 направлениям. Поворачивайте кольца, чтобы золотые стрелочки-шевроны провели ток к цветным стихийным алтарям на внешнем ободе. Колёсико мыши или стрелки вращают выбранное кольцо.
+            ${isEn
+              ? '<strong>How to play:</strong> Mana radiates from the central core in 4 directions. Rotate rings to channel mana currents through conduits to elemental altars on the outer rim. Mouse wheel or arrows rotate selected ring.'
+              : '<strong>Как играть:</strong> Мана бьёт из центрального ядра по 4 направлениям. Поворачивайте кольца, чтобы золотые стрелочки-шевроны провели ток к цветным стихийным алтарям на внешнем ободе. Колёсико мыши или стрелки вращают выбранное кольцо.'}
           </span>
         </div>
 
@@ -142,23 +150,23 @@ export class RunesGame {
           <div class="runes-controls-panel">
             <!-- Селектор колец -->
             <div class="ring-selector-hud">
-              <span class="hud-label">Выбор кольца печати:</span>
+              <span class="hud-label">${isEn ? 'Select Ward Ring:' : 'Выбор кольца печати:'}</span>
               <div class="ring-buttons" id="ringSelectorBtns"></div>
             </div>
 
             <div class="ring-turn-actions">
               <button type="button" class="btn fantasy-btn secondary turn-btn" id="btnRotateCCW">
-                <span>↺</span> Влево (45°)
+                <span>↺</span> ${isEn ? 'CCW (45°)' : 'Влево (45°)'}
               </button>
               <button type="button" class="btn fantasy-btn primary turn-btn" id="btnRotateCW">
-                <span>↻</span> Вправо (45°)
+                <span>↻</span> ${isEn ? 'CW (45°)' : 'Вправо (45°)'}
               </button>
             </div>
 
             <!-- Статус стихийных алтарей -->
             <div class="anchors-status-card" id="anchorsStatusBox">
               <div class="hud-header-row" style="margin-bottom: 6px;">
-                <span class="anchors-title">Стихийные алтари печати:</span>
+                <span class="anchors-title">${isEn ? 'Elemental Altars:' : 'Стихийные алтари печати:'}</span>
                 <span class="anchors-count-badge" id="anchorsCountBadge">0 / 0</span>
               </div>
               <div class="anchors-list" id="anchorsList"></div>
@@ -169,19 +177,19 @@ export class RunesGame {
         <div class="lock-controls-guide" style="margin-top: 14px;">
           <div class="guide-pill">
             <span class="guide-key">1, 2, 3</span>
-            <span>Выбор кольца</span>
+            <span>${isEn ? 'Select ring' : 'Выбор кольца'}</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">A / D или ← / →</span>
-            <span>Поворот кольца</span>
+            <span class="guide-key">${isEn ? 'A / D or ← / →' : 'A / D или ← / →'}</span>
+            <span>${isEn ? 'Rotate ring' : 'Поворот кольца'}</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">Колёсико мыши</span>
-            <span>Быстрое вращение</span>
+            <span class="guide-key">${isEn ? 'Mouse Wheel' : 'Колёсико мыши'}</span>
+            <span>${isEn ? 'Fast rotation' : 'Быстрое вращение'}</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">ЛКМ / Свайп</span>
-            <span>Вращение перетаскиванием</span>
+            <span class="guide-key">${isEn ? 'LMB / Swipe' : 'ЛКМ / Свайп'}</span>
+            <span>${isEn ? 'Drag to rotate' : 'Вращение перетаскиванием'}</span>
           </div>
         </div>
       </div>
@@ -316,12 +324,13 @@ export class RunesGame {
     // Ровно 3 концентрических кольца арканной печати (Внутреннее, Среднее, Внешнее)
     const numRings = 3;
 
+    const isEn = this.isEn();
     // Все 4 стихийных алтаря строго в кардинальных точках: 0° (Огонь), 90° (Вода), 180° (Земля), 270° (Буря)
     const allAnchors = [
-      { sector: 0, angle: 0, rune: '🔥', name: 'Алтарь Огня', defaultColor: '#ef4444', connected: false },
-      { sector: 2, angle: 90, rune: '💧', name: 'Алтарь Вод', defaultColor: '#06b6d4', connected: false },
-      { sector: 4, angle: 180, rune: '🌿', name: 'Алтарь Земли', defaultColor: '#10b981', connected: false },
-      { sector: 6, angle: 270, rune: '⚡', name: 'Алтарь Бури', defaultColor: '#f59e0b', connected: false }
+      { sector: 0, angle: 0, rune: '🔥', name: 'Алтарь Огня', name_en: 'Fire Altar', defaultColor: '#ef4444', connected: false },
+      { sector: 2, angle: 90, rune: '💧', name: 'Алтарь Вод', name_en: 'Water Altar', defaultColor: '#06b6d4', connected: false },
+      { sector: 4, angle: 180, rune: '🌿', name: 'Алтарь Земли', name_en: 'Earth Altar', defaultColor: '#10b981', connected: false },
+      { sector: 6, angle: 270, rune: '⚡', name: 'Алтарь Бури', name_en: 'Storm Altar', defaultColor: '#f59e0b', connected: false }
     ];
 
     // Число активных алтарей:
@@ -343,7 +352,7 @@ export class RunesGame {
     const totalAvailable = endR - startR - (numRings - 1) * gap;
     const ringThickness = Math.floor(totalAvailable / numRings);
 
-    const ringNames = ['Внутреннее', 'Среднее', 'Внешнее'];
+    const ringNames = isEn ? ['Inner', 'Middle', 'Outer'] : ['Внутреннее', 'Среднее', 'Внешнее'];
 
     // Построение гарантированного неконфликтующего решения
     let success = false;
@@ -354,7 +363,7 @@ export class RunesGame {
         const midR = (innerR + outerR) / 2;
         return {
           index: r,
-          name: ringNames[r] || `Кольцо ${r + 1}`,
+          name: ringNames[r] || (isEn ? `Ring ${r + 1}` : `Кольцо ${r + 1}`),
           innerR,
           outerR,
           midR,
@@ -750,22 +759,33 @@ export class RunesGame {
 
   renderAnchorsHUD() {
     if (!this.anchorsList) return;
+    const isEn = this.isEn();
     const connectedCount = this.anchors.filter(a => a.connected).length;
     if (this.anchorsCountBadge) {
       this.anchorsCountBadge.textContent = `${connectedCount} / ${this.anchors.length}`;
       this.anchorsCountBadge.style.color = connectedCount === this.anchors.length ? '#10b981' : '#e8c36a';
     }
 
-    this.anchorsList.innerHTML = this.anchors.map(a => `
-      <div class="anchor-status-item ${a.connected ? 'active' : ''}">
-        <span class="anchor-rune" style="color: ${a.defaultColor}">${a.rune}</span>
-        <div class="anchor-info-block">
-          <span class="anchor-name">${a.name}</span>
-          <span class="anchor-req">${a.connected ? 'Канал замкнут' : 'Ожидает поток маны'}</span>
+    this.anchorsList.innerHTML = this.anchors.map(a => {
+      const displayName = isEn ? (a.name_en || a.name) : a.name;
+      const statusText = a.connected
+        ? (isEn ? 'Conduit closed' : 'Канал замкнут')
+        : (isEn ? 'Awaiting mana flow' : 'Ожидает поток маны');
+      const badgeText = a.connected
+        ? (isEn ? '✓ Empowered' : '✓ Запитан')
+        : (isEn ? '○ Inactive' : '○ Нет связи');
+
+      return `
+        <div class="anchor-status-item ${a.connected ? 'active' : ''}">
+          <span class="anchor-rune" style="color: ${a.defaultColor}">${a.rune}</span>
+          <div class="anchor-info-block">
+            <span class="anchor-name">${displayName}</span>
+            <span class="anchor-req">${statusText}</span>
+          </div>
+          <span class="anchor-badge">${badgeText}</span>
         </div>
-        <span class="anchor-badge">${a.connected ? '✓ Запитан' : '○ Нет связи'}</span>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   // =========================================================================

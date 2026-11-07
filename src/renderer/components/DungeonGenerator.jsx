@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { 
   Compass, 
   Eye, 
@@ -22,13 +23,22 @@ import {
 } from '../data/dungeonData.js';
 
 export default function DungeonGenerator({ onSendToNotes }) {
+  const { t, language } = useTranslation();
+  const isEn = language === 'en';
+
   const [selectedTheme, setSelectedTheme] = useState('any');
   const [currentRoom, setCurrentRoom] = useState(() => {
     try {
       const cached = localStorage.getItem('dnd_active_room');
-      return cached ? JSON.parse(cached) : generateRandomDungeonRoom();
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.title_en && parsed.architecture_en) {
+          return parsed;
+        }
+      }
+      return generateRandomDungeonRoom('any', { language });
     } catch {
-      return generateRandomDungeonRoom();
+      return generateRandomDungeonRoom('any', { language });
     }
   });
 
@@ -42,6 +52,13 @@ export default function DungeonGenerator({ onSendToNotes }) {
   });
 
   const [copied, setCopied] = useState(false);
+
+  // Обновление локализованных полей при смене языка
+  useEffect(() => {
+    if (!currentRoom || !currentRoom.title_en || !currentRoom.architecture_en) {
+      setCurrentRoom(generateRandomDungeonRoom(selectedTheme, { language }));
+    }
+  }, [language]);
 
   useEffect(() => {
     if (currentRoom) {
@@ -64,7 +81,7 @@ export default function DungeonGenerator({ onSendToNotes }) {
   const handleGenerate = (forceRandom = false) => {
     const theme = forceRandom ? 'any' : selectedTheme;
     if (forceRandom) setSelectedTheme('any');
-    setCurrentRoom(generateRandomDungeonRoom(theme));
+    setCurrentRoom(generateRandomDungeonRoom(theme, { language }));
   };
 
   const isSaved = savedRooms.some(r => r.id === currentRoom?.id);
@@ -83,17 +100,45 @@ export default function DungeonGenerator({ onSendToNotes }) {
     setSavedRooms(savedRooms.filter(r => r.id !== id));
   };
 
+  // Локализованные поля текущей комнаты
+  const roomTitle = isEn ? (currentRoom?.title_en || currentRoom?.title) : (currentRoom?.title_ru || currentRoom?.title);
+  const roomThemeLabel = isEn ? (currentRoom?.themeLabel_en || currentRoom?.themeLabel) : (currentRoom?.themeLabel_ru || currentRoom?.themeLabel);
+  const roomSize = isEn ? (currentRoom?.size_en || currentRoom?.size) : (currentRoom?.size_ru || currentRoom?.size);
+  const roomArchitecture = isEn ? (currentRoom?.architecture_en || currentRoom?.architecture) : (currentRoom?.architecture_ru || currentRoom?.architecture);
+  const roomSight = isEn ? (currentRoom?.sight_en || currentRoom?.sight) : (currentRoom?.sight_ru || currentRoom?.sight);
+  const roomSound = isEn ? (currentRoom?.sound_en || currentRoom?.sound) : (currentRoom?.sound_ru || currentRoom?.sound);
+  const roomSmell = isEn ? (currentRoom?.smell_en || currentRoom?.smell) : (currentRoom?.smell_ru || currentRoom?.smell);
+  const roomFeature = isEn ? (currentRoom?.feature_en || currentRoom?.feature) : (currentRoom?.feature_ru || currentRoom?.feature);
+  const roomHazard = isEn ? (currentRoom?.hazard_en || currentRoom?.hazard) : (currentRoom?.hazard_ru || currentRoom?.hazard);
+  const roomTreasure = isEn ? (currentRoom?.treasure_en || currentRoom?.treasure) : (currentRoom?.treasure_ru || currentRoom?.treasure);
+
   const handleCopy = () => {
     if (!currentRoom) return;
-    const text = `🗝️ ПОДЗЕМЕЛЬЕ: ${currentRoom.title}\n` +
-      `📐 Размеры: ${currentRoom.size}\n` +
-      `🏛️ Архитектура: ${currentRoom.architecture}\n\n` +
-      `👁️ Зрение: ${currentRoom.sight}\n` +
-      `👂 Слух: ${currentRoom.sound}\n` +
-      `👃 Запах: ${currentRoom.smell}\n\n` +
-      `🧩 Интерактивный объект: ${currentRoom.feature}\n` +
-      `⚠️ Опасность / Ловушка: ${currentRoom.hazard}\n` +
-      `💎 Находка (Сл ${currentRoom.investigationDC}): ${currentRoom.treasure}`;
+    const text = isEn ? [
+      `🗝️ DUNGEON CHAMBER: ${roomTitle}`,
+      `📐 Dimensions: ${roomSize}`,
+      `🏛️ Architecture: ${roomArchitecture}`,
+      '',
+      `👁️ Sight & Light: ${roomSight}`,
+      `👂 Sound & Echo: ${roomSound}`,
+      `👃 Scent & Air: ${roomSmell}`,
+      '',
+      `🧩 Interactive Mechanism: ${roomFeature}`,
+      `⚠️ Trap / Hazard (Perception DC ${currentRoom.perceptionDC}): ${roomHazard}`,
+      `💎 Secret Discovery (Investigation DC ${currentRoom.investigationDC}): ${roomTreasure}`
+    ].join('\n') : [
+      `🗝️ ПОДЗЕМЕЛЬЕ: ${roomTitle}`,
+      `📐 Размеры: ${roomSize}`,
+      `🏛️ Архитектура: ${roomArchitecture}`,
+      '',
+      `👁️ Зрение: ${roomSight}`,
+      `👂 Слух: ${roomSound}`,
+      `👃 Запах: ${roomSmell}`,
+      '',
+      `🧩 Интерактивный объект: ${roomFeature}`,
+      `⚠️ Опасность / Ловушка (Сл ${currentRoom.perceptionDC}): ${roomHazard}`,
+      `💎 Находка (Сл ${currentRoom.investigationDC}): ${roomTreasure}`
+    ].join('\n');
 
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -102,16 +147,24 @@ export default function DungeonGenerator({ onSendToNotes }) {
 
   const handleSendRoomToNotes = () => {
     if (!currentRoom || !onSendToNotes) return;
-    const text = [
-      `【 🗝️ Комната подземелья: ${currentRoom.title} 】`,
-      `Размеры: ${currentRoom.size}`,
-      `Архитектура: ${currentRoom.architecture}`,
-      `Атмосфера: Зрение: ${currentRoom.sight} | Звук: ${currentRoom.sound} | Запах: ${currentRoom.smell}`,
-      `Интерактивный объект: ${currentRoom.feature}`,
-      `Опасность: ${currentRoom.hazard}`,
-      `Находка (Сл ${currentRoom.investigationDC}): ${currentRoom.treasure}`
+    const text = isEn ? [
+      `【 🗝️ Dungeon Chamber: ${roomTitle} 】`,
+      `Dimensions: ${roomSize}`,
+      `Architecture: ${roomArchitecture}`,
+      `Atmosphere: Sight: ${roomSight} | Sound: ${roomSound} | Scent: ${roomSmell}`,
+      `Interactive Feature: ${roomFeature}`,
+      `Hazard: ${roomHazard}`,
+      `Secret (DC ${currentRoom.investigationDC}): ${roomTreasure}`
+    ].join('\n') : [
+      `【 🗝️ Комната подземелья: ${roomTitle} 】`,
+      `Размеры: ${roomSize}`,
+      `Архитектура: ${roomArchitecture}`,
+      `Атмосфера: Зрение: ${roomSight} | Звук: ${roomSound} | Запах: ${roomSmell}`,
+      `Интерактивный объект: ${roomFeature}`,
+      `Опасность: ${roomHazard}`,
+      `Находка (Сл ${currentRoom.investigationDC}): ${roomTreasure}`
     ].join('\n');
-    onSendToNotes(text, currentRoom.title);
+    onSendToNotes(text, roomTitle);
   };
 
   return (
@@ -119,13 +172,13 @@ export default function DungeonGenerator({ onSendToNotes }) {
       {/* Шапка подраздела */}
       <div className="generators-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Compass size={26} color="var(--accent-primary)" />
+          <Compass size={26} color="#f2f3f5" />
           <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>
-            Генератор Комнат и Данжей
+            {t('generators.dungeon.title')}
           </h2>
         </div>
         <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Атмосферные залы подземелий: габариты, звуки и запахи, интерактивные механизмы, опасности и секреты.
+          {t('generators.dungeon.desc')}
         </p>
       </div>
 
@@ -133,14 +186,16 @@ export default function DungeonGenerator({ onSendToNotes }) {
       <div className="generators-toolbar">
         <div className="filters-group">
           <div className="filter-item">
-            <label>Тип подземелья:</label>
+            <label>{t('generators.dungeon.theme')}</label>
             <select 
               value={selectedTheme} 
               onChange={(e) => setSelectedTheme(e.target.value)}
               className="curtain-select filter-select"
             >
               {DUNGEON_THEMES.map(theme => (
-                <option key={theme.id} value={theme.id}>{theme.label}</option>
+                <option key={theme.id} value={theme.id}>
+                  {isEn ? (theme.label_en || theme.label) : theme.label}
+                </option>
               ))}
             </select>
           </div>
@@ -152,15 +207,15 @@ export default function DungeonGenerator({ onSendToNotes }) {
             className="trials-btn primary gen-main-btn"
             onClick={() => handleGenerate(false)}
           >
-            <Dices size={18} /> Сгенерировать зал
+            <Dices size={18} /> {t('generators.dungeon.generateBtn')}
           </button>
           <button 
             type="button" 
             className="trials-btn secondary"
             onClick={() => handleGenerate(true)}
-            title="Случайная тема"
+            title={isEn ? 'Random dungeon theme' : 'Случайная тема'}
           >
-            <RotateCcw size={16} /> Рандом
+            <RotateCcw size={16} /> {t('generators.actions.fullRandom')}
           </button>
         </div>
       </div>
@@ -178,11 +233,11 @@ export default function DungeonGenerator({ onSendToNotes }) {
                 <span className="npc-race-emoji">🗝️</span>
               </div>
               <div className="npc-title-box">
-                <h3 className="npc-name">{currentRoom.title}</h3>
+                <h3 className="npc-name">{roomTitle}</h3>
                 <div className="npc-meta-row">
-                  <span className="npc-tag highlight">{currentRoom.themeLabel}</span>
+                  <span className="npc-tag highlight">{roomThemeLabel}</span>
                   <span className="npc-tag" style={{ color: '#38bdf8', borderColor: 'rgba(56, 189, 248, 0.3)' }}>
-                    {currentRoom.size}
+                    {roomSize}
                   </span>
                 </div>
               </div>
@@ -192,15 +247,15 @@ export default function DungeonGenerator({ onSendToNotes }) {
                   type="button" 
                   className={`trials-btn secondary icon-btn ${isSaved ? 'active' : ''}`}
                   onClick={toggleSaveRoom}
-                  title={isSaved ? 'Удалить из сохраненных' : 'Сохранить комнату'}
+                  title={isSaved ? (isEn ? 'Remove from saved' : 'Удалить из сохраненных') : (isEn ? 'Bookmark chamber' : 'Сохранить комнату')}
                 >
-                  <Bookmark size={17} color={isSaved ? 'var(--accent-gold)' : 'currentColor'} />
+                  <Bookmark size={17} color={isSaved ? '#f2f3f5' : 'currentColor'} />
                 </button>
                 <button 
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={handleSendRoomToNotes}
-                  title="Отправить комнату в Заметки на Стол"
+                  title={isEn ? 'Send chamber description to DM Notes' : 'Отправить комнату в Заметки на Стол'}
                 >
                   <FileText size={17} />
                 </button>
@@ -208,7 +263,7 @@ export default function DungeonGenerator({ onSendToNotes }) {
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={handleCopy}
-                  title="Скопировать описание"
+                  title={isEn ? 'Copy chamber description' : 'Скопировать описание'}
                 >
                   {copied ? <Check size={17} color="#22c55e" /> : <Copy size={17} />}
                 </button>
@@ -216,7 +271,7 @@ export default function DungeonGenerator({ onSendToNotes }) {
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={() => handleGenerate(false)}
-                  title="Сгенерировать заново"
+                  title={isEn ? 'Reroll chamber' : 'Сгенерировать заново'}
                 >
                   <RotateCcw size={17} />
                 </button>
@@ -226,43 +281,43 @@ export default function DungeonGenerator({ onSendToNotes }) {
             {/* Архитектура */}
             <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px 16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-primary)', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>
-                <Ruler size={16} /> Архитектура и кладка
+                <Ruler size={16} /> {isEn ? 'Architecture & Masonry' : 'Архитектура и кладка'}
               </div>
               <p style={{ margin: 0, color: 'var(--text-title)', fontSize: '14px', lineHeight: '1.5' }}>
-                {currentRoom.architecture}
+                {roomArchitecture}
               </p>
             </div>
 
             {/* Атмосфера 3 чувств */}
             <div>
               <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Sparkles size={16} color="var(--accent-gold)" /> Атмосфера чувств
+                <Sparkles size={16} color="#949ba4" /> {t('generators.dungeon.senses')}
               </h4>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                 <div style={{ backgroundColor: 'var(--bg-app)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#facc15', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>
-                    <Eye size={14} /> Зрение и Свет
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-title)', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>
+                    <Eye size={14} /> {isEn ? 'Sight & Light' : 'Зрение и Свет'}
                   </div>
                   <div style={{ fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
-                    {currentRoom.sight}
+                    {roomSight}
                   </div>
                 </div>
 
                 <div style={{ backgroundColor: 'var(--bg-app)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>
-                    <Volume2 size={14} /> Звуки и Эхо
+                    <Volume2 size={14} /> {isEn ? 'Sounds & Echo' : 'Звуки и Эхо'}
                   </div>
                   <div style={{ fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
-                    {currentRoom.sound}
+                    {roomSound}
                   </div>
                 </div>
 
                 <div style={{ backgroundColor: 'var(--bg-app)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', fontSize: '12px', fontWeight: 'bold', marginBottom: '4px' }}>
-                    <Wind size={14} /> Запах и Воздух
+                    <Wind size={14} /> {isEn ? 'Scent & Air' : 'Запах и Воздух'}
                   </div>
                   <div style={{ fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
-                    {currentRoom.smell}
+                    {roomSmell}
                   </div>
                 </div>
               </div>
@@ -271,10 +326,10 @@ export default function DungeonGenerator({ onSendToNotes }) {
             {/* Интерактивный объект и механизм */}
             <div style={{ backgroundColor: 'rgba(56, 189, 248, 0.08)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: 'bold', fontSize: '14px', marginBottom: '6px' }}>
-                <Puzzle size={17} /> Интерактивный объект / Механизм
+                <Puzzle size={17} /> {t('generators.dungeon.feature')}
               </div>
               <p style={{ margin: 0, color: 'var(--text-title)', fontSize: '14px', lineHeight: '1.5' }}>
-                {currentRoom.feature}
+                {roomFeature}
               </p>
             </div>
 
@@ -282,19 +337,19 @@ export default function DungeonGenerator({ onSendToNotes }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
               <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>
-                  <AlertTriangle size={16} /> Ловушка (Внимательность Сл {currentRoom.perceptionDC})
+                  <AlertTriangle size={16} /> {isEn ? `Trap (Perception DC ${currentRoom.perceptionDC})` : `Ловушка (Внимательность Сл ${currentRoom.perceptionDC})`}
                 </div>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
-                  {currentRoom.hazard}
+                  {roomHazard}
                 </p>
               </div>
 
-              <div style={{ backgroundColor: 'rgba(212, 175, 55, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>
-                  <Sparkles size={16} /> Скрытый тайник (Анализ Сл {currentRoom.investigationDC})
+              <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-title)', fontWeight: 'bold', fontSize: '13px', marginBottom: '6px' }}>
+                  <Sparkles size={16} /> {isEn ? `Secret Cache (Investigation DC ${currentRoom.investigationDC})` : `Скрытый тайник (Анализ Сл ${currentRoom.investigationDC})`}
                 </div>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
-                  {currentRoom.treasure}
+                  {roomTreasure}
                 </p>
               </div>
             </div>
@@ -306,9 +361,9 @@ export default function DungeonGenerator({ onSendToNotes }) {
         <div className="saved-npcs-sidebar">
           <div className="saved-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bookmark size={16} color="var(--accent-gold)" />
+              <Bookmark size={16} color="#949ba4" />
               <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)' }}>
-                Залы подземелья ({savedRooms.length})
+                {t('generators.dungeon.notepad', { count: savedRooms.length })}
               </h4>
             </div>
             {savedRooms.length > 0 && (
@@ -316,45 +371,52 @@ export default function DungeonGenerator({ onSendToNotes }) {
                 type="button" 
                 className="clean-btn" 
                 onClick={() => setSavedRooms([])}
-                title="Очистить список"
+                title={t('common.clear')}
               >
-                Очистить
+                {t('common.clear')}
               </button>
             )}
           </div>
 
           <p style={{ margin: '4px 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.35' }}>
-            Сохраняйте описания комнат для построения карты приключения.
+            {isEn 
+              ? 'Save chamber descriptions to build a comprehensive dungeon map.'
+              : 'Сохраняйте описания комнат для построения карты приключения.'}
           </p>
 
           <div className="saved-list">
             {savedRooms.length === 0 ? (
               <div className="saved-empty-state">
                 <span>🗝️</span>
-                <p>Нажмите значок закладки, чтобы сохранить зал в план данжа.</p>
+                <p>{t('generators.dungeon.notepadEmpty')}</p>
               </div>
             ) : (
-              savedRooms.map(item => (
-                <div 
-                  key={item.id} 
-                  className={`saved-npc-item ${currentRoom?.id === item.id ? 'active' : ''}`}
-                  onClick={() => setCurrentRoom(item)}
-                >
-                  <span className="item-icon">🗝️</span>
-                  <div className="item-info">
-                    <span className="item-name">{item.title}</span>
-                    <span className="item-meta">{item.themeLabel} • {item.size.split('(')[0]}</span>
-                  </div>
-                  <button 
-                    type="button" 
-                    className="item-delete-btn" 
-                    onClick={(e) => removeSavedRoom(item.id, e)}
-                    title="Удалить"
+              savedRooms.map(item => {
+                const sTitle = isEn ? (item.title_en || item.title) : (item.title_ru || item.title);
+                const sTheme = isEn ? (item.themeLabel_en || item.themeLabel) : (item.themeLabel_ru || item.themeLabel);
+                const sSize = isEn ? (item.size_en || item.size) : (item.size_ru || item.size);
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`saved-npc-item ${currentRoom?.id === item.id ? 'active' : ''}`}
+                    onClick={() => setCurrentRoom(item)}
                   >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))
+                    <span className="item-icon">🗝️</span>
+                    <div className="item-info">
+                      <span className="item-name">{sTitle}</span>
+                      <span className="item-meta">{sTheme} • {sSize.split('(')[0]}</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="item-delete-btn" 
+                      onClick={(e) => removeSavedRoom(item.id, e)}
+                      title={t('common.delete') || 'Удалить'}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

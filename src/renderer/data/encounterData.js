@@ -1,20 +1,31 @@
+import {
+  ENCOUNTER_TYPES_EN,
+  BIOMES_EN,
+  DIFFICULTY_LABELS_EN,
+  HAZARDS_EN,
+  TRAVEL_EVENTS_EN,
+  MONSTERS_EN,
+  TACTICAL_COMPLICATIONS_EN,
+  ENEMY_TACTICS_EN
+} from './encounterDataEn.js';
+
 // База данных для Генератора энкаунтеров, боевых столкновений и непредвиденных ситуаций D&D 5e
 
 export const ENCOUNTER_TYPES = [
-  { id: 'any', label: '🎲 Любой энкаунтер' },
-  { id: 'combat', label: '⚔️ Боевая стычка' },
-  { id: 'hazard', label: '⛰️ Природное бедствие / Опасность' },
-  { id: 'event', label: '🧭 Дорожное происшествие / Встреча' }
+  { id: 'any', label: '🎲 Любой энкаунтер', label_en: '🎲 Any Encounter' },
+  { id: 'combat', label: '⚔️ Боевая стычка', label_en: '⚔️ Combat Ambush' },
+  { id: 'hazard', label: '⛰️ Природное бедствие / Опасность', label_en: '⛰️ Environmental Hazard' },
+  { id: 'event', label: '🧭 Дорожное происшествие / Встреча', label_en: '🧭 Travel Event / Encounter' }
 ];
 
 export const BIOMES = [
-  { id: 'any', label: 'Любая местность' },
-  { id: 'mountain', label: 'Горы и перевалы' },
-  { id: 'forest', label: 'Дремучий лес' },
-  { id: 'dungeon', label: 'Подземелье и катакомбы' },
-  { id: 'swamp', label: 'Гиблое болото' },
-  { id: 'urban', label: 'Город и подворотни' },
-  { id: 'ruins', label: 'Древние руины' }
+  { id: 'any', label: 'Любая местность', label_en: 'Any environment' },
+  { id: 'mountain', label: 'Горы и перевалы', label_en: 'Mountains & High Passes' },
+  { id: 'forest', label: 'Дремучий лес', label_en: 'Deep Forest & Woods' },
+  { id: 'dungeon', label: 'Подземелье и катакомбы', label_en: 'Dungeons & Catacombs' },
+  { id: 'swamp', label: 'Гиблое болото', label_en: 'Fetid Swamps & Bogs' },
+  { id: 'urban', label: 'Город и подворотни', label_en: 'City Alleys & Slums' },
+  { id: 'ruins', label: 'Древние руины', label_en: 'Ancient Ruins' }
 ];
 
 // 1. ПРИРОДНЫЕ ОПАСНОСТИ И КАТАСТРОФЫ (Hazards)
@@ -316,7 +327,7 @@ export const ENEMY_TACTICS = [
   'Фанатичны до конца: дерутся насмерть, пытаясь утащить за собой хотя бы одного врага.'
 ];
 
-export function calculateEncounterDifficulty(partySize, partyLevel, monsters) {
+export function calculateEncounterDifficulty(partySize, partyLevel, monsters, isEn = false) {
   const levelData = XP_THRESHOLDS[Math.min(20, Math.max(1, partyLevel))] || XP_THRESHOLDS[1];
   const partyThresholds = {
     easy: levelData.easy * partySize,
@@ -337,23 +348,37 @@ export function calculateEncounterDifficulty(partySize, partyLevel, monsters) {
 
   const adjustedXP = Math.round(rawXP * multiplier);
 
-  let difficulty = 'Легко';
+  let difficultyRu = 'Легко';
+  let difficultyEn = 'Easy';
   let badgeColor = '#22c55e';
   if (adjustedXP >= partyThresholds.deadly) {
-    difficulty = 'Смертельно';
+    difficultyRu = 'Смертельно';
+    difficultyEn = 'Deadly';
     badgeColor = '#ef4444';
   } else if (adjustedXP >= partyThresholds.hard) {
-    difficulty = 'Опасно';
+    difficultyRu = 'Опасно';
+    difficultyEn = 'Hard';
     badgeColor = '#f97316';
   } else if (adjustedXP >= partyThresholds.medium) {
-    difficulty = 'Средне';
+    difficultyRu = 'Средне';
+    difficultyEn = 'Medium';
     badgeColor = '#eab308';
   }
 
-  return { rawXP, adjustedXP, difficulty, badgeColor, partyThresholds };
+  return { 
+    rawXP, 
+    adjustedXP, 
+    difficulty: isEn ? difficultyEn : difficultyRu,
+    difficulty_ru: difficultyRu,
+    difficulty_en: difficultyEn,
+    badgeColor, 
+    partyThresholds 
+  };
 }
 
-export function generateRandomEncounter(type = 'any', biome = 'any', partySize = 4, partyLevel = 3) {
+export function generateRandomEncounter(type = 'any', biome = 'any', partySize = 4, partyLevel = 3, options = {}) {
+  const isEn = options.language === 'en';
+
   // Выбираем тип
   let chosenType = type;
   if (chosenType === 'any') {
@@ -369,75 +394,164 @@ export function generateRandomEncounter(type = 'any', biome = 'any', partySize =
   }
 
   const biomeObj = BIOMES.find(b => b.id === chosenBiome);
-  const biomeLabel = biomeObj ? biomeObj.label : 'Дикая местность';
+  const biomeLabelRu = biomeObj ? biomeObj.label : 'Дикая местность';
+  const biomeLabelEn = BIOMES_EN[chosenBiome] || (biomeObj?.label_en || biomeLabelRu);
 
   // 1. ПРИРОДНОЕ БЕДСТВИЕ / ОПАСНОСТЬ (Hazard)
   if (chosenType === 'hazard') {
-    const list = HAZARDS_BY_BIOME[chosenBiome] || HAZARDS_BY_BIOME.mountain;
-    const item = list[Math.floor(Math.random() * list.length)];
+    const listRu = HAZARDS_BY_BIOME[chosenBiome] || HAZARDS_BY_BIOME.mountain;
+    const listEn = HAZARDS_EN[chosenBiome] || HAZARDS_EN.mountain;
+    const idx = Math.floor(Math.random() * listRu.length);
+    const itemRu = listRu[idx];
+    const itemEn = listEn[idx] || itemRu;
 
     return {
       id: `hazard_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       type: 'hazard',
-      typeLabel: 'Природное бедствие',
-      title: item.title,
+      typeLabel: isEn ? 'Environmental Hazard' : 'Природное бедствие',
+      typeLabel_ru: 'Природное бедствие',
+      typeLabel_en: 'Environmental Hazard',
+      title: isEn ? itemEn.title : itemRu.title,
+      title_ru: itemRu.title,
+      title_en: itemEn.title,
       biome: chosenBiome,
-      biomeLabel,
-      hazardLevel: item.hazardLevel,
-      dc: item.dc,
-      trigger: item.trigger,
-      description: item.description,
-      checks: item.checks,
-      consequences: item.consequences,
-      countermeasures: item.countermeasures
+      biomeLabel: isEn ? biomeLabelEn : biomeLabelRu,
+      biomeLabel_ru: biomeLabelRu,
+      biomeLabel_en: biomeLabelEn,
+      hazardLevel: isEn ? itemEn.hazardLevel : itemRu.hazardLevel,
+      hazardLevel_ru: itemRu.hazardLevel,
+      hazardLevel_en: itemEn.hazardLevel,
+      dc: itemRu.dc,
+      trigger: isEn ? itemEn.trigger : itemRu.trigger,
+      trigger_ru: itemRu.trigger,
+      trigger_en: itemEn.trigger,
+      description: isEn ? itemEn.description : itemRu.description,
+      description_ru: itemRu.description,
+      description_en: itemEn.description,
+      checks: (itemRu.checks || []).map((c, cIdx) => ({
+        skill: isEn ? (itemEn.checks?.[cIdx]?.skill || c.skill) : c.skill,
+        skill_ru: c.skill,
+        skill_en: itemEn.checks?.[cIdx]?.skill || c.skill,
+        effect: isEn ? (itemEn.checks?.[cIdx]?.effect || c.effect) : c.effect,
+        effect_ru: c.effect,
+        effect_en: itemEn.checks?.[cIdx]?.effect || c.effect
+      })),
+      consequences: isEn ? itemEn.consequences : itemRu.consequences,
+      consequences_ru: itemRu.consequences,
+      consequences_en: itemEn.consequences,
+      countermeasures: isEn ? itemEn.countermeasures : itemRu.countermeasures,
+      countermeasures_ru: itemRu.countermeasures,
+      countermeasures_en: itemEn.countermeasures
     };
   }
 
   // 2. ДОРОЖНОЕ ПРОИСШЕСТВИЕ (Event)
   if (chosenType === 'event') {
-    const list = TRAVEL_EVENTS_BY_BIOME[chosenBiome] || TRAVEL_EVENTS_BY_BIOME.mountain;
-    const item = list[Math.floor(Math.random() * list.length)];
+    const listRu = TRAVEL_EVENTS_BY_BIOME[chosenBiome] || TRAVEL_EVENTS_BY_BIOME.mountain;
+    const listEn = TRAVEL_EVENTS_EN[chosenBiome] || TRAVEL_EVENTS_EN.mountain;
+    const idx = Math.floor(Math.random() * listRu.length);
+    const itemRu = listRu[idx];
+    const itemEn = listEn[idx] || itemRu;
 
     return {
       id: `event_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       type: 'event',
-      typeLabel: 'Дорожное происшествие',
-      title: item.title,
+      typeLabel: isEn ? 'Travel Event' : 'Дорожное происшествие',
+      typeLabel_ru: 'Дорожное происшествие',
+      typeLabel_en: 'Travel Event',
+      title: isEn ? itemEn.title : itemRu.title,
+      title_ru: itemRu.title,
+      title_en: itemEn.title,
       biome: chosenBiome,
-      biomeLabel,
-      vibe: item.vibe,
-      description: item.description,
-      dilemma: item.dilemma,
-      reward: item.reward
+      biomeLabel: isEn ? biomeLabelEn : biomeLabelRu,
+      biomeLabel_ru: biomeLabelRu,
+      biomeLabel_en: biomeLabelEn,
+      vibe: isEn ? itemEn.vibe : itemRu.vibe,
+      vibe_ru: itemRu.vibe,
+      vibe_en: itemEn.vibe,
+      description: isEn ? itemEn.description : itemRu.description,
+      description_ru: itemRu.description,
+      description_en: itemEn.description,
+      dilemma: isEn ? itemEn.dilemma : itemRu.dilemma,
+      dilemma_ru: itemRu.dilemma,
+      dilemma_en: itemEn.dilemma,
+      reward: isEn ? itemEn.reward : itemRu.reward,
+      reward_ru: itemRu.reward,
+      reward_en: itemEn.reward
     };
   }
 
   // 3. БОЕВАЯ СТЫЧКА (Combat)
-  const pool = MONSTERS_BY_BIOME[chosenBiome] || MONSTERS_BY_BIOME.forest;
-  const leaderCandidate = pool[Math.floor(Math.random() * pool.length)];
-  const minionCandidate = pool.filter(m => m.name !== leaderCandidate.name)[0] || pool[0];
+  const poolRu = MONSTERS_BY_BIOME[chosenBiome] || MONSTERS_BY_BIOME.forest;
+  const poolEn = MONSTERS_EN[chosenBiome] || MONSTERS_EN.forest;
+  const leadIdx = Math.floor(Math.random() * poolRu.length);
+  const minIdx = (leadIdx + 1) % poolRu.length;
+
+  const leadRu = poolRu[leadIdx];
+  const leadEn = poolEn[leadIdx] || leadRu;
+  const minRu = poolRu[minIdx];
+  const minEn = poolEn[minIdx] || minRu;
+
+  const minCount = Math.floor(Math.random() * 3) + 2;
 
   const roster = [
-    { ...leaderCandidate, count: 1 },
-    { ...minionCandidate, count: Math.floor(Math.random() * 3) + 2 }
+    {
+      ...leadRu,
+      count: 1,
+      name: isEn ? leadEn.name : leadRu.name,
+      name_ru: leadRu.name,
+      name_en: leadEn.name,
+      role: isEn ? leadEn.role : leadRu.role,
+      role_ru: leadRu.role,
+      role_en: leadEn.role
+    },
+    {
+      ...minRu,
+      count: minCount,
+      name: isEn ? minEn.name : minRu.name,
+      name_ru: minRu.name,
+      name_en: minEn.name,
+      role: isEn ? minEn.role : minRu.role,
+      role_ru: minRu.role,
+      role_en: minEn.role
+    }
   ];
 
-  const analysis = calculateEncounterDifficulty(partySize, partyLevel, roster);
-  const complication = TACTICAL_COMPLICATIONS[Math.floor(Math.random() * TACTICAL_COMPLICATIONS.length)];
-  const tactics = ENEMY_TACTICS[Math.floor(Math.random() * ENEMY_TACTICS.length)];
+  const analysis = calculateEncounterDifficulty(partySize, partyLevel, roster, isEn);
+
+  const compIdx = Math.floor(Math.random() * TACTICAL_COMPLICATIONS.length);
+  const compRu = TACTICAL_COMPLICATIONS[compIdx];
+  const compEn = TACTICAL_COMPLICATIONS_EN[compIdx] || compRu;
+
+  const tactIdx = Math.floor(Math.random() * ENEMY_TACTICS.length);
+  const tactRu = ENEMY_TACTICS[tactIdx];
+  const tactEn = ENEMY_TACTICS_EN[tactIdx] || tactRu;
+
+  const titleRu = `Засада: ${roster.map(r => `${r.count}x ${r.name_ru}`).join(' и ')}`;
+  const titleEn = `Ambush: ${roster.map(r => `${r.count}x ${r.name_en}`).join(' and ')}`;
 
   return {
     id: `combat_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     type: 'combat',
-    typeLabel: 'Боевая стычка',
-    title: `Засада: ${roster.map(r => `${r.count}x ${r.name}`).join(' и ')}`,
+    typeLabel: isEn ? 'Combat Ambush' : 'Боевая стычка',
+    typeLabel_ru: 'Боевая стычка',
+    typeLabel_en: 'Combat Ambush',
+    title: isEn ? titleEn : titleRu,
+    title_ru: titleRu,
+    title_en: titleEn,
     biome: chosenBiome,
-    biomeLabel,
+    biomeLabel: isEn ? biomeLabelEn : biomeLabelRu,
+    biomeLabel_ru: biomeLabelRu,
+    biomeLabel_en: biomeLabelEn,
     partySize,
     partyLevel,
     roster,
-    complication,
-    tactics,
+    complication: isEn ? compEn : compRu,
+    complication_ru: compRu,
+    complication_en: compEn,
+    tactics: isEn ? tactEn : tactRu,
+    tactics_ru: tactRu,
+    tactics_en: tactEn,
     ...analysis
   };
 }

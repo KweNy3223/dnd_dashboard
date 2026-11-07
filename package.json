@@ -1,6 +1,6 @@
 {
   "name": "dnd_dashboard",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "All-in-one desktop assistant for D&D 5e Dungeon Masters featuring interactive trials, procedural generators, audio synthesis, and DM table tools",
   "author": "KweNy",
   "license": "MIT",

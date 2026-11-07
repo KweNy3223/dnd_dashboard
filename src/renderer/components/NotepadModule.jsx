@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { Pin, PinOff, ChevronDown, ChevronUp, X, StickyNote, Save, FolderOpen, Trash2 } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 export default function NotepadModule({ onClose, text, setText, isPinned, setIsPinned, isMinimized, setIsMinimized, snapToGrid, layout, setLayout }) {
 
+  const { t } = useTranslation();
   const fileInputRef = useRef(null);
 
   const handleSave = () => {
@@ -62,7 +64,7 @@ export default function NotepadModule({ onClose, text, setText, isPinned, setIsP
     >
         <div className="tracker-header">
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                <StickyNote size={20} /> Заметки
+                <StickyNote size={20} /> {t('modules.notes.title')}
             </h3>
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                 <button onClick={() => setIsPinned(!isPinned)}>
@@ -83,7 +85,7 @@ export default function NotepadModule({ onClose, text, setText, isPinned, setIsP
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Наброски квестов, имена NPC..."
+            placeholder={t('modules.notes.placeholder')}
             style={{
               flex: 1,
               backgroundColor: 'var(--bg-input)',
@@ -106,10 +108,10 @@ export default function NotepadModule({ onClose, text, setText, isPinned, setIsP
             </button>
             <input type="file" ref={fileInputRef} onChange={handleLoad} style={{ display: 'none' }} accept=".txt" />
             <button className="sort-btn" onClick={() => fileInputRef.current.click()} style={{ flex: 1, margin: 0, padding: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              <FolderOpen size={16} /> Загрузить
+              <FolderOpen size={16} /> {t('modules.notes.load')}
             </button>
             <button className="sort-btn" onClick={() => setText('')} style={{ flex: 1, margin: 0, padding: '8px 0', backgroundColor: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              <Trash2 size={16} /> Очистить
+              <Trash2 size={16} /> {t('modules.notes.clear')}
             </button>
           </div>
         </div>

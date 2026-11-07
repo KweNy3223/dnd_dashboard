@@ -1,13 +1,19 @@
+import { 
+  DUNGEON_THEMES_EN, 
+  ROOM_SIZES_EN, 
+  THEME_DETAILS_EN 
+} from './dungeonDataEn.js';
+
 // База данных для Генератора комнат подземелий и атмосферы (Dungeon Room Generator)
 
 export const DUNGEON_THEMES = [
-  { id: 'any', label: 'Любая тема' },
-  { id: 'crypt', label: 'Древний склеп' },
-  { id: 'temple', label: 'Забытое святилище' },
-  { id: 'cave', label: 'Пещера и логово' },
-  { id: 'fortress', label: 'Заброшенная крепость' },
-  { id: 'lab', label: 'Магическая лаборатория' },
-  { id: 'catacombs', label: 'Катакомбы и стоки' }
+  { id: 'any', label: 'Любая тема', label_en: 'Any Theme' },
+  { id: 'crypt', label: 'Древний склеп', label_en: 'Ancient Crypt' },
+  { id: 'temple', label: 'Забытое святилище', label_en: 'Forgotten Temple & Shrine' },
+  { id: 'cave', label: 'Пещера и логово', label_en: 'Cavern & Monster Lair' },
+  { id: 'fortress', label: 'Заброшенная крепость', label_en: 'Abandoned Stronghold' },
+  { id: 'lab', label: 'Магическая лаборатория', label_en: 'Arcane Alchemical Laboratory' },
+  { id: 'catacombs', label: 'Катакомбы и стоки', label_en: 'Catacombs & Sewers' }
 ];
 
 export const ROOM_SIZES = [
@@ -82,30 +88,60 @@ export const THEME_DETAILS = {
   }
 };
 
-export function generateRandomDungeonRoom(theme = 'any') {
+export function generateRandomDungeonRoom(theme = 'any', options = {}) {
+  const isEn = options.language === 'en';
   const chosenTheme = theme === 'any'
     ? DUNGEON_THEMES.filter(t => t.id !== 'any')[Math.floor(Math.random() * (DUNGEON_THEMES.length - 1))].id
     : theme;
 
-  const data = THEME_DETAILS[chosenTheme] || THEME_DETAILS.crypt;
-  const title = data.titles[Math.floor(Math.random() * data.titles.length)];
-  const size = ROOM_SIZES[Math.floor(Math.random() * ROOM_SIZES.length)];
+  const dataRu = THEME_DETAILS[chosenTheme] || THEME_DETAILS.crypt;
+  const dataEn = THEME_DETAILS_EN[chosenTheme] || THEME_DETAILS_EN.crypt;
+
+  const titleIdx = Math.floor(Math.random() * dataRu.titles.length);
+  const titleRu = dataRu.titles[titleIdx];
+  const titleEn = dataEn.titles[titleIdx] || titleRu;
+
+  const sizeIdx = Math.floor(Math.random() * ROOM_SIZES.length);
+  const sizeRu = ROOM_SIZES[sizeIdx];
+  const sizeEn = ROOM_SIZES_EN[sizeIdx] || sizeRu;
 
   const themeObj = DUNGEON_THEMES.find(t => t.id === chosenTheme);
+  const themeLabelRu = themeObj ? themeObj.label : 'Подземелье';
+  const themeLabelEn = DUNGEON_THEMES_EN[chosenTheme] || (themeObj?.label_en || themeLabelRu);
 
   return {
     id: `room_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     theme: chosenTheme,
-    themeLabel: themeObj ? themeObj.label : 'Подземелье',
-    title: title,
-    size: size,
-    architecture: data.architecture,
-    sight: data.sight,
-    sound: data.sound,
-    smell: data.smell,
-    feature: data.feature,
-    hazard: data.hazard,
-    treasure: data.treasure,
+    themeLabel: isEn ? themeLabelEn : themeLabelRu,
+    themeLabel_ru: themeLabelRu,
+    themeLabel_en: themeLabelEn,
+    title: isEn ? titleEn : titleRu,
+    title_ru: titleRu,
+    title_en: titleEn,
+    size: isEn ? sizeEn : sizeRu,
+    size_ru: sizeRu,
+    size_en: sizeEn,
+    architecture: isEn ? dataEn.architecture : dataRu.architecture,
+    architecture_ru: dataRu.architecture,
+    architecture_en: dataEn.architecture,
+    sight: isEn ? dataEn.sight : dataRu.sight,
+    sight_ru: dataRu.sight,
+    sight_en: dataEn.sight,
+    sound: isEn ? dataEn.sound : dataRu.sound,
+    sound_ru: dataRu.sound,
+    sound_en: dataEn.sound,
+    smell: isEn ? dataEn.smell : dataRu.smell,
+    smell_ru: dataRu.smell,
+    smell_en: dataEn.smell,
+    feature: isEn ? dataEn.feature : dataRu.feature,
+    feature_ru: dataRu.feature,
+    feature_en: dataEn.feature,
+    hazard: isEn ? dataEn.hazard : dataRu.hazard,
+    hazard_ru: dataRu.hazard,
+    hazard_en: dataEn.hazard,
+    treasure: isEn ? dataEn.treasure : dataRu.treasure,
+    treasure_ru: dataRu.treasure,
+    treasure_en: dataEn.treasure,
     perceptionDC: Math.floor(Math.random() * 5) + 11, // DC 11-15
     investigationDC: Math.floor(Math.random() * 5) + 12 // DC 12-16
   };

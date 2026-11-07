@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
+import {
   LayoutDashboard, 
   Swords, 
   Store, 
@@ -13,9 +13,12 @@ import {
   Moon,
   Sun
 } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
+import logoSvg from '../assets/logo.svg';
 
 export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme }) {
   const location = useLocation();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -29,24 +32,24 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
       <aside className={`app-sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-brand">
-            <span className="sidebar-crest">⚜️</span>
+            <img src={logoSvg} alt="logo" style={{ width: '22px', height: '22px' }} />
             <div>
-              <h3 className="sidebar-title">DnD Suite</h3>
-              <span className="sidebar-subtitle">Инструменты Мастера</span>
+              <h3 className="sidebar-title">{t('app.brand')}</h3>
+              <span className="sidebar-subtitle">{t('app.subtitle')}</span>
             </div>
           </div>
           <button 
             type="button" 
             className="sidebar-close-btn" 
             onClick={onClose} 
-            title="Закрыть меню"
+            title={t('sidebar.closeMenu')}
           >
             <X size={20} />
           </button>
         </div>
 
         <nav className="sidebar-nav">
-          <div className="sidebar-section-label">ОСНОВНОЕ</div>
+          <div className="sidebar-section-label">{t('sidebar.main')}</div>
 
           <NavLink 
             to="/" 
@@ -54,7 +57,7 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
             onClick={onClose}
           >
             <LayoutDashboard size={19} className="sidebar-icon" />
-            <span>Стол Мастера</span>
+            <span>{t('sidebar.table')}</span>
           </NavLink>
 
           <NavLink 
@@ -63,7 +66,7 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
             onClick={onClose}
           >
             <Swords size={19} className="sidebar-icon" />
-            <span>Мастерская Испытаний</span>
+            <span>{t('sidebar.trials')}</span>
           </NavLink>
 
           <NavLink 
@@ -72,10 +75,10 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
             onClick={onClose}
           >
             <Sparkles size={19} className="sidebar-icon" />
-            <span>Генераторы</span>
+            <span>{t('sidebar.generators')}</span>
           </NavLink>
 
-          <div className="sidebar-section-label">СПРАВОЧНИКИ</div>
+          <div className="sidebar-section-label">{t('sidebar.reference')}</div>
 
           <NavLink 
             to="/prices" 
@@ -83,7 +86,7 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
             onClick={onClose}
           >
             <Store size={19} className="sidebar-icon" />
-            <span>Лавка и Цены</span>
+            <span>{t('sidebar.prices')}</span>
           </NavLink>
 
           <NavLink 
@@ -92,7 +95,7 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
             onClick={onClose}
           >
             <Calculator size={19} className="sidebar-icon" />
-            <span>Калькулятор лута</span>
+            <span>{t('sidebar.calculator')}</span>
           </NavLink>
 
           <NavLink 
@@ -101,10 +104,10 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
             onClick={onClose}
           >
             <BookOpen size={19} className="sidebar-icon" />
-            <span>Справочник D&D 5e</span>
+            <span>{t('sidebar.rules')}</span>
           </NavLink>
 
-          <div className="sidebar-section-label">СИСТЕМА</div>
+          <div className="sidebar-section-label">{t('sidebar.system')}</div>
 
           <NavLink 
             to="/settings" 
@@ -112,14 +115,14 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
             onClick={onClose}
           >
             <Settings size={19} className="sidebar-icon" />
-            <span>Настройки</span>
+            <span>{t('sidebar.settings')}</span>
           </NavLink>
         </nav>
 
         <div className="sidebar-footer">
           <div className="sidebar-footer-row">
             <span className="status-dot"></span>
-            <span className="session-status">Сессия активна</span>
+            <span className="session-status">{t('sidebar.sessionActive')}</span>
           </div>
 
           {onToggleTheme && (
@@ -127,10 +130,10 @@ export default function Sidebar({ isOpen, onClose, isDarkTheme, onToggleTheme })
               type="button" 
               className="sidebar-theme-toggle" 
               onClick={onToggleTheme}
-              title="Переключить тему оформления"
+              title={t('sidebar.toggleTheme')}
             >
               {isDarkTheme ? <Sun size={17} /> : <Moon size={17} />}
-              <span>{isDarkTheme ? 'Светлая тема' : 'Темная тема'}</span>
+              <span>{isDarkTheme ? t('sidebar.lightTheme') : t('sidebar.darkTheme')}</span>
             </button>
           )}
         </div>

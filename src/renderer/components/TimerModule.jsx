@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Rnd } from 'react-rnd';
 import { Hourglass, Pin, PinOff, ChevronDown, ChevronUp, X, Play, Square, RotateCcw } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 
 export default function TimerModule({
   onClose,
@@ -12,6 +13,7 @@ export default function TimerModule({
   layout,
   setLayout
 }) {
+  const { t } = useTranslation();
   // --- ПАМЯТЬ ТАЙМЕРА ---
   const [timeLeft, setTimeLeft] = useState(300); // 300 секунд = 5 минут
   const [isRunning, setIsRunning] = useState(false);
@@ -113,7 +115,7 @@ export default function TimerModule({
       {/* 1. ШАПКА */}
       <div className="tracker-header">
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-          <Hourglass size={20} /> Таймер
+          <Hourglass size={20} /> {t('modules.timer.title')}
         </h3>
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           <button onClick={() => setIsPinned(!isPinned)}>
@@ -155,20 +157,20 @@ export default function TimerModule({
               color: 'white'
             }}
           >
-            {isRunning ? <><Square size={16}/> Пауза</> : <><Play size={16}/> Пуск</>}
+            {isRunning ? <><Square size={16}/> {t('common.pause')}</> : <><Play size={16}/> {t('common.start')}</>}
           </button>
           
           <button onClick={resetTimer} className="sort-btn" style={{ flex: 1, margin: 0, display: 'flex', justifyContent: 'center', gap: '6px' }}>
-            <RotateCcw size={16}/> Сброс
+            <RotateCcw size={16}/> {t('common.reset')}
           </button>
         </div>
 
         {/* Быстрое добавление/убавление времени */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-          <button onClick={() => addTime(-60)} className="sort-btn" style={{ flex: 1, margin: 0, padding: '6px 2px', fontSize: '12px' }}>-1 мин</button>
-          <button onClick={() => addTime(-10)} className="sort-btn" style={{ flex: 1, margin: 0, padding: '6px 2px', fontSize: '12px' }}>-10 сек</button>
-          <button onClick={() => addTime(10)} className="sort-btn" style={{ flex: 1, margin: 0, padding: '6px 2px', fontSize: '12px' }}>+10 сек</button>
-          <button onClick={() => addTime(60)} className="sort-btn" style={{ flex: 1, margin: 0, padding: '6px 2px', fontSize: '12px' }}>+1 мин</button>
+          <button onClick={() => addTime(-60)} className="sort-btn" style={{ flex: 1, margin: 0, padding: '6px 2px', fontSize: '12px' }}>{t('modules.timer.minusMinute')}</button>
+          <button onClick={() => addTime(-10)} className="sort-btn" style={{ flex: 1, margin: 0, padding: '6px 2px', fontSize: '12px' }}>{t('modules.timer.minusTen')}</button>
+          <button onClick={() => addTime(10)} className="sort-btn" style={{ flex: 1, margin: 0, padding: '6px 2px', fontSize: '12px' }}>{t('modules.timer.plusTen')}</button>
+          <button onClick={() => addTime(60)} className="sort-btn" style={{ flex: 1, margin: 0, padding: '6px 2px', fontSize: '12px' }}>{t('modules.timer.plusMinute')}</button>
         </div>
 
       </div>

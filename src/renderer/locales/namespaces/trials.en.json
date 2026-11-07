@@ -1,0 +1,81 @@
+{
+  "trials": {
+    "games": {
+      "lockpick": "Lockpicking",
+      "trap": "Trap Disarming",
+      "runes": "Arcane Runes",
+      "pickpocket": "Pickpocketing",
+      "alchemy": "Alchemy & Brewing"
+    },
+    "hud": {
+      "target": "Target:",
+      "dc": "DC {dc}",
+      "modifier": "Modifier: {mod}",
+      "alchemyBadge": "🧪 D&D 5e Alchemy",
+      "picks": "Lockpicks:",
+      "durabilityTitle": "Current lockpick durability",
+      "striker": "Trap Striker:",
+      "strikerTitle": "Striker cocking meter: 3 clicks before detonation!",
+      "noise": "Noise Level:",
+      "quiet": "Quiet",
+      "suspicious": "Suspicious",
+      "alert": "ALERT!"
+    },
+    "curtain": {
+      "title": "DM Curtain (Challenge Setup)",
+      "openTitle": "Open DM setup panel",
+      "closeTitle": "Close curtain and hand controls to player",
+      "gameSelection": "Select Challenge:",
+      "tierPresets": "Difficulty Tier:",
+      "tier1": "Tier 1 (Lvl 1–4 Adventurers)",
+      "tier2": "Tier 2 (Lvl 5–10 Heroes)",
+      "tier3": "Tier 3 (Lvl 11–16 Masters)",
+      "tier4": "Tier 4 (Lvl 17–20 Legends)",
+      "manualDC": "Check Difficulty (DC):",
+      "manualBonus": "Player Check Bonus (Dex / Thieves' Tools):",
+      "challengeTarget": "Story Challenge Target:",
+      "challengeNamePlaceholder": "Chest name, lock, trap...",
+      "challengeDescPlaceholder": "Description for the player...",
+      "randomize": "🎲 Generate New Challenge",
+      "specialParams": "Special Challenge Settings",
+      "lockpicksStock": "Player lockpick stock:",
+      "pcs": "pcs.",
+      "stealthNoise": "Guard alertness / noise meter (Stealth):",
+      "stealthNotice": "ℹ️ Lockpicks bend and break under excessive pressure. When stealth is on, rattling fills the guard alert meter.",
+      "trapMechanism": "Trap Mechanism Type:",
+      "trapTripwire": "🏹 Tripwire Crossbow (Tension Wire)",
+      "trapGear": "⚙️ Clockwork Gearwork (Locking Wedges)",
+      "trapPlate": "⚖️ Counterweight Plate (Sand Balancer)",
+      "trapGas": "🧪 Poison Gas Dispenser (Pressure & Valve)",
+      "trapSafety": "Striker Safety Fuse:",
+      "trapSafetyVal": "3 clicks until detonation.",
+      "trapDamage": "Detonation Damage:",
+      "trapNotice": "ℹ️ Traps require steady hands in the active trigger zone. Fumbles advance the striker toward trigger detonation.",
+      "runesInfo": "3 concentric circles (Inner, Middle, Outer).",
+      "runesControls": "Keys 1, 2, 3 — select ring; A/D or scroll wheel — rotate.",
+      "runesNotice": "ℹ️ Mana radiates from the central core in 4 directions. Align conduits to connect colored elemental altars.",
+      "pickpocketStealth": "Victim alertness meter (Stealth):",
+      "pickpocketNotice": "ℹ️ Carefully slide the item out of the target's pocket. Jerky motions or grazing the pocket edge raise suspicion.",
+      "alchemyRecipe": "D&D 5e Potion Recipe:",
+      "alchemyNotice": "ℹ️ Scaled to D&D canon: potent brews demand strict temperature corridors, complex steps, and carry high spoiling risk.",
+      "rollD20": "Roll d20",
+      "rolling": "Rolling...",
+      "d20Result": "d20 Roll Result:",
+      "handOffBtn": "📜 Hand Screen to Player (Close Curtain & Start)"
+    },
+    "result": {
+      "timeElapsed": "Time Elapsed:",
+      "retry": "Retry",
+      "close": "Close",
+      "potionBrewed": "Brewed: {name} ({effect})"
+    },
+    "help": {
+      "title": "📜 Challenge Guide: {game}",
+      "lockGoal": "Turn the cylinder all the way (90°) by finding the lock's sweet spot angle.",
+      "lockControls": "Move mouse or finger across the canvas to aim the lockpick. Press and hold SPACE or Left Mouse Button to turn cylinder.",
+      "lockTip": "Higher character bonus widens the sweet spot and increases pick durability. Release tension when pick shivers to avoid breaking it!",
+      "trapGoal": "Disarm one of 4 authentic D&D traps (chosen by the DM) before the striker's 3rd click.",
+      "strikerRule": "Critical slips advance the striker by 1 notch. On the 3rd click the trap triggers instantly!"
+    }
+  }
+}

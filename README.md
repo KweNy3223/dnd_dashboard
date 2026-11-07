@@ -1,6 +1,8 @@
+> **[ 🇬🇧 Read in English ](README.md) | [ 🇷🇺 На русском ](README.ru.md)**
+
 # ⚜️ DnD Dashboard — Master Suite
 
-**Единый десктопный набор инструментов для Мастера D&D 5e:** интерактивный Стол, Мастерская Испытаний с процедурным звуком, генераторы контента и справочники — всё в одном приложении.
+**All-in-one desktop companion for D&D 5e Dungeon Masters:** interactive DM Table, physical Trials Workshop with procedural audio, content generators, and SRD 5e references — all in a sleek, modern desktop app.
 
 [![Electron](https://img.shields.io/badge/Electron-42-47848F?logo=electron&logoColor=white)](https://www.electronjs.org/)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
@@ -10,158 +12,115 @@
 
 ---
 
-## ✨ Ключевые возможности
+## ✨ Features
 
-### 🎲 Стол Мастера
+### 🎲 DM Table
+A modular workspace where each tool is a draggable, resizable card with persistent state and layout:
+- **Initiative Tracker** — tracks initiative order, AC, current/max HP, and conditions.
+- **Dice Roller** — roll any formula (`5d8 + 4`, `2d20kh1`) with roll history.
+- **Scratchpad (Notes)** — quick notes with autosave, JSON scene export & import.
+- **Session Timer** — countdown timer with audio alert.
+- **Effect Tracker** — track spell concentration and condition durations round by round.
+- **Boss Tracker** — epic health bar, legendary resistances, and legendary actions.
 
-Модульная рабочая область, где каждый инструмент — перетаскиваемая карточка с сохранением позиции и размера.
+### ⚔️ Trials Workshop (Interactive Skill Checks)
+Five physical mini-games for roleplaying skill checks instead of flat d20 rolls, powered by **procedural Web Audio API sound synthesis**:
 
-- **Трекер инициативы** — инициатива, КД, хиты и состояния участников.
-- **Кубики** — броски любых комбинаций (`5d8 + 4`) с историей результатов.
-- **Заметки (Scratchpad)** — быстрое автосохранение, экспорт и импорт сцены в JSON.
-- **Таймер** — отсчёт времени для напряжённых сцен.
-- **Трекер эффектов** — длительность состояний и эффектов по раундам.
-- **Босс-трекер** — полоса хитов, легендарные действия и сопротивления.
-- **Очистка стола** — в один клик с подтверждением.
-
-### ⚔️ Мастерская Испытаний
-
-Пять мини-игр для отыгрыша проверок навыков, а не простого броска кубика. Каждое действие сопровождается процедурным звуком, синтезированным через **Web Audio API**.
-
-| Испытание | Механика |
+| Trial | Mechanic |
 | --- | --- |
-| 🗝️ **Взлом замков** | Skyrim-механика: отмычка и шпилька, контроль натяжения |
-| 🎒 **Карманная кража** | Живой поворот взгляда NPC, натяжение пояса |
-| 💣 **Обезвреживание ловушек** | Растяжка, весы нажимной плиты, поворотный шплинт, ядовитый газ с манометром |
-| 🔮 **Рунные цепи** | Концентрические кольца и потоки стихий |
-| 🧪 **Алхимия** | Каноничные рецепты D&D 5e, огонь и балансировка трав |
+| 🗝️ **Lockpicking** | Skyrim-inspired lock kinematics: pick angle, tension wrench control, pick breakage |
+| 🎒 **Pickpocketing** | Target vigilance, living NPC eye tracking, belt tension & grab timing |
+| 💣 **Trap Disarming** | 4 mechanisms: tripwire, clockwork gearwork, balance scale plate, poison gas manometer |
+| 🔮 **Arcane Runes** | Concentric puzzle rings, conduit alignment, elemental flow balancing |
+| 🧪 **Alchemy & Brewing** | Canonical D&D 5e potion recipes, crucible heat control, reagent balance |
 
-**Панель Мастера:** настройка СЛ/DC, тайные броски, ручной ввод результата, пресеты сложности и сюжетные описания испытаний.
+**DM Curtain:** Set custom DC, character bonuses, roll behind the screen, or hand off control to players.
 
-### ✨ Генераторы контента
+### 📜 Procedural Content Generators
+- **NPC Generator** — 18 races, 49 professions, 24 voice-acting profiles with speech mannerisms, secrets, and session bookmarking.
+- **Taverns & Inns** — ambience, local rumors, food & drink menus with Constitution saving throws, lodging tiers.
+- **Shops & Merchants** — district wealth scaling, showcase items, secret counter lots, security checks.
+- **Quests & Bounties** — hooks, objectives, twists, and rewards.
+- **Encounters** — combat, social, travel hazards, and weather events by biome.
+- **Dungeon Rooms** — architecture, sensory details, hazards, and room dressing.
+- **Loot & Treasures** — scaled by encounter CR, art objects, gems, and coins.
 
-- **NPC** — 18 рас, 49 профессий, 24 характера голоса с советами по отыгрышу и секретами.
-- **Таверны и трактиры** — атмосфера, слухи, меню еды и напитков с эффектами спасбросков телосложения, постояльцы.
-- **Лавки и торговцы** — районы, витрина, секретный лот под прилавком, охрана.
-- **Квесты** — заказы с целями, наградами и осложнениями.
-- **Энкаунтеры** — боевые, социальные и природные столкновения.
-- **Комнаты подземелья** — описания, атмосфера и опасности.
-- **Сокровища и лут** — награды, соответствующие уровню и типу добычи.
+**One-Click Table Integration:** Send monsters directly to the Initiative Tracker and notes/loot straight to the Scratchpad via toast notifications.
 
-### 🔗 Связка со Столом
-
-Мгновенный перенос результатов генераторов прямо в рабочие модули:
-
-- монстры из энкаунтера → **Инициатива**;
-- описания квестов, NPC, комнат и сокровищ → **Заметки**;
-- всплывающие тосты с быстрым переходом на Стол.
-
-### 📚 Справочники
-
-- **Интерактивный поиск правил 5e** — состояния, бой, укрытия, истощение, отдых, концентрация и многое другое.
-- **Справочник цен** — предметы, снаряжение и стоимость.
-- **Калькулятор лута** — быстрый расчёт добычи.
-
-### 🎨 Интерфейс
-
-- Discord-style дизайн: тёмная тема `#1e1f22`, карточки `#2b2d31`, акцентное золото.
-- Выезжающий сайдбар, вкладки разделов и светлая тема.
-- Все данные хранятся локально — ничего не отправляется в сеть.
+### 📖 References & Calculators
+- **D&D 5e Rules Reference** — live search across conditions, combat actions, cover, exhaustion, rest, and concentration.
+- **Price Handbook** — canonical prices for adventuring gear, weapons, armor, mounts, and services.
+- **Loot Calculator** — party loot splitting and coin weight conversion.
 
 ---
 
-## 🖼️ Скриншоты
+## 🖼️ Screenshots
 
-| Стол Мастера | Мастерская Испытаний |
-| --- | --- |
-| ![Стол Мастера](docs/screenshots/master-table.png) | ![Мастерская Испытаний](docs/screenshots/trials-workshop.png) |
+| DM Table | Trials Workshop |
+| :---: | :---: |
+| ![DM Table](docs/screenshots/master-table.png) | ![Trials Workshop](docs/screenshots/trials-workshop.png) |
 
-| Генератор NPC | Генератор таверн |
-| --- | --- |
-| ![Генератор NPC](docs/screenshots/generator-npc.png) | ![Генератор таверн](docs/screenshots/generator-tavern.png) |
+| NPC Generator | Tavern & Inn Generator |
+| :---: | :---: |
+| ![NPC Generator](docs/screenshots/generator-npc.png) | ![Tavern Generator](docs/screenshots/generator-tavern.png) |
 
-| Генератор энкаунтеров | Справочник правил |
-| --- | --- |
-| ![Генератор энкаунтеров](docs/screenshots/generator-encounters.png) | ![Справочник правил](docs/screenshots/rules.png) |
+| Encounter Generator | Rules & Reference Guide |
+| :---: | :---: |
+| ![Encounter Generator](docs/screenshots/generator-encounters.png) | ![Rules Reference](docs/screenshots/rules.png) |
 
 ---
 
-## 🚀 Установка и запуск
+## 🎨 Design System
+- **Modern Dark Theme:** Deep slate `#1e1f22`, card surfaces `#2b2d31`, clean typography.
+- **Frameless Dark Titlebar:** native Windows controls overlay integrated directly into the top navigation.
+- **Bilingual Interface:** Automatic system language detection (`ru` for Russian OS, `en` for all other languages) with instant manual switching in Settings.
 
-### Требования
+---
 
-- [Node.js](https://nodejs.org/) 20 или новее
-- npm 9 или новее
-- Windows 10/11 (для сборки `.exe`)
+## 🧱 Tech Stack
 
-### Запуск из исходников
+- **Electron 42** — Cross-platform desktop shell.
+- **React 19** — Reactive UI and modular state management.
+- **Vite 7 + electron-vite 5** — Fast bundling and hot module replacement.
+- **React Router 7** — Fluid tab-based navigation.
+- **react-rnd** — Free-form draggable and resizable DM Table cards.
+- **lucide-react** — Minimalist fantasy & tabletop iconography.
+- **Web Audio API** — Real-time procedural audio synthesis for all skill trials (zero static audio files).
+- **Pure CSS3** — Handcrafted modern dark design system without bulky external UI frameworks.
 
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) (version 18 or higher)
+- npm / yarn
+
+### Installation & Development
 ```bash
+# 1. Clone repository
 git clone https://github.com/KweNy3223/dnd_dashboard.git
 cd dnd_dashboard
+
+# 2. Install dependencies
 npm install
+
+# 3. Start development server with live preview
 npm start
-```
 
-### Сборка
-
-```bash
-# Сборка веб-части приложения в папку out/
+# 4. Build web bundle
 npm run build
 
-# Сборка установщика Windows (.exe) в папку dist/
+# 5. Build Windows installer (.exe)
 npm run build:win
 ```
 
-После `npm run build:win` в папке `dist/` появится установщик вида `DnD Dashboard Setup 2.0.0.exe` — его можно запускать без установленного Node.js.
+---
+
+## 📦 Releases & Downloads
+Prebuilt Windows `.exe` installers are available under the [Releases](https://github.com/KweNy3223/dnd_dashboard/releases) tab. No Node.js or installation steps required!
 
 ---
 
-## 🧱 Технологический стек
-
-- **Electron 42** — десктопная оболочка.
-- **React 19** — интерфейс и логика модулей.
-- **Vite 7 + electron-vite 5** — сборка и горячая перезагрузка.
-- **React Router 7** — навигация между разделами.
-- **react-rnd** — перетаскиваемые и изменяемые модули Стола.
-- **lucide-react** — иконки.
-- **Web Audio API** — процедурный звук в Мастерской Испытаний.
-- **CSS** — собственная Discord-style тема без внешних UI-библиотек.
-
----
-
-## 📁 Структура проекта
-
-```text
-dnd_dashboard/
-├── src/
-│   ├── main/                 # Electron main process
-│   ├── preload/              # Preload-скрипты
-│   └── renderer/
-│       ├── components/       # Модули Стола, генераторы, справочники
-│       ├── data/             # Базы NPC, таверн, лавок, квестов, лута
-│       ├── trials/           # Движок испытаний, мини-игры и аудио
-│       ├── renderer.jsx      # Точка входа React-приложения
-│       ├── index.html        # HTML-шаблон
-│       └── styles.css        # Дизайн-система приложения
-├── scripts/                  # Скрипты сборки баз данных
-├── docs/screenshots/         # Скриншоты для документации
-├── package.json
-└── LICENSE
-```
-
----
-
-## 🤝 Участие в разработке
-
-Идеи, баг-репорты и pull request'ы приветствуются. Если нашли проблему — создайте [issue](https://github.com/KweNy3223/dnd_dashboard/issues) с описанием шагов воспроизведения.
-
----
-
-## 📄 Лицензия
-
-Проект распространяется под лицензией **MIT**. Подробности — в файле [LICENSE](LICENSE).
-
----
-
-**DnD Dashboard — Master Suite** · Сделано для Мастеров, которые любят атмосферные сессии.
+## 📄 License
+This project is licensed under the [MIT License](LICENSE).

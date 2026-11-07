@@ -9,39 +9,40 @@
 
 import { audio } from '../audio.js';
 import { dnd } from '../dnd-engine.js';
+import { getCurrentLanguage } from '../../i18n/translate.js';
 
 // =========================================================================
 // --- БАЗА ИНГРЕДИЕНТОВ D&D 5E ---
 // =========================================================================
 export const ALL_REAGENTS = {
-  sweet_root: { id: 'sweet_root', name: 'Корень колючника', icon: '🌾', color: '#fde68a' },
-  goodberry: { id: 'goodberry', name: 'Ягоды добродрева', icon: '🍒', color: '#dc2626' },
-  ironbark_resin: { id: 'ironbark_resin', name: 'Смола железнодерева', icon: '🪵', color: '#78350f' },
-  spider_silk: { id: 'spider_silk', name: 'Нити паучьего шёлка', icon: '🕸️', color: '#e2e8f0' },
-  elf_blossom: { id: 'elf_blossom', name: 'Эльфийский первоцвет', icon: '🌸', color: '#f472b6' },
-  gold_root: { id: 'gold_root', name: 'Золотой корень', icon: '✨', color: '#fbbf24' },
-  gillyweed: { id: 'gillyweed', name: 'Жаброросль глубин', icon: '🌿', color: '#10b981' },
-  triton_scale: { id: 'triton_scale', name: 'Лазурная чешуя тритона', icon: '🐟', color: '#06b6d4' },
-  salamander_ash: { id: 'salamander_ash', name: 'Пепел саламандры', icon: '🔥', color: '#ea580c' },
-  magma_resin: { id: 'magma_resin', name: 'Магматическая смола', icon: '🌋', color: '#b91c1c' },
-  ogre_bone: { id: 'ogre_bone', name: 'Костяной порошок огра', icon: '🦴', color: '#cbd5e1' },
-  troll_blood: { id: 'troll_blood', name: 'Кровь тролля', icon: '🩸', color: '#991b1b' },
-  shadow_moss: { id: 'shadow_moss', name: 'Призрачный мох', icon: '🔮', color: '#8b5cf6' },
-  phase_essence: { id: 'phase_essence', name: 'Эссенция фазового паука', icon: '🌌', color: '#6366f1' },
-  moon_dew: { id: 'moon_dew', name: 'Лунная роса', icon: '🌙', color: '#38bdf8' },
-  griffon_feather: { id: 'griffon_feather', name: 'Перо грифона', icon: '🪶', color: '#eab308' },
-  holy_oil: { id: 'holy_oil', name: 'Освящённый елей', icon: '🏺', color: '#fef08a' },
-  lightning_salt: { id: 'lightning_salt', name: 'Молниеносная соль', icon: '⚡', color: '#3b82f6' },
-  quicksilver_root: { id: 'quicksilver_root', name: 'Ртутный корень', icon: '🌪️', color: '#94a3b8' },
-  pegasus_down: { id: 'pegasus_down', name: 'Пух пегаса', icon: '🪽', color: '#f8fafc' },
-  meteor_dust: { id: 'meteor_dust', name: 'Метеоритная пыль', icon: '☄️', color: '#64748b' },
-  phoenix_tear: { id: 'phoenix_tear', name: 'Слеза феникса', icon: '💫', color: '#f97316' },
-  diamond_dust: { id: 'diamond_dust', name: 'Алмазная пыль', icon: '💎', color: '#67e8f9' },
-  forest_berry: { id: 'forest_berry', name: 'Лесные ягоды ласки', icon: '🍓', color: '#f43f5e' },
-  giant_mushroom: { id: 'giant_mushroom', name: 'Гриб-великаноборец', icon: '🍄', color: '#e11d48' },
-  vapor_spore: { id: 'vapor_spore', name: 'Споры эфирного тумана', icon: '🌫️', color: '#cbd5e1' },
-  adamantine_flake: { id: 'adamantine_flake', name: 'Адамантиновая стружка', icon: '🛡️', color: '#334155' },
-  storm_core: { id: 'storm_core', name: 'Ядро грозовой тучи', icon: '⛈️', color: '#2563eb' }
+  sweet_root: { id: 'sweet_root', name: 'Корень колючника', name_en: 'Sweet Root', icon: '🌾', color: '#fde68a' },
+  goodberry: { id: 'goodberry', name: 'Ягоды добродрева', name_en: 'Goodberry', icon: '🍒', color: '#dc2626' },
+  ironbark_resin: { id: 'ironbark_resin', name: 'Смола железнодерева', name_en: 'Ironbark Resin', icon: '🪵', color: '#78350f' },
+  spider_silk: { id: 'spider_silk', name: 'Нити паучьего шёлка', name_en: 'Spider Silk Threads', icon: '🕸️', color: '#e2e8f0' },
+  elf_blossom: { id: 'elf_blossom', name: 'Эльфийский первоцвет', name_en: 'Elven Primrose', icon: '🌸', color: '#f472b6' },
+  gold_root: { id: 'gold_root', name: 'Золотой корень', name_en: 'Gold Root', icon: '✨', color: '#fbbf24' },
+  gillyweed: { id: 'gillyweed', name: 'Жаброросль глубин', name_en: 'Deep Gillyweed', icon: '🌿', color: '#10b981' },
+  triton_scale: { id: 'triton_scale', name: 'Лазурная чешуя тритона', name_en: 'Azure Triton Scale', icon: '🐟', color: '#06b6d4' },
+  salamander_ash: { id: 'salamander_ash', name: 'Пепел саламандры', name_en: 'Salamander Ash', icon: '🔥', color: '#ea580c' },
+  magma_resin: { id: 'magma_resin', name: 'Магматическая смола', name_en: 'Magma Resin', icon: '🌋', color: '#b91c1c' },
+  ogre_bone: { id: 'ogre_bone', name: 'Костяной порошок огра', name_en: 'Ogre Bone Dust', icon: '🦴', color: '#cbd5e1' },
+  troll_blood: { id: 'troll_blood', name: 'Кровь тролля', name_en: 'Troll Blood', icon: '🩸', color: '#991b1b' },
+  shadow_moss: { id: 'shadow_moss', name: 'Призрачный мох', name_en: 'Shadow Moss', icon: '🔮', color: '#8b5cf6' },
+  phase_essence: { id: 'phase_essence', name: 'Эссенция фазового паука', name_en: 'Phase Spider Essence', icon: '🌌', color: '#6366f1' },
+  moon_dew: { id: 'moon_dew', name: 'Лунная роса', name_en: 'Moon Dew', icon: '🌙', color: '#38bdf8' },
+  griffon_feather: { id: 'griffon_feather', name: 'Перо грифона', name_en: 'Griffon Feather', icon: '🪶', color: '#eab308' },
+  holy_oil: { id: 'holy_oil', name: 'Освящённый елей', name_en: 'Consecrated Holy Oil', icon: '🏺', color: '#fef08a' },
+  lightning_salt: { id: 'lightning_salt', name: 'Молниеносная соль', name_en: 'Lightning Salt', icon: '⚡', color: '#3b82f6' },
+  quicksilver_root: { id: 'quicksilver_root', name: 'Ртутный корень', name_en: 'Quicksilver Root', icon: '🌪️', color: '#94a3b8' },
+  pegasus_down: { id: 'pegasus_down', name: 'Пух пегаса', name_en: 'Pegasus Down', icon: '🪽', color: '#f8fafc' },
+  meteor_dust: { id: 'meteor_dust', name: 'Метеоритная пыль', name_en: 'Meteorite Dust', icon: '☄️', color: '#64748b' },
+  phoenix_tear: { id: 'phoenix_tear', name: 'Слеза феникса', name_en: 'Phoenix Tear', icon: '💫', color: '#f97316' },
+  diamond_dust: { id: 'diamond_dust', name: 'Алмазная пыль', name_en: 'Diamond Dust', icon: '💎', color: '#67e8f9' },
+  forest_berry: { id: 'forest_berry', name: 'Лесные ягоды ласки', name_en: 'Wild Weasel Berries', icon: '🍓', color: '#f43f5e' },
+  giant_mushroom: { id: 'giant_mushroom', name: 'Гриб-великаноборец', name_en: 'Giant-bane Mushroom', icon: '🍄', color: '#e11d48' },
+  vapor_spore: { id: 'vapor_spore', name: 'Споры эфирного тумана', name_en: 'Ethereal Vapor Spores', icon: '🌫️', color: '#cbd5e1' },
+  adamantine_flake: { id: 'adamantine_flake', name: 'Адамантиновая стружка', name_en: 'Adamantine Flakes', icon: '🛡️', color: '#334155' },
+  storm_core: { id: 'storm_core', name: 'Ядро грозовой тучи', name_en: 'Storm Cloud Core', icon: '⛈️', color: '#2563eb' }
 };
 
 // =========================================================================
@@ -54,18 +55,21 @@ export const POTIONS_CATALOG = {
     name: 'Зелье лечения',
     englishName: 'Potion of Healing',
     rarity: 'Обычное (Common)',
+    rarity_en: 'Common',
     rarityClass: 'common',
     icon: '🍷',
     effect: 'Восстанавливает 2d4 + 2 хитов',
+    effect_en: 'Restores 2d4 + 2 hit points',
     desc: 'Густая мерцающая рубиновая жидкость, пахнет мёдом и сушёными ягодами.',
+    desc_en: 'A thick, shimmering ruby liquid smelling of honey and dried wildberries.',
     liquidColor: '#dc2626',
     baseLiquidColor: '#fed7aa',
     allowedMistakes: 3,
     steps: [
-      { type: 'heat', mode: 'warm', minT: 60, maxT: 115, text: 'Разогреть тигель до лёгкого пара (60°–115°C)' },
-      { type: 'reagent', reagentId: 'sweet_root', tempMin: 60, tempMax: 125, text: 'Всыпать Корень колючника (🌾)' },
-      { type: 'reagent', reagentId: 'goodberry', tempMin: 60, tempMax: 130, text: 'Выжать сок Ягод добродрева (🍒)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Помешать 2 раза по часовой стрелке ↻' }
+      { type: 'heat', mode: 'warm', minT: 60, maxT: 115, text: 'Разогреть тигель до лёгкого пара (60°–115°C)', text_en: 'Heat crucible to gentle steam (60°–115°C)' },
+      { type: 'reagent', reagentId: 'sweet_root', tempMin: 60, tempMax: 125, text: 'Всыпать Корень колючника (🌾)', text_en: 'Add Sweet Root (🌾)' },
+      { type: 'reagent', reagentId: 'goodberry', tempMin: 60, tempMax: 130, text: 'Выжать сок Ягод добродрева (🍒)', text_en: 'Squeeze Goodberry juice (🍒)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Помешать 2 раза по часовой стрелке ↻', text_en: 'Stir 2 times clockwise ↻' }
     ]
   },
   climbing: {
@@ -73,18 +77,21 @@ export const POTIONS_CATALOG = {
     name: 'Зелье лазания',
     englishName: 'Potion of Climbing',
     rarity: 'Обычное (Common)',
+    rarity_en: 'Common',
     rarityClass: 'common',
     icon: '🧗',
     effect: 'Скорость лазания = скорости ходьбы + преимущество на Атлетику (1 час)',
+    effect_en: 'Climbing speed = walking speed + advantage on Athletics (1 hour)',
     desc: 'Вязкий янтарный сироп с плавающими белыми каплями, пахнет сосновой корой.',
+    desc_en: 'A viscous amber syrup with floating white flecks, smelling of pine bark.',
     liquidColor: '#b45309',
     baseLiquidColor: '#fde68a',
     allowedMistakes: 3,
     steps: [
-      { type: 'heat', mode: 'warm', minT: 70, maxT: 120, text: 'Прогреть тигель до томления (70°–120°C)' },
-      { type: 'reagent', reagentId: 'ironbark_resin', tempMin: 70, tempMax: 130, text: 'Добавить Смолу железнодерева (🪵)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Загустить: перемешать по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'spider_silk', tempMin: 60, tempMax: 120, text: 'Всыпать Нити паучьего шёлка (🕸️)' }
+      { type: 'heat', mode: 'warm', minT: 70, maxT: 120, text: 'Прогреть тигель до томления (70°–120°C)', text_en: 'Heat crucible to simmer (70°–120°C)' },
+      { type: 'reagent', reagentId: 'ironbark_resin', tempMin: 70, tempMax: 130, text: 'Добавить Смолу железнодерева (🪵)', text_en: 'Add Ironbark Resin (🪵)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Загустить: перемешать по часовой стрелке ↻', text_en: 'Thicken: stir clockwise ↻' },
+      { type: 'reagent', reagentId: 'spider_silk', tempMin: 60, tempMax: 120, text: 'Всыпать Нити паучьего шёлка (🕸️)', text_en: 'Add Spider Silk Threads (🕸️)' }
     ]
   },
   animal_friendship: {
@@ -92,18 +99,21 @@ export const POTIONS_CATALOG = {
     name: 'Зелье дружбы с животными',
     englishName: 'Potion of Animal Friendship',
     rarity: 'Обычное (Common)',
+    rarity_en: 'Common',
     rarityClass: 'common',
     icon: '🌿',
     effect: 'Заклинание «Дружба с животными» (СЛ 13) на 24 часа',
+    effect_en: 'Animal Friendship spell (DC 13) for 24 hours',
     desc: 'Свежий травяной отвар с ароматом скошенного луга, привлекающий лесных зверьков.',
+    desc_en: 'A fresh herbal tea with the scent of a mowed meadow, attracting woodland beasts.',
     liquidColor: '#65a30d',
     baseLiquidColor: '#bef264',
     allowedMistakes: 3,
     steps: [
-      { type: 'heat', mode: 'warm', minT: 50, maxT: 95, text: 'Мягко согреть родниковую воду (50°–95°C)' },
-      { type: 'reagent', reagentId: 'sweet_root', tempMin: 50, tempMax: 100, text: 'Всыпать Корень колючника (🌾)' },
-      { type: 'reagent', reagentId: 'forest_berry', tempMin: 50, tempMax: 105, text: 'Добавить Лесные ягоды ласки (🍓)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Мягко перемешать по часовой стрелке ↻' }
+      { type: 'heat', mode: 'warm', minT: 50, maxT: 95, text: 'Мягко согреть родниковую воду (50°–95°C)', text_en: 'Gently warm spring water (50°–95°C)' },
+      { type: 'reagent', reagentId: 'sweet_root', tempMin: 50, tempMax: 100, text: 'Всыпать Корень колючника (🌾)', text_en: 'Add Sweet Root (🌾)' },
+      { type: 'reagent', reagentId: 'forest_berry', tempMin: 50, tempMax: 105, text: 'Добавить Лесные ягоды ласки (🍓)', text_en: 'Add Wild Weasel Berries (🍓)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Мягко перемешать по часовой стрелке ↻', text_en: 'Gently stir clockwise ↻' }
     ]
   },
 
@@ -113,19 +123,22 @@ export const POTIONS_CATALOG = {
     name: 'Большее зелье лечения',
     englishName: 'Potion of Greater Healing',
     rarity: 'Необычное (Uncommon)',
+    rarity_en: 'Uncommon',
     rarityClass: 'uncommon',
     icon: '💖',
     effect: 'Восстанавливает 4d4 + 4 хитов',
+    effect_en: 'Restores 4d4 + 4 hit points',
     desc: 'Ярко-алая светящаяся жидкость, от которой исходит живительное тепло.',
+    desc_en: 'A bright scarlet glowing liquid emitting invigorating warmth.',
     liquidColor: '#ef4444',
     baseLiquidColor: '#fca5a5',
     allowedMistakes: 2,
     steps: [
-      { type: 'heat', mode: 'boil', minT: 140, maxT: 190, text: 'Довести настой до уверенного кипения (140°–190°C)' },
-      { type: 'reagent', reagentId: 'elf_blossom', tempMin: 140, tempMax: 195, text: 'Бросить Лепестки эльфийского первоцвета (🌸)' },
-      { type: 'stir', dir: 'ccw', count: 2, text: 'Остудить вихрем: помешать против часовой стрелки ↺' },
-      { type: 'reagent', reagentId: 'gold_root', tempMin: 90, tempMax: 150, text: 'Всыпать тёртый Золотой корень (✨)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Закрепить: помешать по часовой стрелке ↻' }
+      { type: 'heat', mode: 'boil', minT: 140, maxT: 190, text: 'Довести настой до уверенного кипения (140°–190°C)', text_en: 'Bring infusion to rolling boil (140°–190°C)' },
+      { type: 'reagent', reagentId: 'elf_blossom', tempMin: 140, tempMax: 195, text: 'Бросить Лепестки эльфийского первоцвета (🌸)', text_en: 'Drop Elven Primrose petals (🌸)' },
+      { type: 'stir', dir: 'ccw', count: 2, text: 'Остудить вихрем: помешать против часовой стрелки ↺', text_en: 'Cool with vortex: stir counter-clockwise ↺' },
+      { type: 'reagent', reagentId: 'gold_root', tempMin: 90, tempMax: 150, text: 'Всыпать тёртый Золотой корень (✨)', text_en: 'Add grated Gold Root (✨)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Закрепить: помешать по часовой стрелке ↻', text_en: 'Bind: stir clockwise ↻' }
     ]
   },
   water_breathing: {
@@ -133,18 +146,21 @@ export const POTIONS_CATALOG = {
     name: 'Зелье дыхания под водой',
     englishName: 'Potion of Water Breathing',
     rarity: 'Необычное (Uncommon)',
+    rarity_en: 'Uncommon',
     rarityClass: 'uncommon',
     icon: '🌊',
     effect: 'Позволяет дышать под водой в течение 1 часа',
+    effect_en: 'Allows underwater breathing for 1 hour',
     desc: 'Прозрачная лазурная жидкость с крошечными вечными пузырьками в форме медуз.',
+    desc_en: 'A clear azure liquid with tiny perpetual bubbles shaped like jellyfish.',
     liquidColor: '#06b6d4',
     baseLiquidColor: '#cffafe',
     allowedMistakes: 2,
     steps: [
-      { type: 'heat', mode: 'warm', minT: 80, maxT: 130, text: 'Нагреть морскую воду до парения (80°–130°C)' },
-      { type: 'reagent', reagentId: 'gillyweed', tempMin: 80, tempMax: 135, text: 'Опустить пучок Жаброросли (🌿)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Закрутить водоворот по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'triton_scale', tempMin: 80, tempMax: 140, text: 'Бросить Лазурную чешую тритона (🐟)' }
+      { type: 'heat', mode: 'warm', minT: 80, maxT: 130, text: 'Нагреть морскую воду до парения (80°–130°C)', text_en: 'Heat sea water to steaming (80°–130°C)' },
+      { type: 'reagent', reagentId: 'gillyweed', tempMin: 80, tempMax: 135, text: 'Опустить пучок Жаброросли (🌿)', text_en: 'Submerge bunch of Deep Gillyweed (🌿)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Закрутить водоворот по часовой стрелке ↻', text_en: 'Whirl clockwise vortex ↻' },
+      { type: 'reagent', reagentId: 'triton_scale', tempMin: 80, tempMax: 140, text: 'Бросить Лазурную чешую тритона (🐟)', text_en: 'Drop Azure Triton Scale (🐟)' }
     ]
   },
   fire_resistance: {
@@ -152,18 +168,21 @@ export const POTIONS_CATALOG = {
     name: 'Зелье огнестойкости',
     englishName: 'Potion of Resistance (Fire)',
     rarity: 'Необычное (Uncommon)',
+    rarity_en: 'Uncommon',
     rarityClass: 'uncommon',
     icon: '🛡️',
     effect: 'Сопротивление огненному урону на 1 час',
+    effect_en: 'Resistance to fire damage for 1 hour',
     desc: 'Тёплая багряно-золотая жидкость с мерцающими искрами, пахнет корицей и серой.',
+    desc_en: 'A warm crimson-gold liquid with twinkling sparks, smelling of cinnamon and sulfur.',
     liquidColor: '#ea580c',
     baseLiquidColor: '#fed7aa',
     allowedMistakes: 2,
     steps: [
-      { type: 'heat', mode: 'boil', minT: 160, maxT: 215, text: 'Раздуть тигель до жаркого кипения (160°–215°C)' },
-      { type: 'reagent', reagentId: 'salamander_ash', tempMin: 160, tempMax: 220, text: 'Всыпать Пепел огненной саламандры (🔥)' },
-      { type: 'reagent', reagentId: 'magma_resin', tempMin: 165, tempMax: 225, text: 'Влить каплю Магматической смолы (🌋)' },
-      { type: 'stir', dir: 'ccw', count: 2, text: 'Усмирить огонь: перемешать против часовой стрелки ↺' }
+      { type: 'heat', mode: 'boil', minT: 160, maxT: 215, text: 'Раздуть тигель до жаркого кипения (160°–215°C)', text_en: 'Blow bellows to fiery rolling boil (160°–215°C)' },
+      { type: 'reagent', reagentId: 'salamander_ash', tempMin: 160, tempMax: 220, text: 'Всыпать Пепел огненной саламандры (🔥)', text_en: 'Add Salamander Ash (🔥)' },
+      { type: 'reagent', reagentId: 'magma_resin', tempMin: 165, tempMax: 225, text: 'Влить каплю Магматической смолы (🌋)', text_en: 'Pour a drop of Magma Resin (🌋)' },
+      { type: 'stir', dir: 'ccw', count: 2, text: 'Усмирить огонь: перемешать против часовой стрелки ↺', text_en: 'Tame flames: stir counter-clockwise ↺' }
     ]
   },
   hill_giant: {
@@ -171,18 +190,21 @@ export const POTIONS_CATALOG = {
     name: 'Зелье силы холмового великана',
     englishName: 'Potion of Hill Giant Strength',
     rarity: 'Необычное (Uncommon)',
+    rarity_en: 'Uncommon',
     rarityClass: 'uncommon',
     icon: '🦾',
     effect: 'Значение Силы становится 21 (+5) на 1 час',
+    effect_en: 'Strength score becomes 21 (+5) for 1 hour',
     desc: 'Густая стальная жидкость с резким ароматом железа, в которой плавает ноготь великана.',
+    desc_en: 'A thick steel-colored liquid with a pungent iron aroma and a giant fingernail inside.',
     liquidColor: '#475569',
     baseLiquidColor: '#94a3b8',
     allowedMistakes: 2,
     steps: [
-      { type: 'heat', mode: 'boil', minT: 150, maxT: 200, text: 'Прогреть до кипения экстракт костей (150°–200°C)' },
-      { type: 'reagent', reagentId: 'ogre_bone', tempMin: 150, tempMax: 205, text: 'Всыпать Костяной порошок огра (🦴)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Взболтать по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'troll_blood', tempMin: 140, tempMax: 195, text: 'Добавить три капли Крови тролля (🩸)' }
+      { type: 'heat', mode: 'boil', minT: 150, maxT: 200, text: 'Прогреть до кипения экстракт костей (150°–200°C)', text_en: 'Boil bone extract (150°–200°C)' },
+      { type: 'reagent', reagentId: 'ogre_bone', tempMin: 150, tempMax: 205, text: 'Всыпать Костяной порошок огра (🦴)', text_en: 'Add Ogre Bone Dust (🦴)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Взболтать по часовой стрелке ↻', text_en: 'Whisk clockwise ↻' },
+      { type: 'reagent', reagentId: 'troll_blood', tempMin: 140, tempMax: 195, text: 'Добавить три капли Крови тролля (🩸)', text_en: 'Add three drops of Troll Blood (🩸)' }
     ]
   },
   growth: {
@@ -190,19 +212,22 @@ export const POTIONS_CATALOG = {
     name: 'Зелье роста',
     englishName: 'Potion of Growth',
     rarity: 'Необычное (Uncommon)',
+    rarity_en: 'Uncommon',
     rarityClass: 'uncommon',
     icon: '🍄',
     effect: 'Увеличивает размер на 1 категорию и +1d4 к урону оружием (1d4 часа)',
+    effect_en: 'Increases size by 1 category and +1d4 weapon damage (1d4 hours)',
     desc: 'Бурлящий багряный настой, на дне которого непрерывно пульсирует багровый сгусток.',
+    desc_en: 'A bubbling crimson brew with a throbbing crimson nodule at the bottom.',
     liquidColor: '#dc2626',
     baseLiquidColor: '#fca5a5',
     allowedMistakes: 2,
     steps: [
-      { type: 'heat', mode: 'boil', minT: 140, maxT: 195, text: 'Разжечь пламя до вскипания (140°–195°C)' },
-      { type: 'reagent', reagentId: 'giant_mushroom', tempMin: 140, tempMax: 200, text: 'Бросить Гриб-великаноборец (🍄)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Перемешать по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'ironbark_resin', tempMin: 120, tempMax: 180, text: 'Добавить Смолу железнодерева (🪵)' },
-      { type: 'stir', dir: 'ccw', count: 2, text: 'Остудить вихрем против часовой стрелки ↺' }
+      { type: 'heat', mode: 'boil', minT: 140, maxT: 195, text: 'Разжечь пламя до вскипания (140°–195°C)', text_en: 'Kindle flames to a boil (140°–195°C)' },
+      { type: 'reagent', reagentId: 'giant_mushroom', tempMin: 140, tempMax: 200, text: 'Бросить Гриб-великаноборец (🍄)', text_en: 'Drop Giant-bane Mushroom (🍄)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Перемешать по часовой стрелке ↻', text_en: 'Stir clockwise ↻' },
+      { type: 'reagent', reagentId: 'ironbark_resin', tempMin: 120, tempMax: 180, text: 'Добавить Смолу железнодерева (🪵)', text_en: 'Add Ironbark Resin (🪵)' },
+      { type: 'stir', dir: 'ccw', count: 2, text: 'Остудить вихрем против часовой стрелки ↺', text_en: 'Cool with counter-clockwise vortex ↺' }
     ]
   },
 
@@ -212,19 +237,22 @@ export const POTIONS_CATALOG = {
     name: 'Зелье невидимости',
     englishName: 'Potion of Invisibility',
     rarity: 'Редкое (Rare)',
+    rarity_en: 'Rare',
     rarityClass: 'rare',
     icon: '👻',
     effect: 'Персонаж становится невидимым на 1 час',
+    effect_en: 'Creature becomes invisible for 1 hour',
     desc: 'Абсолютно прозрачное зелье, колба кажется пустой, но ощущается тяжёлой.',
+    desc_en: 'An entirely transparent potion; the flask appears empty but feels heavy.',
     liquidColor: '#e0e7ff',
     baseLiquidColor: '#c7d2fe',
     allowedMistakes: 1,
     steps: [
-      { type: 'heat', mode: 'cool', minT: 25, maxT: 65, text: 'Остудить тигель: зелье не терпит огня (25°–65°C)' },
-      { type: 'reagent', reagentId: 'shadow_moss', tempMin: 25, tempMax: 70, text: 'Растереть Пыльцу призрачного мха (🔮)' },
-      { type: 'reagent', reagentId: 'phase_essence', tempMin: 25, tempMax: 75, text: 'Влить Эссенцию фазового паука (🌌)' },
-      { type: 'stir', dir: 'ccw', count: 3, text: 'Растворить силуэт: помешать против часовой стрелки ↺' },
-      { type: 'reagent', reagentId: 'moon_dew', tempMin: 25, tempMax: 65, text: 'Добавить чистую Лунную росу (🌙)' }
+      { type: 'heat', mode: 'cool', minT: 25, maxT: 65, text: 'Остудить тигель: зелье не терпит огня (25°–65°C)', text_en: 'Cool crucible: potion abhors heat (25°–65°C)' },
+      { type: 'reagent', reagentId: 'shadow_moss', tempMin: 25, tempMax: 70, text: 'Растереть Пыльцу призрачного мха (🔮)', text_en: 'Crush Shadow Moss pollen (🔮)' },
+      { type: 'reagent', reagentId: 'phase_essence', tempMin: 25, tempMax: 75, text: 'Влить Эссенцию фазового паука (🌌)', text_en: 'Pour Phase Spider Essence (🌌)' },
+      { type: 'stir', dir: 'ccw', count: 3, text: 'Растворить силуэт: помешать против часовой стрелки ↺', text_en: 'Dissolve silhouette: stir counter-clockwise ↺' },
+      { type: 'reagent', reagentId: 'moon_dew', tempMin: 25, tempMax: 65, text: 'Добавить чистую Лунную росу (🌙)', text_en: 'Add pure Moon Dew (🌙)' }
     ]
   },
   heroism: {
@@ -232,19 +260,22 @@ export const POTIONS_CATALOG = {
     name: 'Зелье героизма',
     englishName: 'Potion of Heroism',
     rarity: 'Редкое (Rare)',
+    rarity_en: 'Rare',
     rarityClass: 'rare',
     icon: '👑',
     effect: '10 временных хитов + эффект заклинания Благословение на 1 час',
+    effect_en: '10 temporary HP + Bless spell effect for 1 hour',
     desc: 'Сияющая лазурная жидкость с золотыми искрами, наполняющая сердце бесстрашием.',
+    desc_en: 'A radiant sapphire liquid with golden sparks, filling the heart with valor.',
     liquidColor: '#2563eb',
     baseLiquidColor: '#93c5fd',
     allowedMistakes: 1,
     steps: [
-      { type: 'heat', mode: 'boil', minT: 160, maxT: 210, text: 'Довести до звонкого кипения (160°–210°C)' },
-      { type: 'reagent', reagentId: 'griffon_feather', tempMin: 160, tempMax: 215, text: 'Опустить Золотое перо грифона (🪶)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Собрать вихрь доблести по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'holy_oil', tempMin: 140, tempMax: 195, text: 'Влить Освящённый елей (🏺)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Завершить благословение по часовой стрелке ↻' }
+      { type: 'heat', mode: 'boil', minT: 160, maxT: 210, text: 'Довести до звонкого кипения (160°–210°C)', text_en: 'Bring to resonant boil (160°–210°C)' },
+      { type: 'reagent', reagentId: 'griffon_feather', tempMin: 160, tempMax: 215, text: 'Опустить Золотое перо грифона (🪶)', text_en: 'Drop Golden Griffon Feather (🪶)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Собрать вихрь доблести по часовой стрелке ↻', text_en: 'Gather vortex of valor clockwise ↻' },
+      { type: 'reagent', reagentId: 'holy_oil', tempMin: 140, tempMax: 195, text: 'Влить Освящённый елей (🏺)', text_en: 'Pour Consecrated Holy Oil (🏺)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Завершить благословение по часовой стрелке ↻', text_en: 'Seal blessing clockwise ↻' }
     ]
   },
   gaseous_form: {
@@ -252,20 +283,23 @@ export const POTIONS_CATALOG = {
     name: 'Зелье газообразной формы',
     englishName: 'Potion of Gaseous Form',
     rarity: 'Редкое (Rare)',
+    rarity_en: 'Rare',
     rarityClass: 'rare',
     icon: '🌫️',
     effect: 'Форма тумана: полет 10 фт, сквозь щели, сопротивление урону (1 час)',
+    effect_en: 'Mist form: fly 10 ft, pass through cracks, damage resistance (1 hour)',
     desc: 'Флакон кажется пустым, но при встряхивании поднимается перламутровый вихрь пара.',
+    desc_en: 'Flask appears empty, but shaking it unleashes an opalescent vapor swirl.',
     liquidColor: '#94a3b8',
     baseLiquidColor: '#e2e8f0',
     allowedMistakes: 1,
     steps: [
-      { type: 'heat', mode: 'cool', minT: 20, maxT: 55, text: 'Остудить тигель: пары не терпят тепла (20°–55°C)' },
-      { type: 'reagent', reagentId: 'vapor_spore', tempMin: 20, tempMax: 60, text: 'Всыпать Споры эфирного тумана (🌫️)' },
-      { type: 'stir', dir: 'ccw', count: 2, text: 'Закрутить эфирный туман против часовой стрелки ↺' },
-      { type: 'reagent', reagentId: 'phase_essence', tempMin: 20, tempMax: 65, text: 'Влить Эссенцию фазового паука (🌌)' },
-      { type: 'heat', mode: 'warm', minT: 70, maxT: 110, text: 'Кратко прогреть для возгонки пара (70°–110°C)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Поймать конденсат вращением по часовой стрелке ↻' }
+      { type: 'heat', mode: 'cool', minT: 20, maxT: 55, text: 'Остудить тигель: пары не терпят тепла (20°–55°C)', text_en: 'Cool crucible: vapors abhor warmth (20°–55°C)' },
+      { type: 'reagent', reagentId: 'vapor_spore', tempMin: 20, tempMax: 60, text: 'Всыпать Споры эфирного тумана (🌫️)', text_en: 'Add Ethereal Vapor Spores (🌫️)' },
+      { type: 'stir', dir: 'ccw', count: 2, text: 'Закрутить эфирный туман против часовой стрелки ↺', text_en: 'Spin ethereal mist counter-clockwise ↺' },
+      { type: 'reagent', reagentId: 'phase_essence', tempMin: 20, tempMax: 65, text: 'Влить Эссенцию фазового паука (🌌)', text_en: 'Pour Phase Spider Essence (🌌)' },
+      { type: 'heat', mode: 'warm', minT: 70, maxT: 110, text: 'Кратко прогреть для возгонки пара (70°–110°C)', text_en: 'Briefly heat to sublimate vapor (70°–110°C)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Поймать конденсат вращением по часовой стрелке ↻', text_en: 'Capture condensate: stir clockwise ↻' }
     ]
   },
   invulnerability: {
@@ -273,20 +307,23 @@ export const POTIONS_CATALOG = {
     name: 'Зелье неуязвимости',
     englishName: 'Potion of Invulnerability',
     rarity: 'Редкое (Rare)',
+    rarity_en: 'Rare',
     rarityClass: 'rare',
     icon: '🛡️',
     effect: 'Сопротивление АБСОЛЮТНО ВСЕМУ входящему урону на 1 минуту',
+    effect_en: 'Resistance to ALL incoming damage for 1 minute',
     desc: 'Густая смолистая жидкость цвета жидкого обсидиана с мерцающей алмазной коркой.',
+    desc_en: 'A thick resinous obsidian liquid with a glittering diamond crust.',
     liquidColor: '#312e81',
     baseLiquidColor: '#4338ca',
     allowedMistakes: 1,
     steps: [
-      { type: 'heat', mode: 'raging', minT: 220, maxT: 275, text: 'Раздуть меха до адского жара (220°–275°C)' },
-      { type: 'reagent', reagentId: 'adamantine_flake', tempMin: 220, tempMax: 280, text: 'Всыпать Адамантиновую стружку (🛡️)' },
-      { type: 'stir', dir: 'cw', count: 3, text: 'Закалить металл вращением по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'salamander_ash', tempMin: 210, tempMax: 265, text: 'Добавить Пепел саламандры (🔥)' },
-      { type: 'stir', dir: 'ccw', count: 2, text: 'Снять напряжение против часовой стрелки ↺' },
-      { type: 'reagent', reagentId: 'diamond_dust', tempMin: 180, tempMax: 240, text: 'Закрепить Алмазной пылью (💎)' }
+      { type: 'heat', mode: 'raging', minT: 220, maxT: 275, text: 'Раздуть меха до адского жара (220°–275°C)', text_en: 'Pump bellows to hellish heat (220°–275°C)' },
+      { type: 'reagent', reagentId: 'adamantine_flake', tempMin: 220, tempMax: 280, text: 'Всыпать Адамантиновую стружку (🛡️)', text_en: 'Add Adamantine Flakes (🛡️)' },
+      { type: 'stir', dir: 'cw', count: 3, text: 'Закалить металл вращением по часовой стрелке ↻', text_en: 'Temper metal: stir clockwise ↻' },
+      { type: 'reagent', reagentId: 'salamander_ash', tempMin: 210, tempMax: 265, text: 'Добавить Пепел саламандры (🔥)', text_en: 'Add Salamander Ash (🔥)' },
+      { type: 'stir', dir: 'ccw', count: 2, text: 'Снять напряжение против часовой стрелки ↺', text_en: 'Release stress: stir counter-clockwise ↺' },
+      { type: 'reagent', reagentId: 'diamond_dust', tempMin: 180, tempMax: 240, text: 'Закрепить Алмазной пылью (💎)', text_en: 'Reinforce with Diamond Dust (💎)' }
     ]
   },
 
@@ -296,20 +333,23 @@ export const POTIONS_CATALOG = {
     name: 'Зелье скорости',
     englishName: 'Potion of Speed',
     rarity: 'Очень редкое (Very Rare)',
+    rarity_en: 'Very Rare',
     rarityClass: 'very-rare',
     icon: '⚡',
     effect: 'Эффект заклинания Ускорение (Haste) без концентрации на 1 минуту',
+    effect_en: 'Haste spell effect without concentration for 1 minute',
     desc: 'Шелковистая жёлтая жидкость с чёрной полосой, кружащейся сама по себе.',
+    desc_en: 'A silky yellow liquid with a black streak swirling on its own.',
     liquidColor: '#eab308',
     baseLiquidColor: '#fef08a',
     allowedMistakes: 1,
     steps: [
-      { type: 'heat', mode: 'raging', minT: 215, maxT: 265, text: 'Раздуть меха до яростного жара (215°–265°C)' },
-      { type: 'reagent', reagentId: 'lightning_salt', tempMin: 215, tempMax: 270, text: 'Бросить искрящуюся Молниеносную соль (⚡)' },
-      { type: 'stir', dir: 'cw', count: 3, text: 'Быстро закрутить по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'quicksilver_root', tempMin: 190, tempMax: 245, text: 'Добавить Ртутный корень (🌪️)' },
-      { type: 'stir', dir: 'ccw', count: 2, text: 'Резко остановить обратным вращением ↺' },
-      { type: 'heat', mode: 'warm', minT: 60, maxT: 110, text: 'Остудить тигель до стабильного тепла (60°–110°C)' }
+      { type: 'heat', mode: 'raging', minT: 215, maxT: 265, text: 'Раздуть меха до яростного жара (215°–265°C)', text_en: 'Pump bellows to furious heat (215°–265°C)' },
+      { type: 'reagent', reagentId: 'lightning_salt', tempMin: 215, tempMax: 270, text: 'Бросить искрящуюся Молниеносную соль (⚡)', text_en: 'Cast sparking Lightning Salt (⚡)' },
+      { type: 'stir', dir: 'cw', count: 3, text: 'Быстро закрутить по часовой стрелке ↻', text_en: 'Spin rapidly clockwise ↻' },
+      { type: 'reagent', reagentId: 'quicksilver_root', tempMin: 190, tempMax: 245, text: 'Добавить Ртутный корень (🌪️)', text_en: 'Add Quicksilver Root (🌪️)' },
+      { type: 'stir', dir: 'ccw', count: 2, text: 'Резко остановить обратным вращением ↺', text_en: 'Halt abruptly: stir counter-clockwise ↺' },
+      { type: 'heat', mode: 'warm', minT: 60, maxT: 110, text: 'Остудить тигель до стабильного тепла (60°–110°C)', text_en: 'Cool crucible to steady warmth (60°–110°C)' }
     ]
   },
   flying: {
@@ -317,19 +357,22 @@ export const POTIONS_CATALOG = {
     name: 'Зелье полёта',
     englishName: 'Potion of Flying',
     rarity: 'Очень редкое (Very Rare)',
+    rarity_en: 'Very Rare',
     rarityClass: 'very-rare',
     icon: '🕊️',
     effect: 'Скорость полёта 60 футов с парением на 1 час',
+    effect_en: 'Flying speed 60 feet with hover for 1 hour',
     desc: 'Прозрачная небесно-голубая жидкость с парящими белыми хлопьями.',
+    desc_en: 'A clear sky-blue liquid with floating white wisps.',
     liquidColor: '#38bdf8',
     baseLiquidColor: '#bae6fd',
     allowedMistakes: 1,
     steps: [
-      { type: 'heat', mode: 'boil', minT: 150, maxT: 200, text: 'Нагреть горный эфир до кипения (150°–200°C)' },
-      { type: 'reagent', reagentId: 'pegasus_down', tempMin: 150, tempMax: 205, text: 'Всыпать Пух пегаса (🪽)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Поднять восходящий поток по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'meteor_dust', tempMin: 130, tempMax: 185, text: 'Добавить Порошок левитирующего метеорита (☄️)' },
-      { type: 'stir', dir: 'ccw', count: 2, text: 'Уравновесить тягу против часовой стрелки ↺' }
+      { type: 'heat', mode: 'boil', minT: 150, maxT: 200, text: 'Нагреть горный эфир до кипения (150°–200°C)', text_en: 'Boil mountain ether (150°–200°C)' },
+      { type: 'reagent', reagentId: 'pegasus_down', tempMin: 150, tempMax: 205, text: 'Всыпать Пух пегаса (🪽)', text_en: 'Add Pegasus Down (🪽)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Поднять восходящий поток по часовой стрелке ↻', text_en: 'Raise updraft: stir clockwise ↻' },
+      { type: 'reagent', reagentId: 'meteor_dust', tempMin: 130, tempMax: 185, text: 'Добавить Порошок левитирующего метеорита (☄️)', text_en: 'Add Levitating Meteorite Dust (☄️)' },
+      { type: 'stir', dir: 'ccw', count: 2, text: 'Уравновесить тягу против часовой стрелки ↺', text_en: 'Balance lift: stir counter-clockwise ↺' }
     ]
   },
   supreme_healing: {
@@ -337,20 +380,23 @@ export const POTIONS_CATALOG = {
     name: 'Высшее зелье лечения',
     englishName: 'Potion of Supreme Healing',
     rarity: 'Очень редкое (Very Rare)',
+    rarity_en: 'Very Rare',
     rarityClass: 'very-rare',
     icon: '🌟',
     effect: 'Восстанавливает 10d4 + 20 хитов',
+    effect_en: 'Restores 10d4 + 20 hit points',
     desc: 'Ослепительно сияющий пурпурно-алый нектар, излечивающий смертельные раны.',
+    desc_en: 'A dazzling purple-crimson nectar that mends fatal wounds.',
     liquidColor: '#c026d3',
     baseLiquidColor: '#f0abfc',
     allowedMistakes: 1,
     steps: [
-      { type: 'heat', mode: 'raging', minT: 220, maxT: 270, text: 'Накалить тигель до высшей точки кипения (220°–270°C)' },
-      { type: 'reagent', reagentId: 'phoenix_tear', tempMin: 220, tempMax: 275, text: 'Опустить Огненную слезу феникса (💫)' },
-      { type: 'stir', dir: 'cw', count: 3, text: 'Инициировать перерождение по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'diamond_dust', tempMin: 180, tempMax: 235, text: 'Всыпать Алмазную пыль (💎)' },
-      { type: 'heat', mode: 'warm', minT: 50, maxT: 95, text: 'Мягко остудить до живительного тепла (50°–95°C)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Закрепить эликсир жизни по часовой стрелке ↻' }
+      { type: 'heat', mode: 'raging', minT: 220, maxT: 270, text: 'Накалить тигель до высшей точки кипения (220°–270°C)', text_en: 'Heat crucible to supreme boiling point (220°–270°C)' },
+      { type: 'reagent', reagentId: 'phoenix_tear', tempMin: 220, tempMax: 275, text: 'Опустить Огненную слезу феникса (💫)', text_en: 'Lower fiery Phoenix Tear (💫)' },
+      { type: 'stir', dir: 'cw', count: 3, text: 'Инициировать перерождение по часовой стрелке ↻', text_en: 'Initiate rebirth: stir clockwise ↻' },
+      { type: 'reagent', reagentId: 'diamond_dust', tempMin: 180, tempMax: 235, text: 'Всыпать Алмазную пыль (💎)', text_en: 'Add Diamond Dust (💎)' },
+      { type: 'heat', mode: 'warm', minT: 50, maxT: 95, text: 'Мягко остудить до живительного тепла (50°–95°C)', text_en: 'Gently cool to restorative warmth (50°–95°C)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Закрепить эликсир жизни по часовой стрелке ↻', text_en: 'Seal elixir of life clockwise ↻' }
     ]
   },
   storm_giant: {
@@ -358,22 +404,25 @@ export const POTIONS_CATALOG = {
     name: 'Зелье силы великана бурь',
     englishName: 'Potion of Storm Giant Strength',
     rarity: 'Легендарное (Legendary)',
+    rarity_en: 'Legendary',
     rarityClass: 'legendary',
     icon: '⛈️',
     effect: 'Значение Силы становится равным 29 (+9) на 1 час!',
+    effect_en: 'Strength score becomes 29 (+9) for 1 hour!',
     desc: 'Сапфировая эссенция, в глубине которой сверкают молнии и грохочет тихий гром.',
+    desc_en: 'Sapphire essence with miniature lightning arcs and deep rumbling thunder.',
     liquidColor: '#1d4ed8',
     baseLiquidColor: '#60a5fa',
     allowedMistakes: 1,
     steps: [
-      { type: 'heat', mode: 'raging', minT: 235, maxT: 285, text: 'Накалить тигель до грозового разряда (235°–285°C)' },
-      { type: 'reagent', reagentId: 'storm_core', tempMin: 235, tempMax: 290, text: 'Опустить Ядро грозовой тучи (⛈️)' },
-      { type: 'stir', dir: 'cw', count: 3, text: 'Закрутить вихрь урагана по часовой стрелке ↻' },
-      { type: 'reagent', reagentId: 'lightning_salt', tempMin: 220, tempMax: 275, text: 'Всыпать Молниеносную соль (⚡)' },
-      { type: 'stir', dir: 'ccw', count: 2, text: 'Укротить разряд против часовой стрелки ↺' },
-      { type: 'reagent', reagentId: 'troll_blood', tempMin: 190, tempMax: 240, text: 'Связать плотью: Кровь тролля (🩸)' },
-      { type: 'heat', mode: 'warm', minT: 60, maxT: 105, text: 'Резко охладить до спокойного эфира (60°–105°C)' },
-      { type: 'stir', dir: 'cw', count: 2, text: 'Запечатать мощь по часовой стрелке ↻' }
+      { type: 'heat', mode: 'raging', minT: 235, maxT: 285, text: 'Накалить тигель до грозового разряда (235°–285°C)', text_en: 'Heat crucible to storm discharge (235°–285°C)' },
+      { type: 'reagent', reagentId: 'storm_core', tempMin: 235, tempMax: 290, text: 'Опустить Ядро грозовой тучи (⛈️)', text_en: 'Drop Storm Cloud Core (⛈️)' },
+      { type: 'stir', dir: 'cw', count: 3, text: 'Закрутить вихрь урагана по часовой стрелке ↻', text_en: 'Spin hurricane vortex clockwise ↻' },
+      { type: 'reagent', reagentId: 'lightning_salt', tempMin: 220, tempMax: 275, text: 'Всыпать Молниеносную соль (⚡)', text_en: 'Add Lightning Salt (⚡)' },
+      { type: 'stir', dir: 'ccw', count: 2, text: 'Укротить разряд против часовой стрелки ↺', text_en: 'Tame arc: stir counter-clockwise ↺' },
+      { type: 'reagent', reagentId: 'troll_blood', tempMin: 190, tempMax: 240, text: 'Связать плотью: Кровь тролля (🩸)', text_en: 'Bind with flesh: Troll Blood (🩸)' },
+      { type: 'heat', mode: 'warm', minT: 60, maxT: 105, text: 'Резко охладить до спокойного эфира (60°–105°C)', text_en: 'Quickly cool to calm ether (60°–105°C)' },
+      { type: 'stir', dir: 'cw', count: 2, text: 'Запечатать мощь по часовой стрелке ↻', text_en: 'Seal immense power clockwise ↻' }
     ]
   }
 };
@@ -422,6 +471,10 @@ export class AlchemyGame {
     this.boundResize = this.setupCanvas.bind(this);
   }
 
+  isEn() {
+    return this.app?.language === 'en' || getCurrentLanguage() === 'en';
+  }
+
   init() {
     this.renderDOM();
     this.setupCanvas();
@@ -438,46 +491,47 @@ export class AlchemyGame {
   }
 
   renderDOM() {
+    const isEn = this.isEn();
     this.container.innerHTML = `
       <div class="stage-container alchemy-stage">
         <!-- Шапка с выбором зелья -->
         <div class="stage-header" style="margin-bottom: 12px;">
           <div style="display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap;">
-            <h2 class="stage-title" style="margin: 0;">🧪 Зельеварение D&D 5e</h2>
+            <h2 class="stage-title" style="margin: 0;">${isEn ? '🧪 D&D 5e Alchemy & Brewing' : '🧪 Зельеварение D&D 5e'}</h2>
             <div class="potion-picker-box">
-              <label for="potionSelect" style="font-size: 11px; color: var(--text-muted); margin-right: 6px;">Рецепт:</label>
+              <label for="potionSelect" style="font-size: 11px; color: var(--text-muted); margin-right: 6px;">${isEn ? 'Recipe:' : 'Рецепт:'}</label>
               <select id="potionSelect" class="potion-select-input">
-                <optgroup label="Обычные (Common) — для начинающих">
-                  <option value="healing">🍷 Зелье лечения (2d4+2 HP)</option>
-                  <option value="climbing">🧗 Зелье лазания (Атлетика)</option>
-                  <option value="animal_friendship">🌿 Зелье дружбы с животными (24 часа)</option>
+                <optgroup label="${isEn ? 'Common (Beginner)' : 'Обычные (Common) — для начинающих'}">
+                  <option value="healing">🍷 ${isEn ? 'Potion of Healing (2d4+2 HP)' : 'Зелье лечения (2d4+2 HP)'}</option>
+                  <option value="climbing">🧗 ${isEn ? 'Potion of Climbing (Athletics)' : 'Зелье лазания (Атлетика)'}</option>
+                  <option value="animal_friendship">🌿 ${isEn ? 'Potion of Animal Friendship (24h)' : 'Зелье дружбы с животными (24 часа)'}</option>
                 </optgroup>
-                <optgroup label="Необычные (Uncommon) — умеренные">
-                  <option value="greater_healing">💖 Большее зелье лечения (4d4+4 HP)</option>
-                  <option value="water_breathing">🌊 Зелье дыхания под водой (1 час)</option>
-                  <option value="fire_resistance">🛡️ Зелье огнестойкости (Огонь)</option>
-                  <option value="hill_giant">🦾 Зелье силы холмового великана (Сила 21)</option>
-                  <option value="growth">🍄 Зелье роста (+1d4 к урону, размер)</option>
+                <optgroup label="${isEn ? 'Uncommon (Moderate)' : 'Необычные (Uncommon) — умеренные'}">
+                  <option value="greater_healing">💖 ${isEn ? 'Potion of Greater Healing (4d4+4 HP)' : 'Большее зелье лечения (4d4+4 HP)'}</option>
+                  <option value="water_breathing">🌊 ${isEn ? 'Potion of Water Breathing (1 hour)' : 'Зелье дыхания под водой (1 час)'}</option>
+                  <option value="fire_resistance">🛡️ ${isEn ? 'Potion of Resistance (Fire)' : 'Зелье огнестойкости (Огонь)'}</option>
+                  <option value="hill_giant">🦾 ${isEn ? 'Potion of Hill Giant Strength (STR 21)' : 'Зелье силы холмового великана (Сила 21)'}</option>
+                  <option value="growth">🍄 ${isEn ? 'Potion of Growth (+1d4 dmg, size)' : 'Зелье роста (+1d4 к урону, размер)'}</option>
                 </optgroup>
-                <optgroup label="Редкие (Rare) — высшее мастерство">
-                  <option value="invisibility">👻 Зелье невидимости (1 час)</option>
-                  <option value="heroism">👑 Зелье героизма (Благословение + 10 HP)</option>
-                  <option value="gaseous_form">🌫️ Зелье газообразной формы (Туман)</option>
-                  <option value="invulnerability">🛡️ Зелье неуязвимости (Сопротивление всему)</option>
+                <optgroup label="${isEn ? 'Rare (Master)' : 'Редкие (Rare) — высшее мастерство'}">
+                  <option value="invisibility">👻 ${isEn ? 'Potion of Invisibility (1 hour)' : 'Зелье невидимости (1 час)'}</option>
+                  <option value="heroism">👑 ${isEn ? 'Potion of Heroism (Bless + 10 HP)' : 'Зелье героизма (Благословение + 10 HP)'}</option>
+                  <option value="gaseous_form">🌫️ ${isEn ? 'Potion of Gaseous Form (Mist)' : 'Зелье газообразной формы (Туман)'}</option>
+                  <option value="invulnerability">🛡️ ${isEn ? 'Potion of Invulnerability (Resist all)' : 'Зелье неуязвимости (Сопротивление всему)'}</option>
                 </optgroup>
-                <optgroup label="Очень редкие (Very Rare) — великие">
-                  <option value="speed">⚡ Зелье скорости (Ускорение)</option>
-                  <option value="flying">🕊️ Зелье полёта (60 футов)</option>
-                  <option value="supreme_healing">🌟 Высшее зелье лечения (10d4+20 HP)</option>
+                <optgroup label="${isEn ? 'Very Rare (High Master)' : 'Очень редкие (Very Rare) — великие'}">
+                  <option value="speed">⚡ ${isEn ? 'Potion of Speed (Haste)' : 'Зелье скорости (Ускорение)'}</option>
+                  <option value="flying">🕊️ ${isEn ? 'Potion of Flying (60 ft)' : 'Зелье полёта (60 футов)'}</option>
+                  <option value="supreme_healing">🌟 ${isEn ? 'Potion of Supreme Healing (10d4+20 HP)' : 'Высшее зелье лечения (10d4+20 HP)'}</option>
                 </optgroup>
-                <optgroup label="Легендарные (Legendary) — богоподобные">
-                  <option value="storm_giant">⛈️ Зелье силы великана бурь (Сила 29!)</option>
+                <optgroup label="${isEn ? 'Legendary (Godlike)' : 'Легендарные (Legendary) — богоподобные'}">
+                  <option value="storm_giant">⛈️ ${isEn ? 'Potion of Storm Giant Strength (STR 29!)' : 'Зелье силы великана бурь (Сила 29!)'}</option>
                 </optgroup>
               </select>
             </div>
           </div>
           <p class="stage-subtitle" id="potionSubtitleDesc" style="margin-top: 4px;">
-            Управляйте нагревом тигля мехами, вовремя добавляйте реагенты и помешивайте варево.
+            ${isEn ? 'Control crucible heat with bellows, add reagents on time, and stir the cauldron.' : 'Управляйте нагревом тигля мехами, вовремя добавляйте реагенты и помешивайте варево.'}
           </p>
         </div>
 
@@ -487,13 +541,13 @@ export class AlchemyGame {
             <div class="recipe-header">
               <span class="recipe-icon" id="recipePotionIcon">🍷</span>
               <div style="flex: 1;">
-                <h3 class="recipe-title" id="recipePotionTitle">Зелье лечения</h3>
-                <span class="recipe-rarity-badge common" id="recipeRarityBadge">Обычное (Common)</span>
+                <h3 class="recipe-title" id="recipePotionTitle">${isEn ? 'Potion of Healing' : 'Зелье лечения'}</h3>
+                <span class="recipe-rarity-badge common" id="recipeRarityBadge">${isEn ? 'Common' : 'Обычное (Common)'}</span>
               </div>
             </div>
 
             <div class="potion-effect-card" id="potionEffectCard">
-              <span class="effect-label">Эффект в D&D:</span>
+              <span class="effect-label">${isEn ? 'D&D 5e Effect:' : 'Эффект в D&D:'}</span>
               <span class="effect-text" id="potionEffectText">Восстанавливает 2d4 + 2 хитов</span>
             </div>
 
@@ -502,8 +556,8 @@ export class AlchemyGame {
             </div>
 
             <div class="alchemy-mistakes-counter" id="mistakesCounterBox">
-              <span class="mistakes-label">Устойчивость варева:</span>
-              <span class="mistakes-value" id="mistakesText">Ошибки: 0 / 3</span>
+              <span class="mistakes-label">${isEn ? 'Brew Stability:' : 'Устойчивость варева:'}</span>
+              <span class="mistakes-value" id="mistakesText">${isEn ? 'Mistakes: 0 / 3' : 'Ошибки: 0 / 3'}</span>
             </div>
           </div>
 
@@ -511,18 +565,18 @@ export class AlchemyGame {
           <div class="alchemy-cauldron-wrapper">
             <div class="thermometer-hud">
               <div class="thermometer-label-row">
-                <span style="font-size: 11px; color: var(--text-muted);">Температура тигля:</span>
-                <span class="thermometer-val" id="tempValueDisplay">35°C (Холодный)</span>
+                <span style="font-size: 11px; color: var(--text-muted);">${isEn ? 'Crucible Temperature:' : 'Температура тигля:'}</span>
+                <span class="thermometer-val" id="tempValueDisplay">35°C (${isEn ? 'Cold' : 'Холодный'})</span>
               </div>
               <div class="thermometer-track">
                 <div class="thermometer-zone" id="tempTargetZone" style="left: 20%; width: 25%;"></div>
                 <div class="thermometer-fill" id="tempFillBar" style="width: 12%;"></div>
               </div>
               <div class="thermometer-zones-labels">
-                <span>❄️ Холод</span>
-                <span>🕯️ Томление</span>
-                <span>♨️ Кипение</span>
-                <span>💥 Жар</span>
+                <span>${isEn ? '❄️ Cold' : '❄️ Холод'}</span>
+                <span>${isEn ? '🕯️ Simmer' : '🕯️ Томление'}</span>
+                <span>${isEn ? '♨️ Boil' : '♨️ Кипение'}</span>
+                <span>${isEn ? '💥 Heat' : '💥 Жар'}</span>
               </div>
             </div>
 
@@ -532,15 +586,15 @@ export class AlchemyGame {
             <!-- Панель инструментов алхимика -->
             <div class="alchemy-actions-toolbar">
               <button type="button" class="btn fantasy-btn primary bellows-btn" id="btnBellows">
-                <span>💨</span> Раздувать меха (ПРОБЕЛ)
+                <span>💨</span> ${isEn ? 'Pump Bellows (SPACE)' : 'Раздувать меха (ПРОБЕЛ)'}
               </button>
 
               <div class="stir-btn-group">
-                <button type="button" class="btn fantasy-btn secondary stir-btn" id="btnStirCCW" title="Помешать против часовой стрелки (A / ←)">
-                  <span>↺</span> Влево
+                <button type="button" class="btn fantasy-btn secondary stir-btn" id="btnStirCCW" title="${isEn ? 'Stir counter-clockwise (A / ←)' : 'Помешать против часовой стрелки (A / ←)'}">
+                  <span>↺</span> ${isEn ? 'CCW' : 'Влево'}
                 </button>
-                <button type="button" class="btn fantasy-btn secondary stir-btn" id="btnStirCW" title="Помешать по часовой стрелке (D / →)">
-                  <span>↻</span> Вправо
+                <button type="button" class="btn fantasy-btn secondary stir-btn" id="btnStirCW" title="${isEn ? 'Stir clockwise (D / →)' : 'Помешать по часовой стрелке (D / →)'}">
+                  <span>↻</span> ${isEn ? 'CW' : 'Вправо'}
                 </button>
               </div>
             </div>
@@ -548,7 +602,7 @@ export class AlchemyGame {
 
           <!-- Правая панель: Полка реагентов -->
           <div class="alchemy-shelf-panel">
-            <h4 class="shelf-title">🌿 Полка алхимика:</h4>
+            <h4 class="shelf-title">${isEn ? '🌿 Alchemist Shelf:' : '🌿 Полка алхимика:'}</h4>
             <div class="reagents-grid" id="reagentsGrid">
               <!-- Ингредиенты -->
             </div>
@@ -558,16 +612,16 @@ export class AlchemyGame {
         <!-- Подсказка по управлению -->
         <div class="lock-controls-guide" style="margin-top: 10px;">
           <div class="guide-pill">
-            <span class="guide-key">Удерживать Меха / ПРОБЕЛ</span>
-            <span>Поднимать температуру пламени</span>
+            <span class="guide-key">${isEn ? 'Hold Bellows / SPACE' : 'Удерживать Меха / ПРОБЕЛ'}</span>
+            <span>${isEn ? 'Raise flame temperature' : 'Поднимать температуру пламени'}</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">Клик по реагенту</span>
-            <span>Бросить в кипящий тигель</span>
+            <span class="guide-key">${isEn ? 'Click Reagent' : 'Клик по реагенту'}</span>
+            <span>${isEn ? 'Drop into boiling crucible' : 'Бросить в кипящий тигель'}</span>
           </div>
           <div class="guide-pill">
-            <span class="guide-key">A / D или ← / →</span>
-            <span>Помешивать ложкой</span>
+            <span class="guide-key">${isEn ? 'A / D or ← / →' : 'A / D или ← / →'}</span>
+            <span>${isEn ? 'Stir with ladle' : 'Помешивать ложкой'}</span>
           </div>
         </div>
       </div>
@@ -665,15 +719,16 @@ export class AlchemyGame {
     this.steps = p.steps.map((st, i) => ({ ...st, index: i, completed: false }));
 
     // Обновляем шапку
+    const isEn = this.isEn();
     if (this.potionSelect) this.potionSelect.value = p.id;
-    if (this.potionSubtitleDesc) this.potionSubtitleDesc.textContent = p.desc;
+    if (this.potionSubtitleDesc) this.potionSubtitleDesc.textContent = isEn ? (p.desc_en || p.desc) : p.desc;
     if (this.recipePotionIcon) this.recipePotionIcon.textContent = p.icon;
-    if (this.recipePotionTitle) this.recipePotionTitle.textContent = p.name;
+    if (this.recipePotionTitle) this.recipePotionTitle.textContent = isEn ? (p.englishName || p.name) : p.name;
     if (this.recipeRarityBadge) {
-      this.recipeRarityBadge.textContent = p.rarity;
+      this.recipeRarityBadge.textContent = isEn ? (p.rarity_en || p.rarity) : p.rarity;
       this.recipeRarityBadge.className = `recipe-rarity-badge ${p.rarityClass}`;
     }
-    if (this.potionEffectText) this.potionEffectText.textContent = p.effect;
+    if (this.potionEffectText) this.potionEffectText.textContent = isEn ? (p.effect_en || p.effect) : p.effect;
 
     // Собираем ингредиенты для полки
     this.setupShelfForPotion(p);
@@ -684,6 +739,7 @@ export class AlchemyGame {
 
   setupShelfForPotion(potion) {
     if (!this.reagentsGrid) return;
+    const isEn = this.isEn();
     // Находим все нужные реагенты для этого рецепта
     const neededIds = new Set();
     potion.steps.forEach(st => {
@@ -704,7 +760,7 @@ export class AlchemyGame {
     this.reagentsGrid.innerHTML = shelfList.map(r => `
       <button type="button" class="reagent-btn" data-reagent="${r.id}">
         <span class="reagent-icon">${r.icon}</span>
-        <span class="reagent-name">${r.name}</span>
+        <span class="reagent-name">${isEn ? (r.name_en || r.name) : r.name}</span>
       </button>
     `).join('');
 
@@ -718,17 +774,20 @@ export class AlchemyGame {
 
   renderRecipeSteps() {
     if (!this.recipeStepsList) return;
+    const isEn = this.isEn();
     this.recipeStepsList.innerHTML = this.steps.map((step, idx) => {
       const isActive = idx === this.currentStepIndex;
       const isDone = step.completed;
       let badge = `${idx + 1}`;
       if (isDone) badge = '✓';
 
+      const actionText = isEn ? (step.text_en || step.text) : step.text;
+
       return `
         <div class="recipe-step-item ${isActive ? 'active' : ''} ${isDone ? 'completed' : ''}" id="recipe-step-${idx}">
           <span class="step-num ${isDone ? 'done' : ''}">${badge}</span>
           <div class="step-desc">
-            <p class="step-action">${step.text}</p>
+            <p class="step-action">${actionText}</p>
           </div>
         </div>
       `;
@@ -737,8 +796,9 @@ export class AlchemyGame {
 
   updateMistakesHUD() {
     if (!this.mistakesText) return;
+    const isEn = this.isEn();
     const max = this.potion.allowedMistakes;
-    this.mistakesText.textContent = `Ошибки: ${this.mistakesCount} / ${max}`;
+    this.mistakesText.textContent = isEn ? `Mistakes: ${this.mistakesCount} / ${max}` : `Ошибки: ${this.mistakesCount} / ${max}`;
     this.mistakesText.style.color = this.mistakesCount === 0 ? '#10b981' : this.mistakesCount >= max ? '#ef4444' : '#f59e0b';
   }
 
@@ -801,7 +861,8 @@ export class AlchemyGame {
         }
       } else {
         // Не та сторона вращения
-        this.registerMistake('Размешивание в неверную сторону испортило вихрь!');
+        const isEn = this.isEn();
+        this.registerMistake(isEn ? 'Stirring the wrong direction disrupted the vortex!' : 'Размешивание в неверную сторону испортило вихрь!');
       }
     }
   }
@@ -831,9 +892,10 @@ export class AlchemyGame {
     if (this.isBrewed || this.isRuined) return;
     const currentStep = this.steps[this.currentStepIndex];
     if (!currentStep) return;
+    const isEn = this.isEn();
 
     if (currentStep.type !== 'reagent') {
-      this.registerMistake('Тигель ещё не готов к добавлению реагента!');
+      this.registerMistake(isEn ? 'Crucible is not ready for reagents yet!' : 'Тигель ещё не готов к добавлению реагента!');
       return;
     }
 
@@ -850,12 +912,12 @@ export class AlchemyGame {
       // Плавно смещаем цвет жидкости к целевому цвету зелья
       this.advanceStepSuccess();
     } else if (!isCorrect) {
-      this.registerMistake('Добавлен не тот реагент по рецепту!');
+      this.registerMistake(isEn ? 'Wrong reagent according to recipe!' : 'Добавлен не тот реагент по рецепту!');
     } else {
       if (this.temperature < currentStep.tempMin) {
-        this.registerMistake('Тигель слишком холодный: реагент не растворился!');
+        this.registerMistake(isEn ? 'Crucible is too cold: reagent failed to dissolve!' : 'Тигель слишком холодный: реагент не растворился!');
       } else {
-        this.registerMistake('Тигель перегрет: ценный реагент сгорел в пепел!');
+        this.registerMistake(isEn ? 'Crucible is overheated: valuable reagent burned to ash!' : 'Тигель перегрет: ценный реагент сгорел в пепел!');
       }
     }
   }
@@ -900,10 +962,11 @@ export class AlchemyGame {
     this.spawnVictorySparks();
 
     const timeSpent = Math.max(2, Math.round((performance.now() - (this.startTime || performance.now())) / 1000));
+    const isEn = this.isEn();
     setTimeout(() => {
       this.app.finishGame(true, {
-        potionName: this.potion.name,
-        effect: this.potion.effect,
+        potionName: isEn ? (this.potion.englishName || this.potion.name) : this.potion.name,
+        effect: isEn ? (this.potion.effect_en || this.potion.effect) : this.potion.effect,
         mistakes: this.mistakesCount,
         timeSpent
       });
@@ -981,11 +1044,12 @@ export class AlchemyGame {
     if (this.tempFillBar && this.tempValueDisplay) {
       const rounded = Math.round(this.temperature);
       this.tempFillBar.style.width = `${(rounded / 300) * 100}%`;
+      const isEn = this.isEn();
 
-      let status = '❄️ Холодный';
-      if (rounded >= 210) status = '💥 Бурный жар';
-      else if (rounded >= 140) status = '♨️ Кипение';
-      else if (rounded >= 65) status = '🕯️ Томление';
+      let status = isEn ? '❄️ Cold' : '❄️ Холодный';
+      if (rounded >= 210) status = isEn ? '💥 Raging Heat' : '💥 Бурный жар';
+      else if (rounded >= 140) status = isEn ? '♨️ Boiling' : '♨️ Кипение';
+      else if (rounded >= 65) status = isEn ? '🕯️ Simmer' : '🕯️ Томление';
 
       this.tempValueDisplay.textContent = `${rounded}°C (${status})`;
       this.tempFillBar.style.background = rounded > 220 ? '#ef4444' : rounded > 130 ? '#22c55e' : '#3b82f6';
@@ -1453,7 +1517,7 @@ export class AlchemyGame {
     ctx.textAlign = 'center';
     ctx.shadowColor = '#000000';
     ctx.shadowBlur = 6;
-    ctx.fillText('✨ Зелье сварено!', cx, flaskY + 54);
+    ctx.fillText(this.isEn() ? '✨ Potion Brewed!' : '✨ Зелье сварено!', cx, flaskY + 54);
 
     ctx.restore();
   }

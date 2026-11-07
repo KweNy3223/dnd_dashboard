@@ -1,6 +1,7 @@
 import React from 'react';
 import { Rnd } from 'react-rnd';
 import { Pin, PinOff, ChevronDown, ChevronUp, X, Swords, Plus, ArrowDown10, Trash2 } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 
 export default function InitiativeTracker({ 
   onClose, 
@@ -14,6 +15,8 @@ export default function InitiativeTracker({
   layout, 
   setLayout 
 }) {
+
+  const { t } = useTranslation();
 
   // --- Функции управления списком ---
   const handleAddParticipant = () => {
@@ -70,7 +73,7 @@ export default function InitiativeTracker({
       {/* 1. ШАПКА */}
       <div className="tracker-header">
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-          <Swords size={20} /> Инициатива
+          <Swords size={20} /> {t('modules.initiative.title')}
         </h3>
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           <button onClick={() => setIsPinned(!isPinned)}>
@@ -105,7 +108,7 @@ export default function InitiativeTracker({
               
               <input
                 type="text"
-                placeholder="Имя"
+                placeholder={t('modules.initiative.name')}
                 value={p.name}
                 onChange={(e) => handleUpdateParticipant(p.id, 'name', e.target.value)}
                 style={{ 
@@ -122,8 +125,8 @@ export default function InitiativeTracker({
               
               <input
                 type="number"
-                placeholder="Иниц."
-                title="Инициатива"
+                placeholder={t('modules.initiative.init')}
+                title={t('modules.initiative.initTitle')}
                 value={p.init}
                 onChange={(e) => handleUpdateParticipant(p.id, 'init', e.target.value)}
                 style={{ 
@@ -141,8 +144,8 @@ export default function InitiativeTracker({
 
               <input
                 type="number"
-                placeholder="КД"
-                title="Класс Доспеха (КД)"
+                placeholder={t('modules.initiative.ac')}
+                title={t('modules.initiative.acTitle')}
                 value={p.ac ?? ''}
                 onChange={(e) => handleUpdateParticipant(p.id, 'ac', e.target.value)}
                 style={{ 
@@ -161,8 +164,8 @@ export default function InitiativeTracker({
               
               <input
                 type="number"
-                placeholder="ХП"
-                title="Очки здоровья (ХП)"
+                placeholder={t('modules.initiative.hp')}
+                title={t('modules.initiative.hpTitle')}
                 value={p.hp}
                 onChange={(e) => handleUpdateParticipant(p.id, 'hp', e.target.value)}
                 style={{ 
@@ -190,10 +193,10 @@ export default function InitiativeTracker({
         {/* Кнопки управления в самом низу */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <button className="sort-btn" onClick={handleAddParticipant} style={{ flex: 1, margin: 0, padding: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-            <Plus size={16} /> Добавить
+            <Plus size={16} /> {t('modules.initiative.add')}
           </button>
           <button className="sort-btn" onClick={handleSort} style={{ flex: 1, margin: 0, padding: '8px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-            <ArrowDown10 size={16} /> Сортировка
+            <ArrowDown10 size={16} /> {t('modules.initiative.sort')}
           </button>
         </div>
 

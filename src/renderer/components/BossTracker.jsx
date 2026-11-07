@@ -1,6 +1,7 @@
 import React from 'react';
 import { Rnd } from 'react-rnd';
 import { Pin, PinOff, ChevronDown, ChevronUp, X, Skull, Heart, Shield, Zap, RotateCcw } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 
 export default function BossTracker({ 
   onClose, 
@@ -14,6 +15,8 @@ export default function BossTracker({
   layout, 
   setLayout 
 }) {
+
+  const { t } = useTranslation();
 
   // Безопасное обновление данных босса
   const updateData = (field, value) => {
@@ -91,7 +94,7 @@ export default function BossTracker({
       {/* 1. ШАПКА */}
       <div className="tracker-header">
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0, color: 'var(--accent-red)' }}>
-          <Skull size={20} /> Босс
+          <Skull size={20} /> {t('modules.boss.title')}
         </h3>
         <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
           <button onClick={() => setIsPinned(!isPinned)}>
@@ -112,7 +115,7 @@ export default function BossTracker({
         {/* Имя Босса */}
         <input
           type="text"
-          placeholder="Имя Эпического Врага..."
+          placeholder={t('modules.boss.namePlaceholder')}
           value={bossData.name}
           onChange={(e) => updateData('name', e.target.value)}
           style={{ 
@@ -125,7 +128,7 @@ export default function BossTracker({
         <div style={{ backgroundColor: 'var(--bg-app)', padding: '15px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontWeight: 'bold' }}>
-              <Heart size={16} /> ЗДОРОВЬЕ
+              <Heart size={16} /> {t('modules.boss.health')}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
               <input 
@@ -166,7 +169,7 @@ export default function BossTracker({
         {/* Легендарные Сопротивления */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-app)', padding: '12px 15px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontSize: '14px' }}>
-            <Shield size={18} color="var(--accent-gold)" /> Лег. Сопротивления
+            <Shield size={18} color="var(--text-title)" /> {t('modules.boss.legendaryResistances')}
           </div>
           {renderDots(bossData.legResistances, 'legResistances')}
         </div>
@@ -174,13 +177,13 @@ export default function BossTracker({
         {/* Легендарные Действия */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-app)', padding: '12px 15px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontSize: '14px' }}>
-            <Zap size={18} color="#3b82f6" /> Лег. Действия
+            <Zap size={18} color="#3b82f6" /> {t('modules.boss.legendaryActions')}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             {renderDots(bossData.legActions, 'legActions')}
             <button 
               onClick={() => updateData('legActions', 3)} 
-              title="Восстановить действия"
+              title={t('modules.boss.restoreActions')}
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', display: 'flex' }}
             >
               <RotateCcw size={16} />

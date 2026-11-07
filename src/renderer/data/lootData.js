@@ -1,15 +1,30 @@
+import {
+  LOOT_TIERS_EN,
+  LOOT_TYPES_EN,
+  GEMS_10GP_EN,
+  GEMS_50GP_EN,
+  GEMS_100GP_EN,
+  GEMS_500GP_EN,
+  ART_OBJECTS_25GP_EN,
+  ART_OBJECTS_250GP_EN,
+  MAGIC_ITEMS_TIER1_EN,
+  MAGIC_ITEMS_TIER2_EN,
+  MAGIC_ITEMS_TIER3_EN,
+  MAGIC_ITEMS_TIER4_EN
+} from './lootDataEn.js';
+
 // База данных для Генератора сокровищ и лута (Loot & Hoard Generator) D&D 5e
 
 export const LOOT_TIERS = [
-  { id: 'tier1', label: 'Уровень опасности 0–4 (Новички)', cr: 'CR 0–4' },
-  { id: 'tier2', label: 'Уровень опасности 5–10 (Герои)', cr: 'CR 5–10' },
-  { id: 'tier3', label: 'Уровень опасности 11–16 (Мастера)', cr: 'CR 11–16' },
-  { id: 'tier4', label: 'Уровень опасности 17+ (Легенды)', cr: 'CR 17+' }
+  { id: 'tier1', label: 'Уровень опасности 0–4 (Новички)', label_en: 'Challenge Rating 0–4 (Novice)', cr: 'CR 0–4' },
+  { id: 'tier2', label: 'Уровень опасности 5–10 (Герои)', label_en: 'Challenge Rating 5–10 (Heroic)', cr: 'CR 5–10' },
+  { id: 'tier3', label: 'Уровень опасности 11–16 (Мастера)', label_en: 'Challenge Rating 11–16 (Master)', cr: 'CR 11–16' },
+  { id: 'tier4', label: 'Уровень опасности 17+ (Легенды)', label_en: 'Challenge Rating 17+ (Legendary)', cr: 'CR 17+' }
 ];
 
 export const LOOT_TYPES = [
-  { id: 'hoard', label: 'Сокровищница / Сундук логова' },
-  { id: 'individual', label: 'Карманная добыча с врага' }
+  { id: 'hoard', label: 'Сокровищница / Сундук логова', label_en: 'Hoard Chest / Lair Cache' },
+  { id: 'individual', label: 'Карманная добыча с врага', label_en: 'Individual Pocket Loot' }
 ];
 
 // Самоцветы и предметы искусства по категориям ценности (DMG 5e)
@@ -71,16 +86,49 @@ export const MAGIC_ITEMS_TIER2 = [
   { name: 'Жезл волшебных стрел', rarity: 'Необычный', desc: 'Тисовый жезл с 7 зарядами волшебных стрел.' }
 ];
 
-export function generateRandomLoot(tier = 'tier1', type = 'hoard') {
+function pickPair(ruArr, enArr) {
+  const idx = Math.floor(Math.random() * ruArr.length);
+  return { ru: ruArr[idx], en: enArr[idx] || ruArr[idx] };
+}
+
+export function generateRandomLoot(tier = 'tier1', type = 'hoard', options = {}) {
+  const isEn = options.language === 'en';
   let coins = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
   let gemsAndArt = [];
   let magicItems = [];
 
-  const pickRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const rollDice = (count, sides) => {
     let sum = 0;
     for (let i = 0; i < count; i++) sum += Math.floor(Math.random() * sides) + 1;
     return sum;
+  };
+
+  const addGem = (ruPool, enPool, val, count) => {
+    const pair = pickPair(ruPool, enPool);
+    gemsAndArt.push({
+      name: isEn ? pair.en : pair.ru,
+      name_ru: pair.ru,
+      name_en: pair.en,
+      value: val,
+      count
+    });
+  };
+
+  const addMagic = (ruPool, enPool) => {
+    const idx = Math.floor(Math.random() * ruPool.length);
+    const mRu = ruPool[idx];
+    const mEn = enPool[idx] || mRu;
+    magicItems.push({
+      name: isEn ? mEn.name : mRu.name,
+      name_ru: mRu.name,
+      name_en: mEn.name,
+      rarity: isEn ? (mEn.rarity || mRu.rarity) : mRu.rarity,
+      rarity_ru: mRu.rarity,
+      rarity_en: mEn.rarity || mRu.rarity,
+      desc: isEn ? (mEn.desc || mRu.desc) : mRu.desc,
+      desc_ru: mRu.desc,
+      desc_en: mEn.desc || mRu.desc
+    });
   };
 
   if (type === 'individual') {
@@ -104,9 +152,9 @@ export function generateRandomLoot(tier = 'tier1', type = 'hoard') {
     // Шанс на маленькую вещь
     if (Math.random() > 0.5) {
       if (tier === 'tier1') {
-        gemsAndArt.push({ name: pickRandom(GEMS_10GP), value: 10, count: rollDice(1, 2) });
+        addGem(GEMS_10GP, GEMS_10GP_EN, 10, rollDice(1, 2));
       } else {
-        gemsAndArt.push({ name: pickRandom(GEMS_50GP), value: 50, count: rollDice(1, 2) });
+        addGem(GEMS_50GP, GEMS_50GP_EN, 50, rollDice(1, 2));
       }
     }
   } else {
@@ -117,38 +165,38 @@ export function generateRandomLoot(tier = 'tier1', type = 'hoard') {
       coins.gp = rollDice(2, 6) * 10;
       
       const gemCount = rollDice(2, 6);
-      gemsAndArt.push({ name: pickRandom(GEMS_10GP), value: 10, count: gemCount });
+      addGem(GEMS_10GP, GEMS_10GP_EN, 10, gemCount);
       if (Math.random() > 0.4) {
-        gemsAndArt.push({ name: pickRandom(ART_OBJECTS_25GP), value: 25, count: 1 });
+        addGem(ART_OBJECTS_25GP, ART_OBJECTS_25GP_EN, 25, 1);
       }
-      magicItems.push(pickRandom(MAGIC_ITEMS_TIER1));
-      if (Math.random() > 0.5) magicItems.push(pickRandom(MAGIC_ITEMS_TIER1));
+      addMagic(MAGIC_ITEMS_TIER1, MAGIC_ITEMS_TIER1_EN);
+      if (Math.random() > 0.5) addMagic(MAGIC_ITEMS_TIER1, MAGIC_ITEMS_TIER1_EN);
     } else if (tier === 'tier2') {
       coins.sp = rollDice(4, 6) * 100;
       coins.gp = rollDice(6, 6) * 100;
       coins.pp = rollDice(2, 6) * 10;
 
       const gemCount = rollDice(3, 6);
-      gemsAndArt.push({ name: pickRandom(GEMS_50GP), value: 50, count: gemCount });
-      gemsAndArt.push({ name: pickRandom(ART_OBJECTS_250GP), value: 250, count: rollDice(1, 2) });
-      magicItems.push(pickRandom(MAGIC_ITEMS_TIER2));
-      magicItems.push(pickRandom(MAGIC_ITEMS_TIER1));
+      addGem(GEMS_50GP, GEMS_50GP_EN, 50, gemCount);
+      addGem(ART_OBJECTS_250GP, ART_OBJECTS_250GP_EN, 250, rollDice(1, 2));
+      addMagic(MAGIC_ITEMS_TIER2, MAGIC_ITEMS_TIER2_EN);
+      addMagic(MAGIC_ITEMS_TIER1, MAGIC_ITEMS_TIER1_EN);
     } else if (tier === 'tier3') {
       coins.gp = rollDice(10, 6) * 500;
       coins.pp = rollDice(4, 6) * 100;
 
       const gemCount = rollDice(4, 6);
-      gemsAndArt.push({ name: pickRandom(GEMS_100GP), value: 100, count: gemCount });
-      gemsAndArt.push({ name: pickRandom(GEMS_500GP), value: 500, count: rollDice(1, 3) });
-      magicItems.push(pickRandom(MAGIC_ITEMS_TIER2));
-      magicItems.push(pickRandom(MAGIC_ITEMS_TIER2));
+      addGem(GEMS_100GP, GEMS_100GP_EN, 100, gemCount);
+      addGem(GEMS_500GP, GEMS_500GP_EN, 500, rollDice(1, 3));
+      addMagic(MAGIC_ITEMS_TIER2, MAGIC_ITEMS_TIER2_EN);
+      addMagic(MAGIC_ITEMS_TIER3, MAGIC_ITEMS_TIER3_EN);
     } else {
       coins.gp = rollDice(12, 6) * 1000;
       coins.pp = rollDice(8, 6) * 500;
 
-      gemsAndArt.push({ name: pickRandom(GEMS_500GP), value: 500, count: rollDice(5, 6) });
-      magicItems.push(pickRandom(MAGIC_ITEMS_TIER2));
-      magicItems.push(pickRandom(MAGIC_ITEMS_TIER2));
+      addGem(GEMS_500GP, GEMS_500GP_EN, 500, rollDice(5, 6));
+      addMagic(MAGIC_ITEMS_TIER3, MAGIC_ITEMS_TIER3_EN);
+      addMagic(MAGIC_ITEMS_TIER4, MAGIC_ITEMS_TIER4_EN);
     }
   }
 
@@ -167,12 +215,22 @@ export function generateRandomLoot(tier = 'tier1', type = 'hoard') {
   const tierObj = LOOT_TIERS.find(t => t.id === tier);
   const typeObj = LOOT_TYPES.find(t => t.id === type);
 
+  const tierLabelRu = tierObj ? tierObj.label : 'Тир 1';
+  const tierLabelEn = LOOT_TIERS_EN[tier]?.label || (tierObj?.label_en || tierLabelRu);
+
+  const typeLabelRu = typeObj ? typeObj.label : 'Сокровищница';
+  const typeLabelEn = LOOT_TYPES_EN[type] || (typeObj?.label_en || typeLabelRu);
+
   return {
     id: `loot_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
     tier,
-    tierLabel: tierObj ? tierObj.label : 'Тир 1',
+    tierLabel: isEn ? tierLabelEn : tierLabelRu,
+    tierLabel_ru: tierLabelRu,
+    tierLabel_en: tierLabelEn,
     type,
-    typeLabel: typeObj ? typeObj.label : 'Сокровищница',
+    typeLabel: isEn ? typeLabelEn : typeLabelRu,
+    typeLabel_ru: typeLabelRu,
+    typeLabel_en: typeLabelEn,
     coins,
     coinTotalGp,
     gemsAndArt,

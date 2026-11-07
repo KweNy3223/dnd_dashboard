@@ -15,63 +15,98 @@
 
 import { audio } from '../audio.js';
 import { dnd } from '../dnd-engine.js';
+import { getCurrentLanguage } from '../../i18n/translate.js';
 
 export const TRAP_CONFIGS = {
   tripwire: {
     id: 'tripwire',
     name: 'Арбалетная растяжка',
+    name_en: 'Tripwire Crossbow',
     icon: '🏹',
     subtitle: '1. Совместите штифт с шепталом и нажмите ПРОБЕЛ/Клик -> 2. Перекусите струну в узкой зелёной зоне',
+    subtitle_en: '1. Align pin with sear and press SPACE/Click -> 2. Snip the wire in the green tension zone',
     actionBtnText: 'Зафиксировать штифт (ПРОБЕЛ / ЛКМ)',
-    actionBtnIcon: '🪡',
+    actionBtnText_en: 'Lock sear pin (SPACE / LMB)',
     guide1Key: 'Шептало',
+    guide1Key_en: 'Sear Pin',
     guide1Desc: 'Наведите штифт на паз и нажмите ПРОБЕЛ/Клик',
+    guide1Desc_en: 'Align pin with sear slot and press SPACE/Click',
     guide2Key: 'Нить',
+    guide2Key_en: 'Tripwire',
     guide2Desc: 'Срезайте нить строго в зелёной зоне натяжения',
+    guide2Desc_en: 'Snip the wire strictly in the green tension zone',
     guide3Key: 'Осечка',
-    guide3Desc: 'Срез под натяжением дергает спуск и взводит боёк!'
+    guide3Key_en: 'Misfire',
+    guide3Desc: 'Срез под натяжением дергает спуск и взводит боёк!',
+    guide3Desc_en: 'Cutting under tension trips sear and cocks striker!'
   },
   gears: {
     id: 'gears',
     name: 'Зубчатый часовой механизм',
+    name_en: 'Clockwork Gearwork',
     icon: '⚙️',
     subtitle: 'Вбивайте стопорный клин в открывающиеся пазы. Осторожно: после 1-го клина механизм ускоряется!',
+    subtitle_en: 'Drive locking wedges into opening notches. Caution: gear accelerates after 1st wedge!',
     actionBtnText: 'Вбить стопорный клин (ПРОБЕЛ / КЛИК)',
-    actionBtnIcon: '🔨',
+    actionBtnText_en: 'Drive locking wedge (SPACE / CLICK)',
     guide1Key: 'Тайминг',
+    guide1Key_en: 'Timing',
     guide1Desc: 'Ждите момента точного совмещения паза с клином',
+    guide1Desc_en: 'Wait for notch to align with the wedge',
     guide2Key: 'Ускорение',
+    guide2Key_en: 'Acceleration',
     guide2Desc: 'После 1-го клина шестерня крутится на +50% быстрее!',
+    guide2Desc_en: 'After 1st wedge, gear rotates +50% faster!',
     guide3Key: 'Осечка',
-    guide3Desc: 'Удар по зубьям шестерни взводит боёк'
+    guide3Key_en: 'Misfire',
+    guide3Desc: 'Удар по зубьям шестерни взводит боёк',
+    guide3Desc_en: 'Striking gear teeth cocks the striker'
   },
   plate: {
     id: 'plate',
     name: 'Плита-противовес',
+    name_en: 'Counterweight Plate',
     icon: '⚖️',
     subtitle: 'Подсыпайте песок короткими нажатиями (ПРОБЕЛ / ЛКМ), балансируя плиту в зелёном секторе',
+    subtitle_en: 'Pour sand in short taps (SPACE / LMB) to balance plate in green sector',
     actionBtnText: 'Сыпать песок (Зажать ПРОБЕЛ / ЛКМ)',
-    actionBtnIcon: '⏳',
+    actionBtnText_en: 'Pour sand (Hold SPACE / LMB)',
     guide1Key: 'Ритм',
+    guide1Key_en: 'Rhythm',
     guide1Desc: 'Сыпьте песок короткими порциями (тап-тап)',
+    guide1Desc_en: 'Pour sand in short gentle bursts',
     guide2Key: 'Баланс',
+    guide2Key_en: 'Balance',
     guide2Desc: 'Удерживайте стрелку в зелёном секторе до 100%',
+    guide2Desc_en: 'Hold pointer in the green sector up to 100%',
     guide3Key: 'Перекос',
-    guide3Desc: 'Перевес или недобор свыше 0.4 сек сдвигает боёк!'
+    guide3Key_en: 'Imbalance',
+    guide3Desc: 'Перевес или недобор свыше 0.4 сек сдвигает боёк!',
+    guide3Desc_en: 'Imbalance for >0.4s advances the striker!'
   },
   gas: {
     id: 'gas',
     name: 'Ядовитый распылитель',
+    name_en: 'Poison Gas Dispenser',
     icon: '🧪',
     subtitle: 'Удерживайте давление в зелёном коридоре: сбрасывайте пар (ПРОБЕЛ) и зажимайте впрыск',
+    subtitle_en: 'Keep pressure in green corridor: vent steam (SPACE) and hold injection',
     actionBtnText: 'Впрыск нейтрализатора (Зажать ЛКМ / кнопку)',
-    actionBtnIcon: '💉',
+    actionBtnText_en: 'Inject neutralizer (Hold LMB / button)',
+    secondaryBtnText: 'Сброс пара (ПРОБЕЛ)',
+    secondaryBtnText_en: 'Vent steam (SPACE)',
     guide1Key: 'Сброс пара',
+    guide1Key_en: 'Vent Steam',
     guide1Desc: 'ПРОБЕЛ сбивает напор пара (~25%)',
+    guide1Desc_en: 'SPACE releases steam pressure (~25%)',
     guide2Key: 'Зелёный сектор',
+    guide2Key_en: 'Green Sector',
     guide2Desc: 'Вводите реагент строго в рабочей зоне давления',
+    guide2Desc_en: 'Inject reagent strictly in safe pressure window',
     guide3Key: 'Осечки',
-    guide3Desc: 'Впрыск выше границы сорвёт шприц, а 100% перегреет котёл!'
+    guide3Key_en: 'Misfires',
+    guide3Desc: 'Впрыск выше границы сорвёт шприц, а 100% перегреет котёл!',
+    guide3Desc_en: 'High pressure tears syringe; 100% pressure detonates!'
   }
 };
 
@@ -289,22 +324,37 @@ export class TrapGame {
     this.reset();
   }
 
+  isEn() {
+    return this.app?.language === 'en' || getCurrentLanguage() === 'en';
+  }
+
   renderDOM() {
+    const isEn = this.isEn();
     const cfg = TRAP_CONFIGS[this.trapType] || TRAP_CONFIGS.tripwire;
+    const name = isEn ? (cfg.name_en || cfg.name) : cfg.name;
+    const subtitle = isEn ? (cfg.subtitle_en || cfg.subtitle) : cfg.subtitle;
+    const actionBtnText = isEn ? (cfg.actionBtnText_en || cfg.actionBtnText) : cfg.actionBtnText;
+    const secondaryBtnText = isEn ? (cfg.secondaryBtnText_en || 'Vent Steam (SPACE)') : (cfg.secondaryBtnText || 'Сбросить пар (ПРОБЕЛ)');
+    const guide1Key = isEn ? (cfg.guide1Key_en || cfg.guide1Key) : cfg.guide1Key;
+    const guide1Desc = isEn ? (cfg.guide1Desc_en || cfg.guide1Desc) : cfg.guide1Desc;
+    const guide2Key = isEn ? (cfg.guide2Key_en || cfg.guide2Key) : cfg.guide2Key;
+    const guide2Desc = isEn ? (cfg.guide2Desc_en || cfg.guide2Desc) : cfg.guide2Desc;
+    const guide3Key = isEn ? (cfg.guide3Key_en || cfg.guide3Key) : cfg.guide3Key;
+    const guide3Desc = isEn ? (cfg.guide3Desc_en || cfg.guide3Desc) : cfg.guide3Desc;
 
     this.container.innerHTML = `
       <div class="stage-container trap-stage">
         <div class="stage-header">
-          <h2 class="stage-title">${cfg.icon} ${cfg.name}</h2>
-          <p class="stage-subtitle" id="trapStageSubtitle">${cfg.subtitle}</p>
+          <h2 class="stage-title">${cfg.icon} ${name}</h2>
+          <p class="stage-subtitle" id="trapStageSubtitle">${subtitle}</p>
         </div>
 
         <div class="trap-layout">
           <!-- Информационный HUD механизма -->
           <div class="trap-status-hud">
             <div class="trap-hud-row">
-              <span id="trapHudLabel">Состояние механизма:</span>
-              <span class="trap-hud-badge" id="trapHudValue">Взведено (Боёк нейтрален)</span>
+              <span id="trapHudLabel">${isEn ? 'Mechanism State:' : 'Состояние механизма:'}</span>
+              <span class="trap-hud-badge" id="trapHudValue">${isEn ? 'Armed (Striker Neutral)' : 'Взведено (Боёк нейтрален)'}</span>
             </div>
             <div class="trap-progress-track">
               <div class="trap-progress-fill" id="trapProgressFill" style="width: 0%;"></div>
@@ -319,12 +369,12 @@ export class TrapGame {
             <div class="trap-controls-row">
               <button type="button" class="btn fantasy-btn primary trap-action-btn" id="btnTrapAction">
                 <span id="trapActionIcon">${cfg.actionBtnIcon}</span>
-                <span id="trapActionText">${cfg.actionBtnText}</span>
+                <span id="trapActionText">${actionBtnText}</span>
               </button>
 
               ${this.trapType === 'gas' ? `
                 <button type="button" class="btn fantasy-btn secondary" id="btnTrapSecondary" style="min-width: 220px; padding: 12px 22px; font-weight: 700;">
-                  <span>💨</span> Сбросить пар (ПРОБЕЛ)
+                  <span>💨</span> ${secondaryBtnText}
                 </button>
               ` : ''}
             </div>
@@ -333,16 +383,16 @@ export class TrapGame {
           <!-- Памятка управления -->
           <div class="lock-controls-guide" style="margin-top: 6px;">
             <div class="guide-pill">
-              <span class="guide-key">${cfg.guide1Key}</span>
-              <span>${cfg.guide1Desc}</span>
+              <span class="guide-key">${guide1Key}</span>
+              <span>${guide1Desc}</span>
             </div>
             <div class="guide-pill">
-              <span class="guide-key">${cfg.guide2Key}</span>
-              <span>${cfg.guide2Desc}</span>
+              <span class="guide-key">${guide2Key}</span>
+              <span>${guide2Desc}</span>
             </div>
             <div class="guide-pill">
-              <span class="guide-key">${cfg.guide3Key}</span>
-              <span>${cfg.guide3Desc}</span>
+              <span class="guide-key">${guide3Key}</span>
+              <span>${guide3Desc}</span>
             </div>
           </div>
         </div>
@@ -495,10 +545,11 @@ export class TrapGame {
 
   advanceStriker(reason = '') {
     if (this.isDisarmed || this.isDetonated) return;
+    const isEn = this.isEn();
 
     this.strikerStage = Math.min(3, this.strikerStage + 1);
     this.shakeAmount = 10 * this.strikerStage;
-    this.statusMessage = reason || `Щёлк! Боёк сдвинулся (${this.strikerStage}/3)`;
+    this.statusMessage = reason || (isEn ? `Click! Striker advanced (${this.strikerStage}/3)` : `Щёлк! Боёк сдвинулся (${this.strikerStage}/3)`);
     this.statusTimer = 2.2;
 
     audio.playStrikerStep(this.strikerStage);
@@ -521,11 +572,12 @@ export class TrapGame {
   triggerDetonation(reason = '') {
     this.isDetonated = true;
     this.shakeAmount = 30;
+    const isEn = this.isEn();
     audio.playExplosion();
     this.spawnSparks(this.logicalWidth / 2, this.logicalHeight / 2, '#ef4444', 70);
     this.spawnSmoke(this.logicalWidth / 2, this.logicalHeight / 2, 50);
 
-    this.statusMessage = `💥 ДЕТОНАЦИЯ! ${reason || 'Ловушка сработала!'}`;
+    this.statusMessage = isEn ? `💥 DETONATION! ${reason || 'Trap triggered!'}` : `💥 ДЕТОНАЦИЯ! ${reason || 'Ловушка сработала!'}`;
     this.statusTimer = 4.0;
     this.updateHUD();
 
@@ -539,7 +591,8 @@ export class TrapGame {
   triggerVictory() {
     if (this.isDisarmed || this.isDetonated) return;
     this.isDisarmed = true;
-    this.statusMessage = '✨ МЕХАНИЗМ ПОЛНОСТЬЮ ОБЕЗВРЕЖЕН!';
+    const isEn = this.isEn();
+    this.statusMessage = isEn ? '✨ MECHANISM SAFELY DISARMED!' : '✨ МЕХАНИЗМ ПОЛНОСТЬЮ ОБЕЗВРЕЖЕН!';
     this.statusTimer = 3.0;
 
     audio.playSuccess();
@@ -555,29 +608,32 @@ export class TrapGame {
 
   // --- ПОД-ИГРА 1: АРБАЛЕТНАЯ РАСТЯЖКА ---
   checkSearAlignmentClick() {
+    const isEn = this.isEn();
     const diff = Math.abs(this.tripwire.searCurrentX - this.tripwire.searTargetX);
     if (diff <= this.tripwire.searTargetWidth / 2) {
       this.tripwire.searProgress = 100;
       this.finishSearLock();
     } else {
       // Клик мимо щели взводит боёк!
-      this.advanceStriker('Штифт со звоном соскочил мимо шептала бойка!');
+      this.advanceStriker(isEn ? 'Pin loudly slipped off the striker sear slot!' : 'Штифт со звоном соскочил мимо шептала бойка!');
     }
   }
 
   finishSearLock() {
     audio.playSearClick();
+    const isEn = this.isEn();
     this.tripwire.subStage = 'WIRE_SNIP';
-    this.statusMessage = '🛡️ Шептало бойка заблокировано! Срежьте нить строго в зелёной зоне!';
+    this.statusMessage = isEn ? '🛡️ Striker sear locked! Snip the wire in the green tension zone!' : '🛡️ Шептало бойка заблокировано! Срежьте нить строго в зелёной зоне!';
     this.statusTimer = 2.5;
 
     if (this.trapActionIcon) this.trapActionIcon.textContent = '✂️';
-    if (this.trapActionText) this.trapActionText.textContent = 'Срезать нить кусачками (ПРОБЕЛ / КЛИК)';
+    if (this.trapActionText) this.trapActionText.textContent = isEn ? 'Snip wire with pliers (SPACE / CLICK)' : 'Срезать нить кусачками (ПРОБЕЛ / КЛИК)';
     this.updateHUD();
   }
 
   snipTripwire() {
     const t = this.tripwire.tension;
+    const isEn = this.isEn();
     if (t >= this.tripwire.tensionSafeMin && t <= this.tripwire.tensionSafeMax) {
       // Идеальный чистый срез в узкой зоне!
       this.tripwire.wireSevered = true;
@@ -587,7 +643,7 @@ export class TrapGame {
       // ИСПРАВЛЕН БАГ: ошибка перекусывания БОЛЬШЕ НЕ ДАЕТ ПОБЕДУ!
       // Струна рвётся/бьет по спуску, боёк делает шаг!
       audio.playWireCut(true);
-      this.advanceStriker('Струна натянута! Кусачки дернули спусковой крючок!');
+      this.advanceStriker(isEn ? 'Tension too high! Pliers jerked the trigger sear!' : 'Струна натянута! Кусачки дернули спусковой крючок!');
       // Нить остается натянутой, попытка не завершена, игрок должен поймать зеленую зону!
     }
   }
@@ -622,22 +678,25 @@ export class TrapGame {
         this.triggerVictory();
       } else {
         // УСКОРЕНИЕ НА +50%!
+        const isEn = this.isEn();
         this.gears.speed = this.gears.baseSpeed * 1.5;
         this.shakeAmount = 12;
-        this.statusMessage = '⚠️ ПРУЖИНА ПЕРЕГРУЖЕНА! Колесо бешено ускорилось (+50%)!';
+        this.statusMessage = isEn ? '⚠️ SPRING OVERLOADED! Wheel accelerated (+50%)!' : '⚠️ ПРУЖИНА ПЕРЕГРУЖЕНА! Колесо бешено ускорилось (+50%)!';
         this.statusTimer = 2.4;
         this.updateHUD();
       }
     } else {
       audio.playGearGrind();
+      const isEn = this.isEn();
       this.spawnSparks(this.logicalWidth / 2, this.logicalHeight * 0.38, '#f59e0b', 25);
-      this.advanceStriker('Клин со скрежетом отскочил от калёных зубьев шестерни!');
+      this.advanceStriker(isEn ? 'Wedge bounced screeching off hardened gear teeth!' : 'Клин со скрежетом отскочил от калёных зубьев шестерни!');
     }
   }
 
   // --- ПОД-ИГРА 3: ПЛИТА-ПРОТИВОВЕС ---
   updatePlate(dt) {
     if (this.isDisarmed || this.isDetonated) return;
+    const isEn = this.isEn();
 
     // Прямой отзывчивый баланс песка
     if (this.isHoldingAction) {
@@ -665,7 +724,7 @@ export class TrapGame {
 
       if (this.plate.dangerAccumulator >= this.plate.maxDangerTime) {
         this.plate.dangerAccumulator = 0;
-        this.advanceStriker(this.plate.weight > this.plate.safeMax ? 'Плита просела от перевеса!' : 'Плита перекосилась от недобора веса!');
+        this.advanceStriker(this.plate.weight > this.plate.safeMax ? (isEn ? 'Plate sagged from overweight!' : 'Плита просела от перевеса!') : (isEn ? 'Plate tilted from underweight!' : 'Плита перекосилась от недобора веса!'));
       }
     }
 
@@ -693,11 +752,12 @@ export class TrapGame {
   // --- ПОД-ИГРА 4: ЯДОВИТЫЙ РАСПЫЛИТЕЛЬ ---
   ventGasPressure() {
     if (this.gas.ventCooldown > 0) return;
+    const isEn = this.isEn();
 
     // Мощный и надёжный сброс: сбивает давление на ~36-40% с быстрым кулдауном 0.28с
     const dropAmount = 36 + Math.random() * 4;
     this.gas.ventCooldown = 0.28;
-    this.statusMessage = '💨 Пар стравлен! Ловите стрелку в зелёном коридоре!';
+    this.statusMessage = isEn ? '💨 Steam vented! Aim pointer within green corridor!' : '💨 Пар стравлен! Ловите стрелку в зелёном коридоре!';
     this.statusTimer = 0.8;
 
     audio.playSteamHiss(0.32);
@@ -709,6 +769,7 @@ export class TrapGame {
 
   updateGas(dt) {
     if (this.isDisarmed || this.isDetonated) return;
+    const isEn = this.isEn();
 
     if (this.gas.ventCooldown > 0) {
       this.gas.ventCooldown = Math.max(0, this.gas.ventCooldown - dt);
@@ -729,7 +790,7 @@ export class TrapGame {
       if (p < minSafe) {
         // СИНЯЯ ЗОНА: недостаточно давления для диффузии реагента
         this.gas.pressure += (this.gas.reactionHeat * 0.4) * dt;
-        this.statusMessage = `❄️ Давление мало (${Math.round(p)}% < ${minSafe}%). Ждите зелёный коридор!`;
+        this.statusMessage = isEn ? `❄️ Pressure too low (${Math.round(p)}% < ${minSafe}%). Wait for green corridor!` : `❄️ Давление мало (${Math.round(p)}% < ${minSafe}%). Ждите зелёный коридор!`;
         this.statusTimer = 0.5;
       } else if (p <= maxSafe) {
         // ЗЕЛЕНЫЙ КОРИДОР: активная реакция нейтрализации!
@@ -744,14 +805,14 @@ export class TrapGame {
       } else {
         // ЖЕЛТО-КРАСНАЯ ЗОНА: ОБРАТНЫЙ ГИДРОУДАР!
         this.isHoldingAction = false;
-        this.advanceStriker('Обратное давление яда вышибло шприц! Боёк сорван!');
+        this.advanceStriker(isEn ? 'Backpressure blew out the syringe! Striker advanced!' : 'Обратное давление яда вышибло шприц! Боёк сорван!');
       }
     }
 
     // Взрыв котла при 100%
     if (this.gas.pressure >= 100) {
       this.gas.pressure = 55;
-      this.advanceStriker('Критический перегрев котла — гидроудар сорвал затвор!');
+      this.advanceStriker(isEn ? 'Critical boiler overheat — hydraulic shock blew the release valve!' : 'Критический перегрев котла — гидроудар сорвал затвор!');
     }
 
     this.updateHUD();
@@ -760,9 +821,10 @@ export class TrapGame {
   // --- HUD И СТАТУС ---
   updateHUD() {
     if (!this.trapHudLabel || !this.trapHudValue || !this.trapProgressFill) return;
+    const isEn = this.isEn();
 
     if (this.isDetonated) {
-      this.trapHudValue.textContent = '💥 СРАБОТАЛА (ЛОВУШКА ДЕТОНИРОВАЛА)';
+      this.trapHudValue.textContent = isEn ? '💥 DETONATED (TRAP SPRUNG)' : '💥 СРАБОТАЛА (ЛОВУШКА ДЕТОНИРОВАЛА)';
       this.trapHudValue.style.color = '#ed4245';
       this.trapProgressFill.style.width = '100%';
       this.trapProgressFill.className = 'trap-progress-fill danger';
@@ -770,7 +832,7 @@ export class TrapGame {
     }
 
     if (this.isDisarmed) {
-      this.trapHudValue.textContent = '✨ ОБЕЗВРЕЖЕНО (МЕХАНИЗМ ЗАБЛОКИРОВАН)';
+      this.trapHudValue.textContent = isEn ? '✨ DISARMED (MECHANISM LOCKED)' : '✨ ОБЕЗВРЕЖЕНО (МЕХАНИЗМ ЗАБЛОКИРОВАН)';
       this.trapHudValue.style.color = '#22c55e';
       this.trapProgressFill.style.width = '100%';
       this.trapProgressFill.className = 'trap-progress-fill';
@@ -780,30 +842,34 @@ export class TrapGame {
     if (this.trapType === 'tripwire') {
       if (this.tripwire.subStage === 'SEAR_LOCK') {
         const isAligned = this.tripwire.searAligned;
-        this.trapHudLabel.textContent = 'Шептало бойка:';
-        this.trapHudValue.textContent = isAligned ? '🟢 СОВПАДЕНИЕ! Жмите ПРОБЕЛ / Клик!' : '🔴 Штифт не в пазу (наведите на синий паз)';
+        this.trapHudLabel.textContent = isEn ? 'Striker Sear:' : 'Шептало бойка:';
+        this.trapHudValue.textContent = isAligned 
+          ? (isEn ? '🟢 ALIGNED! Press SPACE / Click!' : '🟢 СОВПАДЕНИЕ! Жмите ПРОБЕЛ / Клик!') 
+          : (isEn ? '🔴 Pin unaligned (aim at blue slot)' : '🔴 Штифт не в пазу (наведите на синий паз)');
         this.trapHudValue.style.color = isAligned ? '#22c55e' : '#f59e0b';
         this.trapProgressFill.style.width = isAligned ? '100%' : '20%';
       } else {
         const t = Math.round(this.tripwire.tension);
         const inSafe = t >= this.tripwire.tensionSafeMin && t <= this.tripwire.tensionSafeMax;
-        this.trapHudLabel.textContent = 'Натяжение спусковой нити:';
-        this.trapHudValue.textContent = `${t}% ${inSafe ? '(🟢 МОМЕНТ ДЛЯ СРЕЗА!)' : '(⚠️ Опасно высокое натяжение)'}`;
+        this.trapHudLabel.textContent = isEn ? 'Tripwire Tension:' : 'Натяжение спусковой нити:';
+        this.trapHudValue.textContent = `${t}% ${inSafe ? (isEn ? '(🟢 READY TO CUT!)' : '(🟢 МОМЕНТ ДЛЯ СРЕЗА!)') : (isEn ? '(⚠️ Dangerous high tension)' : '(⚠️ Опасно высокое натяжение)')}`;
         this.trapHudValue.style.color = inSafe ? '#22c55e' : '#f59e0b';
         this.trapProgressFill.style.width = `${t}%`;
       }
     } else if (this.trapType === 'gears') {
       const ins = this.gears.wedgesInserted;
       const req = this.gears.wedgesRequired;
-      this.trapHudLabel.textContent = ins > 0 ? '⚠️ Пружина перегружена (+50% скорости):' : 'Стопорные клинья в шестерне:';
-      this.trapHudValue.textContent = `${ins} из ${req} ${ins >= req ? '(Остановлено)' : '(Ловите пазы!)'}`;
+      this.trapHudLabel.textContent = ins > 0 
+        ? (isEn ? '⚠️ Spring Overloaded (+50% speed):' : '⚠️ Пружина перегружена (+50% скорости):') 
+        : (isEn ? 'Locking wedges in gear:' : 'Стопорные клинья в шестерне:');
+      this.trapHudValue.textContent = `${ins} / ${req} ${ins >= req ? (isEn ? '(Stopped)' : '(Остановлено)') : (isEn ? '(Catch the notches!)' : '(Ловите пазы!)')}`;
       this.trapHudValue.style.color = ins > 0 ? '#f59e0b' : '#38bdf8';
       this.trapProgressFill.style.width = `${(ins / req) * 100}%`;
     } else if (this.trapType === 'plate') {
       const p = Math.round(this.plate.stabilizeProgress);
       const inSafe = this.plate.weight >= this.plate.safeMin && this.plate.weight <= this.plate.safeMax;
-      this.trapHudLabel.textContent = 'Фиксация стопорных штифтов:';
-      this.trapHudValue.textContent = `${p}% ${inSafe ? '(🟢 Равновесие удерживается)' : '(🔴 ПЕРЕКОС ПЛИТЫ!)'}`;
+      this.trapHudLabel.textContent = isEn ? 'Locking pin alignment:' : 'Фиксация стопорных штифтов:';
+      this.trapHudValue.textContent = `${p}% ${inSafe ? (isEn ? '(🟢 Balance maintained)' : '(🟢 Равновесие удерживается)') : (isEn ? '(🔴 PLATE TILTED!)' : '(🔴 ПЕРЕКОС ПЛИТЫ!)')}`;
       this.trapHudValue.style.color = inSafe ? '#22c55e' : '#ed4245';
       this.trapProgressFill.style.width = `${p}%`;
     } else if (this.trapType === 'gas') {
@@ -815,18 +881,20 @@ export class TrapGame {
       const isUnder = p < minSafe;
       const isDanger = p >= this.gas.dangerZoneMin;
 
-      this.trapHudLabel.textContent = `Давление: ${p}% (Коридор: ${minSafe}–${maxSafe}%) | Нейтрализация:`;
+      this.trapHudLabel.textContent = isEn 
+        ? `Pressure: ${p}% (Window: ${minSafe}–${maxSafe}%) | Neutralization:` 
+        : `Давление: ${p}% (Коридор: ${minSafe}–${maxSafe}%) | Нейтрализация:`;
       if (inZone) {
-        this.trapHudValue.textContent = `${neut}% (🟢 ВПРЫСК! Рабочее давление!)`;
+        this.trapHudValue.textContent = `${neut}% ${isEn ? '(🟢 INJECT! Operating pressure!)' : '(🟢 ВПРЫСК! Рабочее давление!)'}`;
         this.trapHudValue.style.color = '#22c55e';
       } else if (isUnder) {
-        this.trapHudValue.textContent = `${neut}% (🔵 Давление мало — ждите коридор)`;
+        this.trapHudValue.textContent = `${neut}% ${isEn ? '(🔵 Pressure low — wait for green zone)' : '(🔵 Давление мало — ждите коридор)'}`;
         this.trapHudValue.style.color = '#38bdf8';
       } else if (isDanger) {
-        this.trapHudValue.textContent = `${neut}% (🔴 КРИТИЧЕСКИЙ ПЕРЕГРЕВ! СБРОСЬТЕ ПАР!)`;
+        this.trapHudValue.textContent = `${neut}% ${isEn ? '(🔴 CRITICAL OVERPRESSURE! VENT STEAM!)' : '(🔴 КРИТИЧЕСКИЙ ПЕРЕГРЕВ! СБРОСЬТЕ ПАР!)'}`;
         this.trapHudValue.style.color = '#ed4245';
       } else {
-        this.trapHudValue.textContent = `${neut}% (🟡 Опасно! Выше нормы — сбросьте пар)`;
+        this.trapHudValue.textContent = `${neut}% ${isEn ? '(🟡 Warning! High pressure — vent steam)' : '(🟡 Опасно! Выше нормы — сбросьте пар)'}`;
         this.trapHudValue.style.color = '#f59e0b';
       }
       this.trapProgressFill.style.width = `${neut}%`;
@@ -1008,7 +1076,8 @@ export class TrapGame {
     ctx.font = '10px "Segoe UI", sans-serif';
     ctx.fillStyle = '#9ca3af';
     ctx.textAlign = 'center';
-    ctx.fillText('БОЁК ВЗВОДА', 0, -6);
+    const isEn = this.isEn();
+    ctx.fillText(isEn ? 'STRIKER' : 'БОЁК ВЗВОДА', 0, -6);
 
     for (let i = 1; i <= 3; i++) {
       const px = -24 + (i - 1) * 24;
@@ -1076,7 +1145,8 @@ export class TrapGame {
       ctx.font = '11px "Segoe UI", sans-serif';
       ctx.fillStyle = isAligned ? '#4ade80' : '#93c5fd';
       ctx.textAlign = 'center';
-      ctx.fillText(isAligned ? 'ЖМИТЕ ПРОБЕЛ / КЛИК!' : 'ЩЕЛЬ ШЕПТАЛА', targetCenter, trackY - 28);
+      const isEn = this.isEn();
+      ctx.fillText(isAligned ? (isEn ? 'PRESS SPACE / CLICK!' : 'ЖМИТЕ ПРОБЕЛ / КЛИК!') : (isEn ? 'SEAR SLOT' : 'ЩЕЛЬ ШЕПТАЛА'), targetCenter, trackY - 28);
 
       const pinX = trackX + this.tripwire.searCurrentX * trackW;
       ctx.save();
@@ -1119,7 +1189,8 @@ export class TrapGame {
         ctx.font = '12px "Segoe UI", sans-serif';
         ctx.fillStyle = inSafe ? '#4ade80' : '#f59e0b';
         ctx.textAlign = 'center';
-        ctx.fillText(inSafe ? '✂️ МОМЕНТ ДЛЯ СРЕЗА! (КЛИК / ПРОБЕЛ)' : '⚠️ НАТЯЖЕНИЕ ВЫСОКОЕ (ЖДИТЕ СЛАБИНЫ)', w / 2, wireY - 26);
+        const isEn = this.isEn();
+        ctx.fillText(inSafe ? (isEn ? '✂️ READY TO SNIP! (CLICK / SPACE)' : '✂️ МОМЕНТ ДЛЯ СРЕЗА! (КЛИК / ПРОБЕЛ)') : (isEn ? '⚠️ HIGH TENSION (WAIT FOR SLACK)' : '⚠️ НАТЯЖЕНИЕ ВЫСОКОЕ (ЖДИТЕ СЛАБИНЫ)'), w / 2, wireY - 26);
 
         ctx.save();
         ctx.translate(w / 2, wireY);
@@ -1281,18 +1352,19 @@ export class TrapGame {
     ctx.stroke();
 
     // Метки секторов
+    const isEn = this.isEn();
     ctx.font = 'bold 8.5px "Segoe UI", sans-serif';
     ctx.fillStyle = '#f87171';
     ctx.textAlign = 'left';
-    ctx.fillText('◄ НЕДОБОР', dialX - dialR + 5, dialY - 8);
+    ctx.fillText(isEn ? '◄ UNDER' : '◄ НЕДОБОР', dialX - dialR + 5, dialY - 8);
 
     ctx.fillStyle = inSafe ? '#4ade80' : '#94a3b8';
     ctx.textAlign = 'center';
-    ctx.fillText('⚖ БАЛАНС', dialX, dialY - dialR + 13);
+    ctx.fillText(isEn ? '⚖ BALANCED' : '⚖ БАЛАНС', dialX, dialY - dialR + 13);
 
     ctx.fillStyle = '#f87171';
     ctx.textAlign = 'right';
-    ctx.fillText('ПЕРЕВЕС ►', dialX + dialR - 5, dialY - 8);
+    ctx.fillText(isEn ? 'OVER ►' : 'ПЕРЕВЕС ►', dialX + dialR - 5, dialY - 8);
 
     // Стрелка циферблата (указывает точно вверх при 50%)
     const needleAngle = Math.PI + (this.plate.weight / 100) * Math.PI;
@@ -1391,7 +1463,7 @@ export class TrapGame {
     ctx.font = 'bold 8.5px "Segoe UI", sans-serif';
     ctx.fillStyle = '#e2e8f0';
     ctx.textAlign = 'center';
-    ctx.fillText('ПЛИТА', leftX, leftPanY - 6);
+    ctx.fillText(isEn ? 'PLATE' : 'ПЛИТА', leftX, leftPanY - 6);
 
     // 4. ПРАВАЯ ЧАША (ПЕСОК И ДОЗАТОР)
     const rightPanY = rightY + 68;
@@ -1425,7 +1497,7 @@ export class TrapGame {
     ctx.font = 'bold 8.5px "Segoe UI", sans-serif';
     ctx.fillStyle = '#fef3c7';
     ctx.textAlign = 'center';
-    ctx.fillText('ПЕСОК', rightX, rightPanY + 11);
+    ctx.fillText(isEn ? 'SAND' : 'ПЕСОК', rightX, rightPanY + 11);
 
     // Струя песка сверху при зажатии
     if (this.isHoldingAction) {
@@ -1465,7 +1537,7 @@ export class TrapGame {
     ctx.font = 'bold 9.5px "Segoe UI", sans-serif';
     ctx.fillStyle = inSafe ? '#4ade80' : '#cbd5e1';
     ctx.textAlign = 'center';
-    ctx.fillText(`УДЕРЖАНИЕ РАВНОВЕСИЯ: ${Math.round(prog * 100)}%`, cx, barY - 5);
+    ctx.fillText(isEn ? `BALANCE HELD: ${Math.round(prog * 100)}%` : `УДЕРЖАНИЕ РАВНОВЕСИЯ: ${Math.round(prog * 100)}%`, cx, barY - 5);
   }
 
   // --- МЕХАНИЗМ 4: ЯДОВИТЫЙ РАСПЫЛИТЕЛЬ ---
@@ -1536,7 +1608,7 @@ export class TrapGame {
     ctx.font = 'bold 9px "Segoe UI", sans-serif';
     ctx.fillStyle = '#fbbf24';
     ctx.textAlign = 'center';
-    ctx.fillText('РЕАКТОР ЯДА', cx, cy - glassH / 2 - 6);
+    ctx.fillText(isEn ? 'POISON REACTOR' : 'РЕАКТОР ЯДА', cx, cy - glassH / 2 - 6);
 
     // 2. БОЛЬШОЙ ИНФОРМАТИВНЫЙ МАНОМЕТР СЛЕВА
     const gaugeX = cx - 132;
@@ -1604,15 +1676,15 @@ export class TrapGame {
     ctx.font = 'bold 8.5px "Segoe UI", sans-serif';
     ctx.fillStyle = '#38bdf8';
     ctx.textAlign = 'center';
-    ctx.fillText('НИЗКО', gaugeX - 26, gaugeY + 34);
+    ctx.fillText(isEn ? 'LOW' : 'НИЗКО', gaugeX - 26, gaugeY + 34);
 
     ctx.fillStyle = '#4ade80';
     ctx.textAlign = 'center';
-    ctx.fillText('ВПРЫСК', gaugeX, gaugeY - 22);
+    ctx.fillText(isEn ? 'INJECT' : 'ВПРЫСК', gaugeX, gaugeY - 22);
 
     ctx.fillStyle = '#ef4444';
     ctx.textAlign = 'center';
-    ctx.fillText('ВЗРЫВ', gaugeX + 26, gaugeY + 34);
+    ctx.fillText(isEn ? 'BURST' : 'ВЗРЫВ', gaugeX + 26, gaugeY + 34);
 
     // Стрелка манометра (100% точное соответствие секторам циферблата!)
     const normP = Math.max(0, Math.min(100, this.gas.pressure));
@@ -1647,10 +1719,11 @@ export class TrapGame {
     ctx.fill();
 
     // Текущее числовое давление под манометром
+    const isEn = this.isEn();
     ctx.font = 'bold 10px "Segoe UI", sans-serif';
     ctx.fillStyle = inZone ? '#4ade80' : (isUnder ? '#38bdf8' : '#f87171');
     ctx.textAlign = 'center';
-    ctx.fillText(`ДАВЛЕНИЕ: ${Math.round(normP)}%`, gaugeX, gaugeY + gr + 16);
+    ctx.fillText(isEn ? `PRESSURE: ${Math.round(normP)}%` : `ДАВЛЕНИЕ: ${Math.round(normP)}%`, gaugeX, gaugeY + gr + 16);
 
     // 3. ПНЕВМО-ШПРИЦ НЕЙТРАЛИЗАТОРА (СЛЕВА ВРЕЗАН В КОТЕЛ)
     const syringeX = cx - boilerW / 2;
@@ -1703,7 +1776,7 @@ export class TrapGame {
     ctx.font = 'bold 9px "Segoe UI", sans-serif';
     ctx.fillStyle = isOverheated ? '#fdba74' : '#94a3b8';
     ctx.textAlign = 'center';
-    ctx.fillText(isOverheated ? 'ГОРЯЧИЙ' : 'СБРОС [ПРОБЕЛ]', ventX + 18, ventY + 24);
+    ctx.fillText(isOverheated ? (isEn ? 'HOT' : 'ГОРЯЧИЙ') : (isEn ? 'VENT [SPACE]' : 'СБРОС [ПРОБЕЛ]'), ventX + 18, ventY + 24);
   }
 
   // --- ЧАСТИЦЫ И ЭФФЕКТЫ ---

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { 
   Coins, 
   Gem, 
@@ -19,15 +20,18 @@ import {
   generateRandomLoot 
 } from '../data/lootData.js';
 
-const currencyBadges = {
-  cp: { bg: 'rgba(184, 115, 51, 0.15)', border: 'rgba(184, 115, 51, 0.4)', text: '#d97706', label: 'ММ' },
-  sp: { bg: 'rgba(156, 163, 175, 0.15)', border: 'rgba(156, 163, 175, 0.4)', text: '#9ca3af', label: 'СМ' },
-  ep: { bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.4)', text: '#10b981', label: 'ЭМ' },
-  gp: { bg: 'rgba(250, 204, 21, 0.15)', border: 'rgba(250, 204, 21, 0.4)', text: '#facc15', label: 'ЗМ' },
-  pp: { bg: 'rgba(224, 231, 255, 0.15)', border: 'rgba(224, 231, 255, 0.4)', text: '#818cf8', label: 'ПМ' }
-};
-
 export default function LootGenerator({ onSendToNotes }) {
+  const { t, language } = useTranslation();
+  const isEn = language === 'en';
+
+  const currencyBadges = {
+    cp: { bg: 'rgba(184, 115, 51, 0.15)', border: 'rgba(184, 115, 51, 0.4)', text: '#d97706', label: isEn ? 'CP' : 'ММ' },
+    sp: { bg: 'rgba(156, 163, 175, 0.15)', border: 'rgba(156, 163, 175, 0.4)', text: '#9ca3af', label: isEn ? 'SP' : 'СМ' },
+    ep: { bg: 'rgba(16, 185, 129, 0.15)', border: 'rgba(16, 185, 129, 0.4)', text: '#10b981', label: isEn ? 'EP' : 'ЭМ' },
+    gp: { bg: 'rgba(250, 204, 21, 0.15)', border: 'rgba(250, 204, 21, 0.4)', text: '#facc15', label: isEn ? 'GP' : 'ЗМ' },
+    pp: { bg: 'rgba(224, 231, 255, 0.15)', border: 'rgba(224, 231, 255, 0.4)', text: '#818cf8', label: isEn ? 'PP' : 'ПМ' }
+  };
+
   const [selectedTier, setSelectedTier] = useState('tier1');
   const [selectedType, setSelectedType] = useState('hoard');
   const [partyCount, setPartyCount] = useState(4);
@@ -35,9 +39,15 @@ export default function LootGenerator({ onSendToNotes }) {
   const [currentLoot, setCurrentLoot] = useState(() => {
     try {
       const cached = localStorage.getItem('dnd_active_loot');
-      return cached ? JSON.parse(cached) : generateRandomLoot();
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.tierLabel_en && parsed.typeLabel_en) {
+          return parsed;
+        }
+      }
+      return generateRandomLoot('tier1', 'hoard', { language });
     } catch {
-      return generateRandomLoot();
+      return generateRandomLoot('tier1', 'hoard', { language });
     }
   });
 
@@ -51,6 +61,13 @@ export default function LootGenerator({ onSendToNotes }) {
   });
 
   const [copied, setCopied] = useState(false);
+
+  // Обновление локализованных полей при смене языка
+  useEffect(() => {
+    if (!currentLoot || !currentLoot.tierLabel_en || !currentLoot.typeLabel_en) {
+      setCurrentLoot(generateRandomLoot(selectedTier, selectedType, { language }));
+    }
+  }, [language]);
 
   useEffect(() => {
     if (currentLoot) {
@@ -74,9 +91,9 @@ export default function LootGenerator({ onSendToNotes }) {
     if (forceRandom) {
       setSelectedTier('tier1');
       setSelectedType('hoard');
-      setCurrentLoot(generateRandomLoot('tier1', 'hoard'));
+      setCurrentLoot(generateRandomLoot('tier1', 'hoard', { language }));
     } else {
-      setCurrentLoot(generateRandomLoot(selectedTier, selectedType));
+      setCurrentLoot(generateRandomLoot(selectedTier, selectedType, { language }));
     }
   };
 
@@ -96,26 +113,61 @@ export default function LootGenerator({ onSendToNotes }) {
     setSavedLoots(savedLoots.filter(l => l.id !== id));
   };
 
+  const lootTypeLabel = isEn ? (currentLoot?.typeLabel_en || currentLoot?.typeLabel) : (currentLoot?.typeLabel_ru || currentLoot?.typeLabel);
+  const lootTierLabel = isEn ? (currentLoot?.tierLabel_en || currentLoot?.tierLabel) : (currentLoot?.tierLabel_ru || currentLoot?.tierLabel);
+
+  const perPlayerGp = currentLoot && partyCount > 0 
+    ? (currentLoot.totalValueGp / partyCount).toFixed(1)
+    : 0;
+
   const handleCopy = () => {
     if (!currentLoot) return;
     const coinsStr = ['pp', 'gp', 'ep', 'sp', 'cp']
       .filter(k => currentLoot.coins[k] > 0)
       .map(k => `${currentLoot.coins[k]} ${k.toUpperCase()}`)
-      .join(', ') || '0 монет';
+      .join(', ') || (isEn ? '0 coins' : '0 монет');
 
-    const gemsStr = currentLoot.gemsAndArt.length > 0
-      ? currentLoot.gemsAndArt.map(g => `• ${g.count}x ${g.name} (${g.value} зм/шт)`).join('\n')
-      : 'Нет';
+    const gemsStr = currentLoot.gemsAndArt?.length > 0
+      ? currentLoot.gemsAndArt.map(g => {
+          const gName = isEn ? (g.name_en || g.name) : (g.name_ru || g.name);
+          return isEn 
+            ? `• ${g.count}x ${gName} (${g.value} GP each)` 
+            : `• ${g.count}x ${gName} (${g.value} зм/шт)`;
+        }).join('\n')
+      : (isEn ? 'None' : 'Нет');
 
-    const magicStr = currentLoot.magicItems.length > 0
-      ? currentLoot.magicItems.map(m => `• [${m.rarity}] ${m.name} — ${m.desc}`).join('\n')
-      : 'Нет';
+    const magicStr = currentLoot.magicItems?.length > 0
+      ? currentLoot.magicItems.map(m => {
+          const mName = isEn ? (m.name_en || m.name) : (m.name_ru || m.name);
+          const mRarity = isEn ? (m.rarity_en || m.rarity) : (m.rarity_ru || m.rarity);
+          const mDesc = isEn ? (m.desc_en || m.desc) : (m.desc_ru || m.desc);
+          return `• [${mRarity}] ${mName} — ${mDesc}`;
+        }).join('\n')
+      : (isEn ? 'None' : 'Нет');
 
-    const text = `💰 СОКРОВИЩА: ${currentLoot.typeLabel} (${currentLoot.tierLabel})\n` +
-      `🪙 Монеты: ${coinsStr} (Общая стоимость в золоте: ~${currentLoot.coinTotalGp} ЗМ)\n\n` +
-      `💎 Самоцветы и драгоценности:\n${gemsStr}\n\n` +
-      `✨ Магические предметы и свитки:\n${magicStr}\n\n` +
-      `👑 ИТОГОВАЯ ЦЕННОСТЬ: ~${currentLoot.totalValueGp} ЗМ (доля каждого из ${partyCount} игр.: ~${perPlayerGp} ЗМ)`;
+    const text = isEn ? [
+      `💰 TREASURE: ${lootTypeLabel} (${lootTierLabel})`,
+      `🪙 Coins: ${coinsStr} (Total currency value: ~${currentLoot.coinTotalGp} GP)`,
+      '',
+      `💎 Gemstones & Art Objects:`,
+      gemsStr,
+      '',
+      `✨ Magic Items & Scrolls:`,
+      magicStr,
+      '',
+      `👑 TOTAL VALUE: ~${currentLoot.totalValueGp} GP (each of ${partyCount} players: ~${perPlayerGp} GP)`
+    ].join('\n') : [
+      `💰 СОКРОВИЩА: ${lootTypeLabel} (${lootTierLabel})`,
+      `🪙 Монеты: ${coinsStr} (Общая стоимость в золоте: ~${currentLoot.coinTotalGp} ЗМ)`,
+      '',
+      `💎 Самоцветы и драгоценности:`,
+      gemsStr,
+      '',
+      `✨ Магические предметы и свитки:`,
+      magicStr,
+      '',
+      `👑 ИТОГОВАЯ ЦЕННОСТЬ: ~${currentLoot.totalValueGp} ЗМ (доля каждого из ${partyCount} игр.: ~${perPlayerGp} ЗМ)`
+    ].join('\n');
 
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -126,44 +178,60 @@ export default function LootGenerator({ onSendToNotes }) {
     if (!currentLoot || !onSendToNotes) return;
     const coinsStr = Object.entries(currentLoot.coins || {})
       .filter(([_, v]) => v > 0)
-      .map(([k, v]) => `${v.toLocaleString('ru-RU')} ${currencyBadges[k]?.label || k}`)
-      .join(', ') || '0 монет';
+      .map(([k, v]) => `${v.toLocaleString(isEn ? 'en-US' : 'ru-RU')} ${currencyBadges[k]?.label || k.toUpperCase()}`)
+      .join(', ') || (isEn ? '0 coins' : '0 монет');
 
-    const gemsStr = currentLoot.gemstones && currentLoot.gemstones.length > 0
-      ? currentLoot.gemstones.map(g => `• ${g.count}× ${g.name} (${g.totalValueGp} ЗМ)`).join('\n')
-      : 'Нет';
+    const gemsStr = currentLoot.gemsAndArt?.length > 0
+      ? currentLoot.gemsAndArt.map(g => {
+          const gName = isEn ? (g.name_en || g.name) : (g.name_ru || g.name);
+          return isEn 
+            ? `• ${g.count}× ${gName} (${g.value * g.count} GP)` 
+            : `• ${g.count}× ${gName} (${g.value * g.count} ЗМ)`;
+        }).join('\n')
+      : (isEn ? 'None' : 'Нет');
 
-    const magicStr = currentLoot.magicItems && currentLoot.magicItems.length > 0
-      ? currentLoot.magicItems.map(m => `• [${m.rarity}] ${m.name} — ${m.desc}`).join('\n')
-      : 'Нет';
+    const magicStr = currentLoot.magicItems?.length > 0
+      ? currentLoot.magicItems.map(m => {
+          const mName = isEn ? (m.name_en || m.name) : (m.name_ru || m.name);
+          const mRarity = isEn ? (m.rarity_en || m.rarity) : (m.rarity_ru || m.rarity);
+          const mDesc = isEn ? (m.desc_en || m.desc) : (m.desc_ru || m.desc);
+          return `• [${mRarity}] ${mName} — ${mDesc}`;
+        }).join('\n')
+      : (isEn ? 'None' : 'Нет');
 
-    const text = [
-      `【 💰 Сокровища: ${currentLoot.typeLabel} (${currentLoot.tierLabel}) 】`,
+    const text = isEn ? [
+      `【 💰 Treasure: ${lootTypeLabel} (${lootTierLabel}) 】`,
+      `Coins: ${coinsStr} (~${currentLoot.coinTotalGp} GP)`,
+      `Gemstones & Art Objects:`,
+      gemsStr,
+      `Magic Items:`,
+      magicStr,
+      `Total Value: ~${currentLoot.totalValueGp} GP (each of ${partyCount} players: ~${perPlayerGp} GP)`
+    ].join('\n') : [
+      `【 💰 Сокровища: ${lootTypeLabel} (${lootTierLabel}) 】`,
       `Монеты: ${coinsStr} (~${currentLoot.coinTotalGp} ЗМ)`,
-      `Самоцветы:\n${gemsStr}`,
-      `Магические предметы:\n${magicStr}`,
+      `Самоцветы:`,
+      gemsStr,
+      `Магические предметы:`,
+      magicStr,
       `Итоговая ценность: ~${currentLoot.totalValueGp} ЗМ (доля каждого из ${partyCount} игр.: ~${perPlayerGp} ЗМ)`
     ].join('\n');
 
-    onSendToNotes(text, `Сокровища (${currentLoot.totalValueGp} ЗМ)`);
+    onSendToNotes(text, isEn ? `Treasure (${currentLoot.totalValueGp} GP)` : `Сокровища (${currentLoot.totalValueGp} ЗМ)`);
   };
-
-  const perPlayerGp = currentLoot && partyCount > 0 
-    ? (currentLoot.totalValueGp / partyCount).toFixed(1)
-    : 0;
 
   return (
     <div>
       {/* Шапка подраздела */}
       <div className="generators-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Gem size={26} color="var(--accent-gold)" />
+          <Gem size={26} color="#f2f3f5" />
           <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>
-            Генератор Сокровищ и Добычи
+            {t('generators.loot.title')}
           </h2>
         </div>
         <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Сокровищницы боссов и карманная добыча по таблицам DMG 5e с самоцветами, магическими свитками и делителем на отряд.
+          {t('generators.loot.desc')}
         </p>
       </div>
 
@@ -171,33 +239,37 @@ export default function LootGenerator({ onSendToNotes }) {
       <div className="generators-toolbar">
         <div className="filters-group">
           <div className="filter-item">
-            <label>Тип сокровищ:</label>
+            <label>{t('generators.loot.type')}</label>
             <select 
               value={selectedType} 
               onChange={(e) => setSelectedType(e.target.value)}
               className="curtain-select filter-select"
             >
-              {LOOT_TYPES.map(t => (
-                <option key={t.id} value={t.id}>{t.label}</option>
+              {LOOT_TYPES.map(tItem => (
+                <option key={tItem.id} value={tItem.id}>
+                  {isEn ? (tItem.label_en || tItem.label) : tItem.label}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="filter-item">
-            <label>Уровень опасности (CR):</label>
+            <label>{t('generators.loot.tier')}</label>
             <select 
               value={selectedTier} 
               onChange={(e) => setSelectedTier(e.target.value)}
               className="curtain-select filter-select"
             >
               {LOOT_TIERS.map(tier => (
-                <option key={tier.id} value={tier.id}>{tier.label}</option>
+                <option key={tier.id} value={tier.id}>
+                  {isEn ? (tier.label_en || tier.label) : tier.label}
+                </option>
               ))}
             </select>
           </div>
 
           <div className="filter-item">
-            <label>Игроков в отряде:</label>
+            <label>{t('generators.loot.party')}</label>
             <input 
               type="number" 
               min="1" 
@@ -216,15 +288,15 @@ export default function LootGenerator({ onSendToNotes }) {
             className="trials-btn primary gen-main-btn"
             onClick={() => handleGenerate(false)}
           >
-            <Dices size={18} /> Сгенерировать лут
+            <Dices size={18} /> {t('generators.loot.generateBtn')}
           </button>
           <button 
             type="button" 
             className="trials-btn secondary"
             onClick={() => handleGenerate(true)}
-            title="Сбросить фильтры"
+            title={isEn ? 'Reset filters' : 'Сбросить фильтры'}
           >
-            <RotateCcw size={16} /> Рандом
+            <RotateCcw size={16} /> {t('generators.actions.fullRandom')}
           </button>
         </div>
       </div>
@@ -242,11 +314,11 @@ export default function LootGenerator({ onSendToNotes }) {
                 <span className="npc-race-emoji">💎</span>
               </div>
               <div className="npc-title-box">
-                <h3 className="npc-name">{currentLoot.typeLabel}</h3>
+                <h3 className="npc-name">{lootTypeLabel}</h3>
                 <div className="npc-meta-row">
-                  <span className="npc-tag highlight">{currentLoot.tierLabel}</span>
-                  <span className="npc-tag" style={{ color: 'var(--accent-gold)', borderColor: 'rgba(212, 175, 55, 0.3)' }}>
-                    Доля на 1 игрока: ≈ {perPlayerGp} ЗМ
+                  <span className="npc-tag highlight">{lootTierLabel}</span>
+                  <span className="npc-tag highlight">
+                    {isEn ? `Share per player: ~${perPlayerGp} GP` : `Доля на 1 игрока: ≈ ${perPlayerGp} ЗМ`}
                   </span>
                 </div>
               </div>
@@ -256,15 +328,15 @@ export default function LootGenerator({ onSendToNotes }) {
                   type="button" 
                   className={`trials-btn secondary icon-btn ${isSaved ? 'active' : ''}`}
                   onClick={toggleSaveLoot}
-                  title={isSaved ? 'Удалить из сохраненных' : 'Сохранить сокровища'}
+                  title={isSaved ? (isEn ? 'Remove from saved' : 'Удалить из сохраненных') : (isEn ? 'Bookmark loot' : 'Сохранить сокровища')}
                 >
-                  <Bookmark size={17} color={isSaved ? 'var(--accent-gold)' : 'currentColor'} />
+                  <Bookmark size={17} color={isSaved ? '#f2f3f5' : 'currentColor'} />
                 </button>
                 <button 
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={handleSendLootToNotes}
-                  title="Отправить сокровища в Заметки на Стол"
+                  title={isEn ? 'Send treasure details to DM Notes' : 'Отправить сокровища в Заметки на Стол'}
                 >
                   <FileText size={17} />
                 </button>
@@ -272,7 +344,7 @@ export default function LootGenerator({ onSendToNotes }) {
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={handleCopy}
-                  title="Скопировать сокровища"
+                  title={isEn ? 'Copy treasure to clipboard' : 'Скопировать сокровища'}
                 >
                   {copied ? <Check size={17} color="#22c55e" /> : <Copy size={17} />}
                 </button>
@@ -280,7 +352,7 @@ export default function LootGenerator({ onSendToNotes }) {
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={() => handleGenerate(false)}
-                  title="Сгенерировать заново"
+                  title={isEn ? 'Reroll treasure' : 'Сгенерировать заново'}
                 >
                   <RotateCcw size={17} />
                 </button>
@@ -290,11 +362,14 @@ export default function LootGenerator({ onSendToNotes }) {
             {/* Блок монет */}
             <div style={{ backgroundColor: 'var(--bg-app)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Coins size={16} /> Монеты
+                <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Coins size={16} /> {t('generators.loot.coins')}
                 </span>
                 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Эквивалент: <strong style={{ color: 'var(--accent-gold)' }}>{currentLoot.coinTotalGp.toLocaleString()} ЗМ</strong>
+                  {isEn ? 'Total in Gold: ' : 'Эквивалент: '}
+                  <strong style={{ color: 'var(--text-title)' }}>
+                    {currentLoot.coinTotalGp.toLocaleString()} {isEn ? 'GP' : 'ЗМ'}
+                  </strong>
                 </span>
               </div>
 
@@ -333,53 +408,59 @@ export default function LootGenerator({ onSendToNotes }) {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0 10px 0' }}>
                 <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Gem size={16} color="#38bdf8" />
-                  Самоцветы и предметы искусства
+                  {t('generators.loot.gems')}
                 </h4>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                  Сумма: <strong style={{ color: 'var(--text-title)' }}>{currentLoot.gemsTotalGp} ЗМ</strong>
+                  {isEn ? 'Total: ' : 'Сумма: '}
+                  <strong style={{ color: 'var(--text-title)' }}>
+                    {currentLoot.gemsTotalGp} {isEn ? 'GP' : 'ЗМ'}
+                  </strong>
                 </span>
               </div>
 
-              {currentLoot.gemsAndArt.length === 0 ? (
+              {(!currentLoot.gemsAndArt || currentLoot.gemsAndArt.length === 0) ? (
                 <div style={{ padding: '12px 14px', borderRadius: '8px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  В этой добыче нет драгоценных камней или предметов искусства.
+                  {isEn ? 'No gemstones or art objects in this cache.' : 'В этой добыче нет драгоценных камней или предметов искусства.'}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {currentLoot.gemsAndArt.map((gem, idx) => (
-                    <div 
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 14px',
-                        borderRadius: '6px',
-                        backgroundColor: 'var(--bg-app)',
-                        border: '1px solid var(--border-color)',
-                        fontSize: '13px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 'bold', color: 'var(--accent-gold)' }}>
-                          {gem.count}×
-                        </span>
-                        <span style={{ color: 'var(--text-title)' }}>
-                          {gem.name}
+                  {currentLoot.gemsAndArt.map((gem, idx) => {
+                    const gName = isEn ? (gem.name_en || gem.name) : (gem.name_ru || gem.name);
+                    return (
+                      <div 
+                        key={idx}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 14px',
+                          borderRadius: '6px',
+                          backgroundColor: 'var(--bg-app)',
+                          border: '1px solid var(--border-color)',
+                          fontSize: '13px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: 'bold', color: 'var(--text-title)' }}>
+                            {gem.count}×
+                          </span>
+                          <span style={{ color: 'var(--text-title)' }}>
+                            {gName}
+                          </span>
+                        </div>
+                        <span style={{ 
+                          padding: '2px 8px', 
+                          borderRadius: '4px', 
+                          backgroundColor: 'rgba(255, 255, 255, 0.08)', 
+                          color: 'var(--text-title)',
+                          fontWeight: 'bold',
+                          fontSize: '12px'
+                        }}>
+                          {isEn ? `${gem.value * gem.count} GP (${gem.value} GP ea)` : `${gem.value * gem.count} ЗМ (${gem.value} зм/шт)`}
                         </span>
                       </div>
-                      <span style={{ 
-                        padding: '2px 8px', 
-                        borderRadius: '4px', 
-                        backgroundColor: 'rgba(250, 204, 21, 0.1)', 
-                        color: '#facc15',
-                        fontWeight: 'bold',
-                        fontSize: '12px'
-                      }}>
-                        {gem.value * gem.count} ЗМ ({gem.value} зм/шт)
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -387,49 +468,54 @@ export default function LootGenerator({ onSendToNotes }) {
             {/* Блок магических предметов */}
             <div>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '4px 0 10px 0', fontSize: '14px', color: 'var(--text-title)' }}>
-                <Sparkles size={16} color="var(--accent-gold)" />
-                Магические находки и свитки
+                <Sparkles size={16} color="#949ba4" />
+                {t('generators.loot.magic')}
               </h4>
 
-              {currentLoot.magicItems.length === 0 ? (
+              {(!currentLoot.magicItems || currentLoot.magicItems.length === 0) ? (
                 <div style={{ padding: '12px 14px', borderRadius: '8px', backgroundColor: 'var(--bg-app)', border: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  Магических предметов не обнаружено.
+                  {isEn ? 'No magic items discovered.' : 'Магических предметов не обнаружено.'}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {currentLoot.magicItems.map((magic, idx) => (
-                    <div 
-                      key={idx}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        backgroundColor: 'rgba(212, 175, 55, 0.06)',
-                        border: '1px solid rgba(212, 175, 55, 0.25)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-title)' }}>
-                          {magic.name}
-                        </span>
-                        <span style={{ 
-                          fontSize: '11px', 
-                          padding: '2px 8px', 
-                          borderRadius: '4px',
-                          backgroundColor: magic.rarity === 'Редкий' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(250, 204, 21, 0.15)',
-                          color: magic.rarity === 'Редкий' ? '#38bdf8' : '#facc15',
-                          fontWeight: 'bold'
-                        }}>
-                          {magic.rarity}
-                        </span>
+                  {currentLoot.magicItems.map((magic, idx) => {
+                    const mName = isEn ? (magic.name_en || magic.name) : (magic.name_ru || magic.name);
+                    const mRarity = isEn ? (magic.rarity_en || magic.rarity) : (magic.rarity_ru || magic.rarity);
+                    const mDesc = isEn ? (magic.desc_en || magic.desc) : (magic.desc_ru || magic.desc);
+                    return (
+                      <div 
+                        key={idx}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          backgroundColor: 'rgba(212, 175, 55, 0.06)',
+                          border: '1px solid rgba(212, 175, 55, 0.25)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-title)' }}>
+                            {mName}
+                          </span>
+                          <span style={{ 
+                            fontSize: '11px', 
+                            padding: '2px 8px', 
+                            borderRadius: '4px', 
+                            backgroundColor: (mRarity === 'Rare' || mRarity === 'Редкий' || mRarity === 'Very Rare') ? 'rgba(56, 189, 248, 0.2)' : 'rgba(250, 204, 21, 0.15)',
+                            color: (mRarity === 'Rare' || mRarity === 'Редкий' || mRarity === 'Very Rare') ? '#38bdf8' : '#facc15',
+                            fontWeight: 'bold'
+                          }}>
+                            {mRarity}
+                          </span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+                          {mDesc}
+                        </p>
                       </div>
-                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                        {magic.desc}
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -441,9 +527,9 @@ export default function LootGenerator({ onSendToNotes }) {
         <div className="saved-npcs-sidebar">
           <div className="saved-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bookmark size={16} color="var(--accent-gold)" />
+              <Bookmark size={16} color="#949ba4" />
               <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)' }}>
-                Сундук трофеев ({savedLoots.length})
+                {t('generators.loot.notepad', { count: savedLoots.length })}
               </h4>
             </div>
             {savedLoots.length > 0 && (
@@ -451,45 +537,51 @@ export default function LootGenerator({ onSendToNotes }) {
                 type="button" 
                 className="clean-btn" 
                 onClick={() => setSavedLoots([])}
-                title="Очистить список"
+                title={t('common.clear')}
               >
-                Очистить
+                {t('common.clear')}
               </button>
             )}
           </div>
 
           <p style={{ margin: '4px 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.35' }}>
-            Сохраняйте выпавшие сокровища для раздачи игрокам в конце сессии.
+            {isEn 
+              ? 'Save loot drops to distribute to players at the end of the session.'
+              : 'Сохраняйте выпавшие сокровища для раздачи игрокам в конце сессии.'}
           </p>
 
           <div className="saved-list">
             {savedLoots.length === 0 ? (
               <div className="saved-empty-state">
                 <span>💎</span>
-                <p>Нажмите значок закладки, чтобы сохранить найденный клад.</p>
+                <p>{t('generators.loot.notepadEmpty')}</p>
               </div>
             ) : (
-              savedLoots.map(item => (
-                <div 
-                  key={item.id} 
-                  className={`saved-npc-item ${currentLoot?.id === item.id ? 'active' : ''}`}
-                  onClick={() => setCurrentLoot(item)}
-                >
-                  <span className="item-icon">💎</span>
-                  <div className="item-info">
-                    <span className="item-name">{item.typeLabel}</span>
-                    <span className="item-meta">{item.tierLabel} • ~{item.totalValueGp} ЗМ</span>
-                  </div>
-                  <button 
-                    type="button" 
-                    className="item-delete-btn" 
-                    onClick={(e) => removeSavedLoot(item.id, e)}
-                    title="Удалить"
+              savedLoots.map(item => {
+                const sType = isEn ? (item.typeLabel_en || item.typeLabel) : (item.typeLabel_ru || item.typeLabel);
+                const sTier = isEn ? (item.tierLabel_en || item.tierLabel) : (item.tierLabel_ru || item.tierLabel);
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`saved-npc-item ${currentLoot?.id === item.id ? 'active' : ''}`}
+                    onClick={() => setCurrentLoot(item)}
                   >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))
+                    <span className="item-icon">💎</span>
+                    <div className="item-info">
+                      <span className="item-name">{sType}</span>
+                      <span className="item-meta">{sTier} • ~{item.totalValueGp} {isEn ? 'GP' : 'ЗМ'}</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="item-delete-btn" 
+                      onClick={(e) => removeSavedLoot(item.id, e)}
+                      title={t('common.delete') || 'Удалить'}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

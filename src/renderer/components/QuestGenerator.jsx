@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 import { 
   Scroll, 
   User, 
@@ -22,13 +23,22 @@ import {
 } from '../data/questData.js';
 
 export default function QuestGenerator({ onSendToNotes }) {
+  const { t, language } = useTranslation();
+  const isEn = language === 'en';
+
   const [selectedCategory, setSelectedCategory] = useState('any');
   const [currentQuest, setCurrentQuest] = useState(() => {
     try {
       const cached = localStorage.getItem('dnd_active_quest');
-      return cached ? JSON.parse(cached) : generateRandomQuest();
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.title_en && parsed.client_en) {
+          return parsed;
+        }
+      }
+      return generateRandomQuest('any', { language });
     } catch {
-      return generateRandomQuest();
+      return generateRandomQuest('any', { language });
     }
   });
 
@@ -43,6 +53,13 @@ export default function QuestGenerator({ onSendToNotes }) {
 
   const [copied, setCopied] = useState(false);
   const [investigationRoll, setInvestigationRoll] = useState(null);
+
+  // Обновление локализованных полей при смене языка
+  useEffect(() => {
+    if (!currentQuest || !currentQuest.title_en || !currentQuest.client_en) {
+      setCurrentQuest(generateRandomQuest(selectedCategory, { language }));
+    }
+  }, [language]);
 
   useEffect(() => {
     if (currentQuest) {
@@ -66,18 +83,24 @@ export default function QuestGenerator({ onSendToNotes }) {
     setInvestigationRoll(null);
     const cat = forceRandom ? 'any' : selectedCategory;
     if (forceRandom) setSelectedCategory('any');
-    setCurrentQuest(generateRandomQuest(cat));
+    setCurrentQuest(generateRandomQuest(cat, { language }));
   };
 
   const handleRollInvestigation = () => {
     const roll = Math.floor(Math.random() * 20) + 1;
     let hint = '';
     if (roll >= 15) {
-      hint = 'Отличный результат (15+)! Игроки безошибочно распознают правду и вымысел.';
+      hint = isEn
+        ? 'Outstanding result (15+)! The party effortlessly weeds out truth from tall tales.'
+        : 'Отличный результат (15+)! Игроки безошибочно распознают правду и вымысел.';
     } else if (roll >= 10) {
-      hint = 'Успех (10+): отряду удаётся отсеять самую дикую байку пьяницы.';
+      hint = isEn
+        ? 'Success (10+): The party discards wild tavern rumors.'
+        : 'Успех (10+): отряду удаётся отсеять самую дикую байку пьяницы.';
     } else {
-      hint = 'Провал (<10): отряд поверил в байку или слух воспринят превратно.';
+      hint = isEn
+        ? 'Failure (<10): The party takes tavern tall tales at face value.'
+        : 'Провал (<10): отряд поверил в байку или слух воспринят превратно.';
     }
     setInvestigationRoll({ roll, hint });
   };
@@ -98,17 +121,49 @@ export default function QuestGenerator({ onSendToNotes }) {
     setSavedQuests(savedQuests.filter(q => q.id !== id));
   };
 
+  // Локализованные поля текущего квеста
+  const questTitle = isEn ? (currentQuest?.title_en || currentQuest?.title) : (currentQuest?.title_ru || currentQuest?.title);
+  const questClient = isEn ? (currentQuest?.client_en || currentQuest?.client) : (currentQuest?.client_ru || currentQuest?.client);
+  const questClientVibe = isEn ? (currentQuest?.clientVibe_en || currentQuest?.clientVibe) : (currentQuest?.clientVibe_ru || currentQuest?.clientVibe);
+  const questGoal = isEn ? (currentQuest?.goal_en || currentQuest?.goal) : (currentQuest?.goal_ru || currentQuest?.goal);
+  const questTwist = isEn ? (currentQuest?.twist_en || currentQuest?.twist) : (currentQuest?.twist_ru || currentQuest?.twist);
+  const questLocation = isEn ? (currentQuest?.location_en || currentQuest?.location) : (currentQuest?.location_ru || currentQuest?.location);
+  const questUrgency = isEn ? (currentQuest?.urgency_en || currentQuest?.urgency) : (currentQuest?.urgency_ru || currentQuest?.urgency);
+  const questReward = isEn ? (currentQuest?.reward_en || currentQuest?.reward) : (currentQuest?.reward_ru || currentQuest?.reward);
+
   const handleCopy = () => {
     if (!currentQuest) return;
-    const text = `📜 ЗАКАЗ: ${currentQuest.title}\n` +
-      `👤 Заказчик: ${currentQuest.client} (${currentQuest.clientVibe})\n` +
-      `🎯 Цель: ${currentQuest.goal}\n` +
-      `⚠️ Подводный камень: ${currentQuest.twist}\n` +
-      `📍 Место: ${currentQuest.location}\n` +
-      `⏳ Сроки: ${currentQuest.urgency}\n` +
-      `💰 Награда: ${currentQuest.reward}\n\n` +
-      `🗣️ СЛУХИ И ТОЛКИ:\n` +
-      currentQuest.rumors.map(r => `• [${r.label}] ${r.text}`).join('\n');
+    const rumorsList = (currentQuest.rumors || []).map(r => {
+      const rLabel = isEn 
+        ? (r.type === 'truth' ? 'Verified Fact' : (r.type === 'halftruth' ? 'Exaggerated Gossip' : 'Tavern Tall Tale'))
+        : (r.type === 'truth' ? 'Достоверный слух' : (r.type === 'halftruth' ? 'Приукрашенная молва' : 'Пьяная байка'));
+      const rText = isEn ? (r.text_en || r.text) : (r.text_ru || r.text);
+      return `• [${rLabel}] ${rText}`;
+    }).join('\n');
+
+    const text = isEn ? [
+      `📜 QUEST: ${questTitle}`,
+      `👤 Client: ${questClient} (${questClientVibe})`,
+      `🎯 Objective: ${questGoal}`,
+      `⚠️ Plot Twist: ${questTwist}`,
+      `📍 Location: ${questLocation}`,
+      `⏳ Deadline: ${questUrgency}`,
+      `💰 Reward: ${questReward}`,
+      '',
+      `🗣️ RUMORS & GOSSIP:`,
+      rumorsList
+    ].join('\n') : [
+      `📜 ЗАКАЗ: ${questTitle}`,
+      `👤 Заказчик: ${questClient} (${questClientVibe})`,
+      `🎯 Цель: ${questGoal}`,
+      `⚠️ Подводный камень: ${questTwist}`,
+      `📍 Место: ${questLocation}`,
+      `⏳ Сроки: ${questUrgency}`,
+      `💰 Награда: ${questReward}`,
+      '',
+      `🗣️ СЛУХИ И ТОЛКИ:`,
+      rumorsList
+    ].join('\n');
 
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -117,16 +172,24 @@ export default function QuestGenerator({ onSendToNotes }) {
 
   const handleSendQuestToNotes = () => {
     if (!currentQuest || !onSendToNotes) return;
-    const text = [
-      `【 📜 Заказ: ${currentQuest.title} 】`,
-      `⏳ Сроки: ${currentQuest.urgency}`,
-      `👤 Заказчик: ${currentQuest.client} (${currentQuest.clientVibe})`,
-      `📍 Место действия: ${currentQuest.location}`,
-      `🎯 Суть задачи: ${currentQuest.goal}`,
-      `⚠️ Подводный камень: ${currentQuest.twist}`,
-      `💰 Награда: ${currentQuest.reward}`
+    const text = isEn ? [
+      `【 📜 Contract: ${questTitle} 】`,
+      `⏳ Deadline: ${questUrgency}`,
+      `👤 Client: ${questClient} (${questClientVibe})`,
+      `📍 Location: ${questLocation}`,
+      `🎯 Objective: ${questGoal}`,
+      `⚠️ Plot Twist: ${questTwist}`,
+      `💰 Reward: ${questReward}`
+    ].join('\n') : [
+      `【 📜 Заказ: ${questTitle} 】`,
+      `⏳ Сроки: ${questUrgency}`,
+      `👤 Заказчик: ${questClient} (${questClientVibe})`,
+      `📍 Место действия: ${questLocation}`,
+      `🎯 Суть задачи: ${questGoal}`,
+      `⚠️ Подводный камень: ${questTwist}`,
+      `💰 Награда: ${questReward}`
     ].join('\n');
-    onSendToNotes(text, currentQuest.title);
+    onSendToNotes(text, questTitle);
   };
 
   return (
@@ -134,13 +197,13 @@ export default function QuestGenerator({ onSendToNotes }) {
       {/* Шапка подраздела */}
       <div className="generators-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <Scroll size={26} color="var(--accent-gold)" />
+          <Scroll size={26} color="#f2f3f5" />
           <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text-title)' }}>
-            Генератор Заказов и Слухов
+            {t('generators.quests.title')}
           </h2>
         </div>
         <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
-          Доска объявлений таверны или гильдии: контракты с заказчиками, сюжетными твистами и городскими сплетнями.
+          {t('generators.quests.desc')}
         </p>
       </div>
 
@@ -148,14 +211,16 @@ export default function QuestGenerator({ onSendToNotes }) {
       <div className="generators-toolbar">
         <div className="filters-group">
           <div className="filter-item">
-            <label>Категория поручения:</label>
+            <label>{t('generators.quests.category')}</label>
             <select 
               value={selectedCategory} 
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="curtain-select filter-select"
             >
               {QUEST_CATEGORIES.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.label}</option>
+                <option key={cat.id} value={cat.id}>
+                  {isEn ? (cat.label_en || cat.label) : cat.label}
+                </option>
               ))}
             </select>
           </div>
@@ -167,23 +232,23 @@ export default function QuestGenerator({ onSendToNotes }) {
             className="trials-btn primary gen-main-btn"
             onClick={() => handleGenerate(false)}
           >
-            <Dices size={18} /> Сгенерировать заказ
+            <Dices size={18} /> {t('generators.quests.generateBtn')}
           </button>
           <button 
             type="button" 
             className="trials-btn secondary"
             onClick={() => handleGenerate(true)}
-            title="Случайная категория"
+            title={isEn ? 'Random category' : 'Случайная категория'}
           >
-            <RotateCcw size={16} /> Рандом
+            <RotateCcw size={16} /> {t('generators.actions.fullRandom')}
           </button>
           <button 
             type="button" 
             className="trials-btn secondary"
             onClick={handleRollInvestigation}
-            title="Бросок проверки наведения справок"
+            title={isEn ? 'Roll d20 Investigation / Insight' : 'Бросок проверки наведения справок'}
           >
-            <Sparkles size={16} /> Справка d20
+            <Sparkles size={16} /> {t('generators.quests.investigationBtn')}
           </button>
         </div>
       </div>
@@ -203,7 +268,7 @@ export default function QuestGenerator({ onSendToNotes }) {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontWeight: 'bold', color: investigationRoll.roll >= 10 ? '#4ade80' : '#ef4444' }}>
-              🎲 d20 Анализ / Проницательность = {investigationRoll.roll}
+              🎲 {isEn ? 'd20 Inquiry / Insight' : 'd20 Анализ / Проницательность'} = {investigationRoll.roll}
             </span>
             <span style={{ color: 'var(--text-muted)' }}>— {investigationRoll.hint}</span>
           </div>
@@ -212,7 +277,7 @@ export default function QuestGenerator({ onSendToNotes }) {
             onClick={() => setInvestigationRoll(null)}
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px' }}
           >
-            Скрыть
+            {isEn ? 'Hide' : 'Скрыть'}
           </button>
         </div>
       )}
@@ -230,11 +295,13 @@ export default function QuestGenerator({ onSendToNotes }) {
                 <span className="npc-race-emoji">📜</span>
               </div>
               <div className="npc-title-box">
-                <h3 className="npc-name">{currentQuest.title}</h3>
+                <h3 className="npc-name">{questTitle}</h3>
                 <div className="npc-meta-row">
-                  <span className="npc-tag highlight">Заказ на доске объявлений</span>
+                  <span className="npc-tag highlight">
+                    {isEn ? 'Notice Board Contract' : 'Заказ на доске объявлений'}
+                  </span>
                   <span className="npc-tag" style={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-                    Сроки: {currentQuest.urgency}
+                    {isEn ? `Deadline: ${questUrgency}` : `Сроки: ${questUrgency}`}
                   </span>
                 </div>
               </div>
@@ -244,15 +311,15 @@ export default function QuestGenerator({ onSendToNotes }) {
                   type="button" 
                   className={`trials-btn secondary icon-btn ${isSaved ? 'active' : ''}`}
                   onClick={toggleSaveQuest}
-                  title={isSaved ? 'Удалить из сохраненных' : 'Сохранить квест'}
+                  title={isSaved ? (isEn ? 'Remove from saved' : 'Удалить из сохраненных') : (isEn ? 'Bookmark quest' : 'Сохранить квест')}
                 >
-                  <Bookmark size={17} color={isSaved ? 'var(--accent-gold)' : 'currentColor'} />
+                  <Bookmark size={17} color={isSaved ? '#f2f3f5' : 'currentColor'} />
                 </button>
                 <button 
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={handleSendQuestToNotes}
-                  title="Отправить детали заказа в Заметки на Стол"
+                  title={isEn ? 'Send contract details to DM Notes' : 'Отправить детали заказа в Заметки на Стол'}
                 >
                   <FileText size={17} />
                 </button>
@@ -260,7 +327,7 @@ export default function QuestGenerator({ onSendToNotes }) {
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={handleCopy}
-                  title="Скопировать заказ"
+                  title={isEn ? 'Copy contract to clipboard' : 'Скопировать заказ'}
                 >
                   {copied ? <Check size={17} color="#22c55e" /> : <Copy size={17} />}
                 </button>
@@ -268,7 +335,7 @@ export default function QuestGenerator({ onSendToNotes }) {
                   type="button" 
                   className="trials-btn secondary icon-btn"
                   onClick={() => handleGenerate(false)}
-                  title="Сгенерировать заново"
+                  title={isEn ? 'Reroll contract' : 'Сгенерировать заново'}
                 >
                   <RotateCcw size={17} />
                 </button>
@@ -278,26 +345,26 @@ export default function QuestGenerator({ onSendToNotes }) {
             {/* Заказчик и Место */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
               <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
-                  <User size={16} /> Заказчик
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-title)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
+                  <User size={16} /> {t('generators.quests.client')}
                 </div>
                 <div style={{ fontWeight: '600', color: 'var(--text-title)', marginBottom: '4px', fontSize: '14px' }}>
-                  {currentQuest.client}
+                  {questClient}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  {currentQuest.clientVibe}
+                  {questClientVibe}
                 </div>
               </div>
 
               <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38bdf8', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
-                  <MapPin size={16} /> Локация и Сроки
+                  <MapPin size={16} /> {isEn ? 'Location & Deadline' : 'Локация и Сроки'}
                 </div>
                 <div style={{ fontWeight: '500', color: 'var(--text-title)', marginBottom: '4px', fontSize: '14px' }}>
-                  {currentQuest.location}
+                  {questLocation}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--accent-red)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Clock size={13} /> {currentQuest.urgency}
+                  <Clock size={13} /> {questUrgency}
                 </div>
               </div>
             </div>
@@ -305,10 +372,10 @@ export default function QuestGenerator({ onSendToNotes }) {
             {/* Суть поручения */}
             <div style={{ backgroundColor: 'var(--bg-app)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px', fontWeight: 'bold' }}>
-                Суть задачи:
+                {t('generators.quests.goal')}:
               </div>
               <p style={{ margin: 0, color: 'var(--text-title)', fontSize: '15px', lineHeight: '1.5', fontWeight: '500' }}>
-                {currentQuest.goal}
+                {questGoal}
               </p>
             </div>
 
@@ -316,19 +383,19 @@ export default function QuestGenerator({ onSendToNotes }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
               <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-red)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
-                  <AlertTriangle size={16} /> Скрытый сюжетный твист
+                  <AlertTriangle size={16} /> {t('generators.quests.twist')}
                 </div>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
-                  {currentQuest.twist}
+                  {questTwist}
                 </p>
               </div>
 
-              <div style={{ backgroundColor: 'rgba(212, 175, 55, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-gold)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
-                  <Coins size={16} /> Награда за выполнение
+              <div style={{ backgroundColor: 'var(--bg-app)', padding: '14px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-title)', fontWeight: '600', marginBottom: '6px', fontSize: '13px' }}>
+                  <Coins size={16} /> {t('generators.quests.reward')}
                 </div>
                 <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)', fontWeight: 'bold', lineHeight: '1.4' }}>
-                  {currentQuest.reward}
+                  {questReward}
                 </p>
               </div>
             </div>
@@ -337,35 +404,41 @@ export default function QuestGenerator({ onSendToNotes }) {
             <div>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 10px 0', fontSize: '15px', color: 'var(--text-title)' }}>
                 <MessageSquare size={17} color="var(--accent-primary)" />
-                Слухи и кривотолки в таверне
+                {t('generators.quests.rumorsTitle')}
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {currentQuest.rumors.map((rumor, idx) => (
-                  <div key={idx} style={{ 
-                    padding: '10px 14px', 
-                    borderRadius: '8px', 
-                    backgroundColor: 'var(--bg-app)', 
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px'
-                  }}>
-                    <span style={{ 
-                      fontSize: '11px', 
-                      fontWeight: 'bold', 
-                      padding: '1px 7px', 
-                      borderRadius: '4px',
-                      alignSelf: 'flex-start',
-                      backgroundColor: rumor.type === 'truth' ? 'rgba(34, 197, 94, 0.15)' : (rumor.type === 'halftruth' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)'),
-                      color: rumor.type === 'truth' ? '#4ade80' : (rumor.type === 'halftruth' ? '#facc15' : '#f87171')
+                {(currentQuest.rumors || []).map((rumor, idx) => {
+                  const rLabel = isEn
+                    ? (rumor.type === 'truth' ? 'Verified Fact' : (rumor.type === 'halftruth' ? 'Exaggerated Gossip' : 'Tavern Tall Tale'))
+                    : (rumor.type === 'truth' ? 'Достоверный слух' : (rumor.type === 'halftruth' ? 'Приукрашенная молва' : 'Пьяная байка'));
+                  const rText = isEn ? (rumor.text_en || rumor.text) : (rumor.text_ru || rumor.text);
+                  return (
+                    <div key={idx} style={{ 
+                      padding: '10px 14px', 
+                      borderRadius: '8px', 
+                      backgroundColor: 'var(--bg-app)', 
+                      border: '1px solid var(--border-color)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px'
                     }}>
-                      {rumor.label}
-                    </span>
-                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
-                      «{rumor.text}»
-                    </p>
-                  </div>
-                ))}
+                      <span style={{ 
+                        fontSize: '11px', 
+                        fontWeight: 'bold', 
+                        padding: '1px 7px', 
+                        borderRadius: '4px',
+                        alignSelf: 'flex-start',
+                        backgroundColor: rumor.type === 'truth' ? 'rgba(34, 197, 94, 0.15)' : (rumor.type === 'halftruth' ? 'rgba(234, 179, 8, 0.15)' : 'rgba(239, 68, 68, 0.15)'),
+                        color: rumor.type === 'truth' ? '#4ade80' : (rumor.type === 'halftruth' ? '#facc15' : '#f87171')
+                      }}>
+                        {rLabel}
+                      </span>
+                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-title)', lineHeight: '1.4' }}>
+                        {isEn ? `"${rText}"` : `«${rText}»`}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -376,9 +449,9 @@ export default function QuestGenerator({ onSendToNotes }) {
         <div className="saved-npcs-sidebar">
           <div className="saved-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Bookmark size={16} color="var(--accent-gold)" />
+              <Bookmark size={16} color="#949ba4" />
               <h4 style={{ margin: 0, fontSize: '14px', color: 'var(--text-title)' }}>
-                Книга заказов ({savedQuests.length})
+                {t('generators.quests.notepad', { count: savedQuests.length })}
               </h4>
             </div>
             {savedQuests.length > 0 && (
@@ -386,45 +459,52 @@ export default function QuestGenerator({ onSendToNotes }) {
                 type="button" 
                 className="clean-btn" 
                 onClick={() => setSavedQuests([])}
-                title="Очистить список"
+                title={t('common.clear')}
               >
-                Очистить
+                {t('common.clear')}
               </button>
             )}
           </div>
 
           <p style={{ margin: '4px 0 10px 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.35' }}>
-            Сохраняйте заказы, взятые партией, чтобы быстро освежить в памяти детали контракта.
+            {isEn 
+              ? 'Save contracts taken by the party to quickly review quest details and rewards.'
+              : 'Сохраняйте заказы, взятые партией, чтобы быстро освежить в памяти детали контракта.'}
           </p>
 
           <div className="saved-list">
             {savedQuests.length === 0 ? (
               <div className="saved-empty-state">
                 <span>📜</span>
-                <p>Нажмите закладку на карточке заказа, чтобы сохранить его.</p>
+                <p>{t('generators.quests.notepadEmpty')}</p>
               </div>
             ) : (
-              savedQuests.map(item => (
-                <div 
-                  key={item.id} 
-                  className={`saved-npc-item ${currentQuest?.id === item.id ? 'active' : ''}`}
-                  onClick={() => setCurrentQuest(item)}
-                >
-                  <span className="item-icon">📜</span>
-                  <div className="item-info">
-                    <span className="item-name">{item.title}</span>
-                    <span className="item-meta">{item.client} • {item.reward.split(',')[0]}</span>
-                  </div>
-                  <button 
-                    type="button" 
-                    className="item-delete-btn" 
-                    onClick={(e) => removeSavedQuest(item.id, e)}
-                    title="Удалить"
+              savedQuests.map(item => {
+                const sTitle = isEn ? (item.title_en || item.title) : (item.title_ru || item.title);
+                const sClient = isEn ? (item.client_en || item.client) : (item.client_ru || item.client);
+                const sReward = isEn ? (item.reward_en || item.reward) : (item.reward_ru || item.reward);
+                return (
+                  <div 
+                    key={item.id} 
+                    className={`saved-npc-item ${currentQuest?.id === item.id ? 'active' : ''}`}
+                    onClick={() => setCurrentQuest(item)}
                   >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))
+                    <span className="item-icon">📜</span>
+                    <div className="item-info">
+                      <span className="item-name">{sTitle}</span>
+                      <span className="item-meta">{sClient} • {sReward?.split(',')[0]}</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="item-delete-btn" 
+                      onClick={(e) => removeSavedQuest(item.id, e)}
+                      title={t('common.delete') || 'Удалить'}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

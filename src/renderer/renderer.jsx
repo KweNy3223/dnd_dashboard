@@ -37,10 +37,18 @@ import RulesTab from './components/RulesTab.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import TrialsTab from './components/TrialsTab.jsx';
 import GeneratorsTab from './components/GeneratorsTab.jsx';
+import { LanguageProvider, useTranslation } from './i18n/LanguageContext.jsx';
+
+import logoSvg from './assets/logo.svg';
 
 function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    document.title = t('app.title');
+  }, [t]);
   const isTrialsRoute = location.pathname.startsWith('/trials');
   const isGeneratorsRoute = location.pathname.startsWith('/generators');
 
@@ -75,7 +83,7 @@ function AppContent() {
   }, [modules]);
 
   // Функция показа уведомлений
-  function showToast(message, actionLabel = 'На Стол', actionPath = '/') {
+  function showToast(message, actionLabel = t('common.sendToTable'), actionPath = '/') {
     setToast({ message, actionLabel, actionPath });
   }
 
@@ -173,7 +181,7 @@ function AppContent() {
       }
     });
 
-    showToast(`Враги (${newParticipants.length} шт.) из «${encounterTitle || 'Энкаунтера'}» добавлены в Инициативу!`);
+    showToast(t('table.sentInitiative', { count: newParticipants.length, title: encounterTitle || t('nav.encounters') }));
   }
 
   // 2. Отправка заметок (квесты, описания энкаунтеров, NPC, сокровища)
@@ -208,7 +216,7 @@ function AppContent() {
       }
     });
 
-    showToast(`«${noteTitle || 'Запись'}» добавлена в модуль «Заметки» на Столе!`);
+    showToast(t('table.sentNotes', { title: noteTitle || t('modules.notes') }));
   }
 
   function handleRemoveModule(idToRemove) {
@@ -255,7 +263,7 @@ function AppContent() {
         const loadedModules = JSON.parse(e.target.result);
         setModules(loadedModules);
       } catch (error) {
-        alert("Ошибка при чтении файла! Убедитесь, что это правильный JSON.");
+        alert(t('table.loadError'));
       }
     };
     reader.readAsText(file);
@@ -282,18 +290,21 @@ function AppContent() {
               type="button" 
               className="sidebar-toggle-btn"
               onClick={() => setIsSidebarOpen(true)}
-              title="Открыть меню разделов"
+              title={t('sidebar.openMenu')}
             >
               <Menu size={20} />
             </button>
             <h2 className="app-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {isGeneratorsRoute ? (
                 <>
-                  <Sparkles size={20} color="var(--accent-gold)" />
-                  <span>Генераторы</span>
+                  <Sparkles size={20} color="#f2f3f5" />
+                  <span>{t('nav.generators')}</span>
                 </>
               ) : (
-                'DnD Dashboard'
+                <>
+                  <img src={logoSvg} alt="d20" style={{ width: '22px', height: '22px' }} />
+                  <span>DnD Dashboard</span>
+                </>
               )}
             </h2>
           </div>
@@ -314,7 +325,7 @@ function AppContent() {
                   className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Beer size={18} /> Таверны
+                  <Beer size={18} /> {t('nav.taverns')}
                 </NavLink>
 
                 <NavLink 
@@ -322,7 +333,7 @@ function AppContent() {
                   className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Store size={18} /> Лавки
+                  <Store size={18} /> {t('nav.shops')}
                 </NavLink>
 
                 <NavLink 
@@ -330,7 +341,7 @@ function AppContent() {
                   className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Scroll size={18} /> Заказы
+                  <Scroll size={18} /> {t('nav.quests')}
                 </NavLink>
 
                 <NavLink 
@@ -338,7 +349,7 @@ function AppContent() {
                   className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Swords size={18} /> Энкаунтеры
+                  <Swords size={18} /> {t('nav.encounters')}
                 </NavLink>
 
                 <NavLink 
@@ -346,7 +357,7 @@ function AppContent() {
                   className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Compass size={18} /> Подземелья
+                  <Compass size={18} /> {t('nav.dungeon')}
                 </NavLink>
 
                 <NavLink 
@@ -354,29 +365,29 @@ function AppContent() {
                   className={({ isActive }) => `nav-tab ${isActive ? 'active' : ''}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  <Gem size={18} /> Сокровища
+                  <Gem size={18} /> {t('nav.loot')}
                 </NavLink>
               </>
             ) : (
               <>
                 <NavLink to="/" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <LayoutDashboard size={18} /> Стол
+                  <LayoutDashboard size={18} /> {t('nav.table')}
                 </NavLink>
 
                 <NavLink to="/prices" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Store size={18} /> Справочник цен
+                  <Store size={18} /> {t('nav.prices')}
                 </NavLink>
 
                 <NavLink to="/calculator" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Calculator size={18} /> Калькулятор лута
+                  <Calculator size={18} /> {t('nav.calculator')}
                 </NavLink>
 
                 <NavLink to="/rules" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <BookOpen size={18} /> Справочник
+                  <BookOpen size={18} /> {t('nav.rules')}
                 </NavLink>
                 
                 <NavLink to="/settings" className="nav-tab" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Settings size={18} /> Настройки
+                  <Settings size={18} /> {t('nav.settings')}
                 </NavLink>
               </>
             )}
@@ -407,24 +418,24 @@ function AppContent() {
                 <div style={{ position: 'fixed', bottom: '30px', right: '30px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '15px', zIndex: 1000 }}>
                   {isModuleMenuOpen && (
                     <div className="fab-menu">
-                      <button onClick={() => handleAddModule('Инициатива')}>Инициатива</button>
-                      <button onClick={() => handleAddModule('Кубики')}>Кубики</button>
-                      <button onClick={() => handleAddModule('Заметки')}>Заметки</button>
-                      <button onClick={() => handleAddModule('Таймер')}>Таймер</button>
-                      <button onClick={() => handleAddModule('Эффекты')}>Эффекты</button>
-                      <button onClick={() => handleAddModule('Босс')}>Босс-трекер</button>
+                      <button onClick={() => handleAddModule('Инициатива')}>{t('modules.initiative')}</button>
+                      <button onClick={() => handleAddModule('Кубики')}>{t('modules.dice')}</button>
+                      <button onClick={() => handleAddModule('Заметки')}>{t('modules.notes')}</button>
+                      <button onClick={() => handleAddModule('Таймер')}>{t('modules.timer')}</button>
+                      <button onClick={() => handleAddModule('Эффекты')}>{t('modules.effects')}</button>
+                      <button onClick={() => handleAddModule('Босс')}>{t('modules.bossTracker') || t('modules.boss')}</button>
                     </div>
                   )}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center', marginRight: '5px' }}>
                     {modules.length > 0 && !isModuleMenuOpen && (
-                      <button className="trash-btn" onClick={handleClearBoardClick} title="Очистить стол">
+                      <button className="trash-btn" onClick={handleClearBoardClick} title={t('table.clearBoard')}>
                         <Trash2 size={20} />
                       </button>
                     )}
                     <button 
                       className={`fab-button ${isModuleMenuOpen ? 'open' : ''}`}
                       onClick={() => setIsModuleMenuOpen(!isModuleMenuOpen)}
-                      title="Добавить модуль"
+                      title={t('table.addModule')}
                     >
                       +
                     </button>
@@ -465,7 +476,7 @@ function AppContent() {
 
         {/* === ВСПЛЫВАЮЩИЙ ТОСТ СВЯЗКИ СО СТОЛОМ === */}
         {toast && (
-          <aside aria-label="Уведомление" className="table-toast-banner">
+          <aside aria-label={t('table.notification')} className="table-toast-banner">
             <div className="table-toast-content">
               <Sparkles size={18} color="var(--accent-gold)" />
               <span className="table-toast-text">{toast.message}</span>
@@ -485,7 +496,7 @@ function AppContent() {
                 type="button" 
                 className="table-toast-close-btn"
                 onClick={() => setToast(null)}
-                title="Закрыть"
+                title={t('common.close')}
               >
                 ✕
               </button>
@@ -505,16 +516,16 @@ function AppContent() {
               padding: '25px', borderRadius: '12px', maxWidth: '400px', textAlign: 'center',
               boxShadow: '0 10px 25px rgba(0,0,0,0.5)', color: 'var(--text-title)'
             }}>
-              <h3 style={{ marginTop: 0 }}>Очистить стол?</h3>
+              <h3 style={{ marginTop: 0 }}>{t('table.clearTitle')}</h3>
               <p style={{ color: 'var(--text-muted)', marginBottom: '25px', lineHeight: '1.5' }}>
-                Все несохраненные данные модулей будут удалены. Это действие нельзя отменить.
+                {t('table.clearText')}
               </p>
               <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
                 <button onClick={() => setIsConfirmOpen(false)} style={{ padding: '10px 20px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-title)', borderRadius: '6px', cursor: 'pointer', transition: '0.2s' }}>
-                  Отмена
+                  {t('common.cancel')}
                 </button>
                 <button onClick={confirmClear} style={{ padding: '10px 20px', backgroundColor: '#ef4444', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s', boxShadow: '0 4px 6px rgba(239, 68, 68, 0.3)' }}>
-                  Да, очистить
+                  {t('table.clearConfirm')}
                 </button>
               </div>
             </div>
@@ -527,9 +538,11 @@ function AppContent() {
 
 function App() {
   return (
-    <HashRouter>
-      <AppContent />
-    </HashRouter>
+    <LanguageProvider>
+      <HashRouter>
+        <AppContent />
+      </HashRouter>
+    </LanguageProvider>
   );
 }
 

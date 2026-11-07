@@ -1,7 +1,9 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, nativeTheme } = require('electron');
 const path = require('path');
 
 function createWindow() {
+  nativeTheme.themeSource = 'dark';
+
   const win = new BrowserWindow({
     width: 1280,
     height: 880,
@@ -9,6 +11,12 @@ function createWindow() {
     minHeight: 700,
     backgroundColor: '#1e1f22',
     title: 'DnD Dashboard — Master Suite',
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#111214',
+      symbolColor: '#dbdee1',
+      height: 60
+    },
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,

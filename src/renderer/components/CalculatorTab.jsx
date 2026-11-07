@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Calculator } from 'lucide-react'; // Импортируем иконку
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 
-const currencyMap = {
-  pp: 'ПМ (Платина)',
-  gp: 'ЗМ (Золото)',
-  ep: 'ЭМ (Электрум)',
-  sp: 'СМ (Серебро)',
-  cp: 'ММ (Медь)'
+const currencyKeys = {
+  pp: 'calculator.pp',
+  gp: 'calculator.gp',
+  ep: 'calculator.ep',
+  sp: 'calculator.sp',
+  cp: 'calculator.cp'
 };
 
 const exchangeRates = {
@@ -18,6 +19,7 @@ const exchangeRates = {
 };
 
 export default function CalculatorTab() {
+  const { t } = useTranslation();
   const [loot, setLoot] = useState({ pp: '', gp: '', ep: '', sp: '', cp: '' });
 
   const handleLootChange = (coin, value) => {
@@ -45,17 +47,17 @@ export default function CalculatorTab() {
       {/* Заголовок с иконкой */}
       <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 20px 0' }}>
         <Calculator size={28} color="var(--accent-primary)" />
-        Калькулятор лута
+        {t('calculator.title')}
       </h2>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
         <div style={{ backgroundColor: 'var(--bg-module)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-          <h3 style={{ margin: '0 0 15px 0', color: 'var(--text-title)' }}>Введи найденные монеты:</h3>
+          <h3 style={{ margin: '0 0 15px 0', color: 'var(--text-title)' }}>{t('calculator.enterCoins')}</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
             {['pp', 'gp', 'ep', 'sp', 'cp'].map((coin) => (
               <div key={coin} style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                <label style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{currencyMap[coin]}</label>
+                <label style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t(currencyKeys[coin])}</label>
                 <input 
                   type="number" 
                   min="0"
@@ -74,7 +76,7 @@ export default function CalculatorTab() {
               onClick={() => setLoot({ pp: '', gp: '', ep: '', sp: '', cp: '' })}
               style={{ marginTop: '22px', padding: '0 15px', backgroundColor: 'transparent', color: 'var(--text-muted)', border: '1px solid var(--border-color)', borderRadius: '6px', cursor: 'pointer' }}
             >
-              Очистить
+              {t('calculator.clear')}
             </button>
           </div>
         </div>
@@ -82,39 +84,39 @@ export default function CalculatorTab() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
           
           <div style={{ backgroundColor: 'var(--bg-module)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ margin: '0 0 15px 0', color: 'var(--text-title)' }}>Общая ценность равна:</h3>
+            <h3 style={{ margin: '0 0 15px 0', color: 'var(--text-title)' }}>{t('calculator.totalValue')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '5px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>В платине (ПМ):</span>
+                <span style={{ color: 'var(--text-muted)' }}>{t('calculator.inPlatinum')}</span>
                 <strong style={{ color: 'var(--text-title)' }}>{totalEquivalents.pp}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '5px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>В золоте (ЗМ):</span>
+                <span style={{ color: 'var(--text-muted)' }}>{t('calculator.inGold')}</span>
                 <strong style={{ color: 'var(--accent-primary)', fontSize: '16px' }}>{totalEquivalents.gp}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '5px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>В электруме (ЭМ):</span>
+                <span style={{ color: 'var(--text-muted)' }}>{t('calculator.inElectrum')}</span>
                 <strong style={{ color: 'var(--text-title)' }}>{totalEquivalents.ep}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color)', paddingBottom: '5px' }}>
-                <span style={{ color: 'var(--text-muted)' }}>В серебре (СМ):</span>
+                <span style={{ color: 'var(--text-muted)' }}>{t('calculator.inSilver')}</span>
                 <strong style={{ color: 'var(--text-title)' }}>{totalEquivalents.sp}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--text-muted)' }}>В меди (ММ):</span>
+                <span style={{ color: 'var(--text-muted)' }}>{t('calculator.inCopper')}</span>
                 <strong style={{ color: 'var(--text-title)' }}>{totalEquivalents.cp}</strong>
               </div>
             </div>
           </div>
 
           <div style={{ backgroundColor: 'var(--bg-module)', padding: '20px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <h3 style={{ margin: '0 0 15px 0', color: 'var(--text-title)' }}>Памятка: Курс валют</h3>
+            <h3 style={{ margin: '0 0 15px 0', color: 'var(--text-title)' }}>{t('calculator.rates')}</h3>
             <ul style={{ color: 'var(--text-muted)', margin: 0, paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <li><strong style={{ color: 'var(--text-title)' }}>1 ПМ (Платина)</strong> = 10 ЗМ = 1 000 ММ</li>
-              <li><strong style={{ color: 'var(--text-title)' }}>1 ЗМ (Золото)</strong> = 2 ЭМ = 10 СМ = 100 ММ</li>
-              <li><strong style={{ color: 'var(--text-title)' }}>1 ЭМ (Электрум)</strong> = 5 СМ = 50 ММ</li>
-              <li><strong style={{ color: 'var(--text-title)' }}>1 СМ (Серебро)</strong> = 10 ММ</li>
-              <li><strong style={{ color: 'var(--text-title)' }}>1 ММ (Медь)</strong> = базовая монета</li>
+              <li>{t('calculator.ratePp')}</li>
+              <li>{t('calculator.rateGp')}</li>
+              <li>{t('calculator.rateEp')}</li>
+              <li>{t('calculator.rateSp')}</li>
+              <li>{t('calculator.rateCp')}</li>
             </ul>
           </div>
 

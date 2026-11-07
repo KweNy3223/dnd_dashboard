@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import { Pin, PinOff, ChevronDown, ChevronUp, X, Dices } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
 
 export default function DiceRoller({ onClose, history, setHistory, isPinned, setIsPinned, isMinimized, setIsMinimized, snapToGrid, layout, setLayout }) {
 
+    const { t } = useTranslation();
     const [quantity, setQuantity] = useState(1);
     const [modifier, setModifier] = useState(0);
     
@@ -88,7 +90,7 @@ export default function DiceRoller({ onClose, history, setHistory, isPinned, set
         {/* 1. ШАПКА */}
         <div className="tracker-header">
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: 0 }}>
-                <Dices size={20} /> Бросок кубиков
+                <Dices size={20} /> {t('modules.dice.title')}
             </h3>
             
             {/* Вот эта невидимая коробка сгруппирует кнопки вместе */}
@@ -159,7 +161,7 @@ export default function DiceRoller({ onClose, history, setHistory, isPinned, set
                     {/* САМ ТЕКСТ (Размещаем поверх кубика) */}
                     <div style={{ position: 'relative', zIndex: 1 }}>
                     <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-                        Результат броска {latestRoll.dice}:
+                        {t('modules.dice.result', { dice: latestRoll.dice })}
                     </div>
                     <div style={{ 
                         fontSize: '56px', 
@@ -181,7 +183,7 @@ export default function DiceRoller({ onClose, history, setHistory, isPinned, set
                 </>
                 ) : (
                 <div style={{ color: 'var(--text-muted)', fontSize: '16px', position: 'relative', zIndex: 1 }}>
-                    Выберите количество и бросьте кубик
+                    {t('modules.dice.prompt')}
                 </div>
                 )}
             </div>
@@ -189,7 +191,7 @@ export default function DiceRoller({ onClose, history, setHistory, isPinned, set
             {/* НАСТРОЙКА КОЛИЧЕСТВА И МОДИФИКАТОРА */}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                 <div className="tracker-row" style={{ margin: 0, gridTemplateColumns: '1fr', textAlign: 'center', flex: 1 }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Количество</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t('modules.dice.quantity')}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
                     <button className="delete-btn" style={{ fontSize: '24px' }} onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
                     <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-title)' }}>{quantity}</span>
@@ -198,7 +200,7 @@ export default function DiceRoller({ onClose, history, setHistory, isPinned, set
                 </div>
 
                 <div className="tracker-row" style={{ margin: 0, gridTemplateColumns: '1fr', textAlign: 'center', flex: 1 }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Модификатор</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t('modules.dice.modifier')}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
                     <button className="delete-btn" style={{ fontSize: '24px' }} onClick={() => setModifier(modifier - 1)}>-</button>
                     <span style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-title)' }}>{modifier > 0 ? `+${modifier}` : modifier}</span>
@@ -232,7 +234,7 @@ export default function DiceRoller({ onClose, history, setHistory, isPinned, set
             </div>
 
             <div className="tracker-footer">
-                <button className="sort-btn" onClick={() => setHistory([])}>Очистить историю</button>
+                <button className="sort-btn" onClick={() => setHistory([])}>{t('modules.dice.clearHistory')}</button>
             </div>
 
             </div>

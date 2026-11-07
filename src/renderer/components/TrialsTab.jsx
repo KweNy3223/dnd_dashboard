@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from '../i18n/LanguageContext.jsx';
+import logoSvg from '../assets/logo.svg';
 import { audio } from '../trials/audio.js';
 import { dnd, TIER_PRESETS } from '../trials/dnd-engine.js';
 import { LockpickGame } from '../trials/games/lockpick.js';
@@ -26,14 +28,16 @@ import {
 } from 'lucide-react';
 
 const GAME_MODULES = {
-  lockpick: { id: 'lockpick', name: 'Взлом замка', icon: KeyRound, Class: LockpickGame },
-  trap: { id: 'trap', name: 'Обезвреживание ловушки', icon: Bomb, Class: TrapGame },
-  runes: { id: 'runes', name: 'Магические руны', icon: Sparkles, Class: RunesGame },
-  pickpocket: { id: 'pickpocket', name: 'Карманная кража', icon: Coins, Class: PickpocketGame },
-  alchemy: { id: 'alchemy', name: 'Зельеварение', icon: FlaskConical, Class: AlchemyGame }
+  lockpick: { id: 'lockpick', name: 'Взлом замка', name_en: 'Lockpicking', icon: KeyRound, Class: LockpickGame },
+  trap: { id: 'trap', name: 'Обезвреживание ловушки', name_en: 'Trap Disarming', icon: Bomb, Class: TrapGame },
+  runes: { id: 'runes', name: 'Магические руны', name_en: 'Arcane Runes', icon: Sparkles, Class: RunesGame },
+  pickpocket: { id: 'pickpocket', name: 'Карманная кража', name_en: 'Pickpocketing', icon: Coins, Class: PickpocketGame },
+  alchemy: { id: 'alchemy', name: 'Зельеварение', name_en: 'Alchemy & Brewing', icon: FlaskConical, Class: AlchemyGame }
 };
 
 export default function TrialsTab({ onOpenSidebar }) {
+  const { t, language } = useTranslation();
+  const isEn = language === 'en';
   const [currentGame, setCurrentGame] = useState('lockpick');
   const [isCurtainOpen, setIsCurtainOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(audio.isMuted());
@@ -54,8 +58,8 @@ export default function TrialsTab({ onOpenSidebar }) {
   const [pickDurability, setPickDurability] = useState(100);
 
   // Сюжетный объект
-  const [challengeName, setChallengeName] = useState('Тяжёлый кованый сундук бандитов');
-  const [challengeDesc, setChallengeDesc] = useState('Грубый навесной замок со следами ржавчины и царапин от ножа.');
+  const [challengeName, setChallengeName] = useState(isEn ? 'Mountain Fort Treasure Vault Gate' : 'Тяжёлый кованый сундук бандитов');
+  const [challengeDesc, setChallengeDesc] = useState(isEn ? 'Massive stone doors bound with heavy black iron.' : 'Грубый навесной замок со следами ржавчины и царапин от ножа.');
 
   // Состояние активного раунда
   const [noiseLevel, setNoiseLevel] = useState(0);
@@ -73,7 +77,9 @@ export default function TrialsTab({ onOpenSidebar }) {
   const arenaRef = useRef(null);
   const activeGameInstanceRef = useRef(null);
   const sessionStartTimeRef = useRef(performance.now());
+  const finishGameRef = useRef(null);
   const stateRef = useRef({
+    currentGame: 'lockpick',
     mistakesCount: 0,
     noiseLevel: 0,
     currentPicks: 5,
@@ -87,6 +93,7 @@ export default function TrialsTab({ onOpenSidebar }) {
     challengeName: 'Тяжёлый кованый сундук бандитов'
   });
 
+  stateRef.current.currentGame = currentGame;
   stateRef.current.mistakesCount = mistakesCount;
   stateRef.current.noiseLevel = noiseLevel;
   stateRef.current.currentPicks = currentPicks;
@@ -102,10 +109,11 @@ export default function TrialsTab({ onOpenSidebar }) {
   // Генерация испытания
   const generateNewChallenge = useCallback((gameId = currentGame, currentTier = tier) => {
     const ch = dnd.generateRandomChallenge(gameId);
-    setChallengeName(ch.name);
-    setChallengeDesc(ch.desc);
+    const isEnMode = language === 'en';
+    setChallengeName(isEnMode ? (ch.name_en || ch.name) : ch.name);
+    setChallengeDesc(isEnMode ? (ch.desc_en || ch.desc) : ch.desc);
     setDc(dnd.dc);
-  }, [currentGame, tier]);
+  }, [currentGame, tier, language]);
 
   // Завершение испытания
   const finishGame = useCallback((success, extraData = {}) => {
@@ -116,25 +124,38 @@ export default function TrialsTab({ onOpenSidebar }) {
     }
 
     const elapsed = Math.max(1, Math.round((performance.now() - sessionStartTimeRef.current) / 100) / 10);
+    const activeGameType = extraData.gameType || stateRef.current.currentGame || currentGame;
 
     const res = dnd.evaluateOutcome({
       success,
       timeSpent: elapsed,
       mistakes: stateRef.current.mistakesCount,
       noiseLevel: stateRef.current.noiseLevel,
-      gameType: currentGame
+      gameType: activeGameType,
+      language
     });
 
     if (extraData.potionName && success) {
-      res.subtitle = `Сварено: ${extraData.potionName} (${extraData.effect || ''})`;
+      res.subtitle = isEn
+        ? `Brewed: ${extraData.potionName} (${extraData.effect || ''})`
+        : `Сварено: ${extraData.potionName} (${extraData.effect || ''})`;
     }
 
     setOutcome(res);
-  }, [currentGame]);
+  }, [currentGame, isEn, language]);
+
+  finishGameRef.current = finishGame;
 
   // Контроллер для мини-игр
   const appController = useRef({
-    finishGame: (success, extra) => finishGame(success, extra),
+    finishGame: (success, extra) => {
+      if (finishGameRef.current) {
+        finishGameRef.current(success, extra);
+      }
+    },
+    get language() {
+      return language;
+    },
     recordMistake: () => {
       setMistakesCount(prev => {
         const next = prev + 1;
@@ -293,7 +314,7 @@ export default function TrialsTab({ onOpenSidebar }) {
         activeGameInstanceRef.current = null;
       }
     };
-  }, [currentGame, generateNewChallenge, tier]);
+  }, [currentGame, generateNewChallenge, tier, language]);
 
   // Бросок d20
   const handleRollD20 = () => {
@@ -336,11 +357,12 @@ export default function TrialsTab({ onOpenSidebar }) {
               type="button" 
               className="sidebar-toggle-btn"
               onClick={onOpenSidebar}
-              title="Открыть меню разделов"
+              title={t('sidebar.openMenu')}
             >
               <Menu size={20} />
             </button>
           )}
+          <img src={logoSvg} alt="d20" style={{ width: '22px', height: '22px', opacity: 0.9 }} />
 
           <div className="trials-tabs-group">
             {Object.values(GAME_MODULES).map((g) => {
@@ -354,7 +376,7 @@ export default function TrialsTab({ onOpenSidebar }) {
                   onClick={() => setCurrentGame(g.id)}
                 >
                   <Icon size={16} />
-                  <span>{g.name}</span>
+                  <span>{t(`trials.games.${g.id}`) || g.name}</span>
                 </button>
               );
             })}
@@ -366,10 +388,10 @@ export default function TrialsTab({ onOpenSidebar }) {
             type="button" 
             className={`trials-action-btn curtain-toggle ${isCurtainOpen ? 'active' : ''}`}
             onClick={() => setIsCurtainOpen(!isCurtainOpen)}
-            title="Панель Мастера: DC, таймер, генератор"
+            title={t('trials.curtain.title')}
           >
             <ShieldAlert size={16} />
-            <span>Панель Мастера</span>
+            <span>{t('trials.curtain.title')}</span>
             {isCurtainOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
 
@@ -380,7 +402,7 @@ export default function TrialsTab({ onOpenSidebar }) {
               const muted = audio.toggleMute();
               setIsMuted(muted);
             }}
-            title={isMuted ? 'Включить звук' : 'Выключить звук'}
+            title={isMuted ? (isEn ? 'Unmute' : 'Включить звук') : (isEn ? 'Mute' : 'Выключить звук')}
           >
             {isMuted ? <VolumeX size={17} /> : <Volume2 size={17} />}
           </button>
@@ -389,7 +411,7 @@ export default function TrialsTab({ onOpenSidebar }) {
             type="button" 
             className="trials-icon-btn" 
             onClick={toggleFullscreen}
-            title="Полноэкранный режим"
+            title={isEn ? 'Fullscreen' : 'Полноэкранный режим'}
           >
             {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
           </button>
@@ -398,7 +420,7 @@ export default function TrialsTab({ onOpenSidebar }) {
             type="button" 
             className="trials-icon-btn" 
             onClick={() => setIsHelpOpen(true)}
-            title="Справка и правила"
+            title={isEn ? 'Help & Rules' : 'Справка и правила'}
           >
             <HelpCircle size={17} />
           </button>
@@ -407,7 +429,7 @@ export default function TrialsTab({ onOpenSidebar }) {
             type="button" 
             className="trials-icon-btn" 
             onClick={resetGame}
-            title="Перезапустить испытание"
+            title={isEn ? 'Restart Challenge' : 'Перезапустить испытание'}
           >
             <RotateCcw size={17} />
           </button>
@@ -420,13 +442,13 @@ export default function TrialsTab({ onOpenSidebar }) {
           {/* Колонка 1: Сложность / Зелье */}
           <div className="curtain-box">
             <h4 className="curtain-box-title">
-              {currentGame === 'alchemy' ? '🧪 Рецепт и сложность зелья' : '🎯 Сложность и Модификаторы'}
+              {currentGame === 'alchemy' ? (isEn ? '🧪 Potion Recipe & Difficulty' : '🧪 Рецепт и сложность зелья') : (isEn ? '🎯 Difficulty & Modifiers' : '🎯 Сложность и Модификаторы')}
             </h4>
             
             {currentGame !== 'alchemy' && (
               <>
                 <div className="curtain-row">
-                  <label>Сложность (DC): <strong>{dc}</strong></label>
+                  <label>{isEn ? 'Difficulty (DC):' : 'Сложность (DC):'} <strong>{dc}</strong></label>
                   <input 
                     type="range" 
                     min="8" 
@@ -444,7 +466,7 @@ export default function TrialsTab({ onOpenSidebar }) {
                 </div>
 
                 <div className="curtain-row">
-                  <label>Бонус персонажа: <strong>{bonus >= 0 ? `+${bonus}` : bonus}</strong></label>
+                  <label>{isEn ? 'Character Bonus:' : 'Бонус персонажа:'} <strong>{bonus >= 0 ? `+${bonus}` : bonus}</strong></label>
                   <input 
                     type="range" 
                     min="-2" 
@@ -465,7 +487,7 @@ export default function TrialsTab({ onOpenSidebar }) {
 
             {currentGame === 'lockpick' && (
               <div className="curtain-row">
-                <label>Стиль замка:</label>
+                <label>{isEn ? 'Lock Style:' : 'Стиль замка:'}</label>
                 <select 
                   className="curtain-select"
                   value={lockTheme}
@@ -476,17 +498,17 @@ export default function TrialsTab({ onOpenSidebar }) {
                     }
                   }}
                 >
-                  <option value="auto">🎲 Авто (по сюжету)</option>
-                  <option value="iron">⛓️ Кованое железо</option>
-                  <option value="dwarven">⚙️ Гномья механика</option>
-                  <option value="arcane">✨ Тайная магия</option>
+                  <option value="auto">{isEn ? '🎲 Auto (from story)' : '🎲 Авто (по сюжету)'}</option>
+                  <option value="iron">{isEn ? '⛓️ Wrought Iron' : '⛓️ Кованое железо'}</option>
+                  <option value="dwarven">{isEn ? '⚙️ Dwarven Mechanism' : '⚙️ Гномья механика'}</option>
+                  <option value="arcane">{isEn ? '✨ Arcane Magic' : '✨ Тайная магия'}</option>
                 </select>
               </div>
             )}
 
             {currentGame === 'pickpocket' && (
               <div className="curtain-row">
-                <label>Предмет кражи:</label>
+                <label>{isEn ? 'Loot Item:' : 'Предмет кражи:'}</label>
                 <select 
                   className="curtain-select"
                   value={lootType}
@@ -497,18 +519,18 @@ export default function TrialsTab({ onOpenSidebar }) {
                     }
                   }}
                 >
-                  <option value="auto">🎲 Авто (по сюжету)</option>
-                  <option value="pouch">💰 Тяжёлый кошель с золотом</option>
-                  <option value="keys">🗝️ Связка ключей от темницы</option>
-                  <option value="scroll">📜 Секретное письмо / свиток</option>
-                  <option value="amulet">💎 Драгоценный амулет</option>
+                  <option value="auto">{isEn ? '🎲 Auto (from story)' : '🎲 Авто (по сюжету)'}</option>
+                  <option value="pouch">{isEn ? '💰 Heavy pouch of gold' : '💰 Тяжёлый кошель с золотом'}</option>
+                  <option value="keys">{isEn ? '🗝️ Dungeon key ring' : '🗝️ Связка ключей от темницы'}</option>
+                  <option value="scroll">{isEn ? '📜 Secret letter / scroll' : '📜 Секретное письмо / свиток'}</option>
+                  <option value="amulet">{isEn ? '💎 Jeweled amulet' : '💎 Драгоценный амулет'}</option>
                 </select>
               </div>
             )}
 
             {currentGame === 'trap' && (
               <div className="curtain-row">
-                <label>Тип механизма ловушки:</label>
+                <label>{isEn ? 'Trap Mechanism Type:' : 'Тип механизма ловушки:'}</label>
                 <select 
                   className="curtain-select"
                   value={trapType}
@@ -521,24 +543,26 @@ export default function TrialsTab({ onOpenSidebar }) {
                     }
                   }}
                 >
-                  <option value="tripwire">🏹 Арбалетная растяжка (нить и боёк)</option>
-                  <option value="gears">⚙️ Зубчатый часовой механизм (шестерня)</option>
-                  <option value="plate">⚖️ Плита-противовес (давление и вес)</option>
-                  <option value="gas">🧪 Ядовитый распылитель (газ и клапаны)</option>
+                  <option value="tripwire">{isEn ? '🏹 Tripwire Crossbow (wire & striker)' : '🏹 Арбалетная растяжка (нить и боёк)'}</option>
+                  <option value="gears">{isEn ? '⚙️ Clockwork Gearwork (cogs & wedge)' : '⚙️ Зубчатый часовой механизм (шестерня)'}</option>
+                  <option value="plate">{isEn ? '⚖️ Counterweight Plate (pressure & weight)' : '⚖️ Плита-противовес (давление и вес)'}</option>
+                  <option value="gas">{isEn ? '🧪 Poison Gas Dispenser (gas & valves)' : '🧪 Ядовитый распылитель (газ и клапаны)'}</option>
                 </select>
               </div>
             )}
 
             {currentGame === 'runes' && (
               <div style={{ marginTop: '8px', fontSize: '11.5px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                ℹ️ <strong>Магическая печать:</strong> при DC &lt; 20 активно 3 стихийных алтаря (Огонь, Вода, Буря). При DC ≥ 20 активируется 4-й алтарь Земли.
+                {isEn 
+                  ? 'ℹ️ Arcane Ward: at DC < 20, 3 elemental altars are active (Fire, Water, Storm). At DC ≥ 20, the 4th Earth Altar activates.'
+                  : 'ℹ️ Магическая печать: при DC < 20 активно 3 стихийных алтаря (Огонь, Вода, Буря). При DC ≥ 20 активируется 4-й алтарь Земли.'}
               </div>
             )}
 
             {currentGame === 'alchemy' && (
               <>
                 <div className="curtain-row">
-                  <label>Выбор рецепта D&D 5e:</label>
+                  <label>{isEn ? 'Select D&D 5e Recipe:' : 'Выбор рецепта D&D 5e:'}</label>
                   <select 
                     className="curtain-select"
                     value={potionType}
@@ -551,36 +575,38 @@ export default function TrialsTab({ onOpenSidebar }) {
                       }
                     }}
                   >
-                    <optgroup label="Обычные (Common) — 3 ошибки">
-                      <option value="healing">🍷 Зелье лечения (2d4+2 HP)</option>
-                      <option value="climbing">🧗 Зелье лазания (Атлетика)</option>
-                      <option value="animal_friendship">🌿 Зелье дружбы с животными (24 ч)</option>
+                    <optgroup label={isEn ? "Common — 3 mistakes allowed" : "Обычные (Common) — 3 ошибки"}>
+                      <option value="healing">🍷 {isEn ? "Potion of Healing (2d4+2 HP)" : "Зелье лечения (2d4+2 HP)"}</option>
+                      <option value="climbing">🧗 {isEn ? "Potion of Climbing (Athletics)" : "Зелье лазания (Атлетика)"}</option>
+                      <option value="animal_friendship">🌿 {isEn ? "Potion of Animal Friendship (24h)" : "Зелье дружбы с животными (24 ч)"}</option>
                     </optgroup>
-                    <optgroup label="Необычные (Uncommon) — 2 ошибки">
-                      <option value="greater_healing">💖 Большее зелье лечения (4d4+4 HP)</option>
-                      <option value="water_breathing">🌊 Зелье дыхания под водой (1 ч)</option>
-                      <option value="fire_resistance">🛡️ Зелье огнестойкости (Огонь)</option>
-                      <option value="hill_giant">🦾 Зелье силы холмового великана (Сила 21)</option>
-                      <option value="growth">🍄 Зелье роста (+1d4 к урону, размер)</option>
+                    <optgroup label={isEn ? "Uncommon — 2 mistakes allowed" : "Необычные (Uncommon) — 2 ошибки"}>
+                      <option value="greater_healing">💖 {isEn ? "Potion of Greater Healing (4d4+4 HP)" : "Большее зелье лечения (4d4+4 HP)"}</option>
+                      <option value="water_breathing">🌊 {isEn ? "Potion of Water Breathing (1 hour)" : "Зелье дыхания под водой (1 ч)"}</option>
+                      <option value="fire_resistance">🛡️ {isEn ? "Potion of Resistance (Fire)" : "Зелье огнестойкости (Огонь)"}</option>
+                      <option value="hill_giant">🦾 {isEn ? "Potion of Hill Giant Strength (STR 21)" : "Зелье силы холмового великана (Сила 21)"}</option>
+                      <option value="growth">🍄 {isEn ? "Potion of Growth (+1d4 dmg, size)" : "Зелье роста (+1d4 к урону, размер)"}</option>
                     </optgroup>
-                    <optgroup label="Редкие (Rare) — 1 ошибка">
-                      <option value="invisibility">👻 Зелье невидимости (1 ч)</option>
-                      <option value="heroism">👑 Зелье героизма (Благословение + 10 HP)</option>
-                      <option value="gaseous_form">🌫️ Зелье газообразной формы (Туман)</option>
-                      <option value="invulnerability">🛡️ Зелье неуязвимости (Сопротивление всему)</option>
+                    <optgroup label={isEn ? "Rare — 1 mistake allowed" : "Редкие (Rare) — 1 ошибка"}>
+                      <option value="invisibility">👻 {isEn ? "Potion of Invisibility (1 hour)" : "Зелье невидимости (1 ч)"}</option>
+                      <option value="heroism">👑 {isEn ? "Potion of Heroism (Bless + 10 HP)" : "Зелье героизма (Благословение + 10 HP)"}</option>
+                      <option value="gaseous_form">🌫️ {isEn ? "Potion of Gaseous Form (Mist)" : "Зелье газообразной формы (Туман)"}</option>
+                      <option value="invulnerability">🛡️ {isEn ? "Potion of Invulnerability (Resist all)" : "Зелье неуязвимости (Сопротивление всему)"}</option>
                     </optgroup>
-                    <optgroup label="Очень редкие (Very Rare) — 1 ошибка">
-                      <option value="speed">⚡ Зелье скорости (Ускорение)</option>
-                      <option value="flying">🕊️ Зелье полёта (60 футов)</option>
-                      <option value="supreme_healing">🌟 Высшее зелье лечения (10d4+20 HP)</option>
+                    <optgroup label={isEn ? "Very Rare — 1 mistake allowed" : "Очень редкие (Very Rare) — 1 ошибка"}>
+                      <option value="speed">⚡ {isEn ? "Potion of Speed (Haste)" : "Зелье скорости (Ускорение)"}</option>
+                      <option value="flying">🕊️ {isEn ? "Potion of Flying (60 ft)" : "Зелье полёта (60 футов)"}</option>
+                      <option value="supreme_healing">🌟 {isEn ? "Potion of Supreme Healing (10d4+20 HP)" : "Высшее зелье лечения (10d4+20 HP)"}</option>
                     </optgroup>
-                    <optgroup label="Легендарные (Legendary) — 1 ошибка">
-                      <option value="storm_giant">⛈️ Зелье силы великана бурь (Сила 29!)</option>
+                    <optgroup label={isEn ? "Legendary — 1 mistake allowed" : "Легендарные (Legendary) — 1 ошибка"}>
+                      <option value="storm_giant">⛈️ {isEn ? "Potion of Storm Giant Strength (STR 29!)" : "Зелье силы великана бурь (Сила 29!)"}</option>
                     </optgroup>
                   </select>
                 </div>
                 <p style={{ margin: '6px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  ℹ️ Сложность определяется каноном D&D: чем могущественнее эффект, тем строже допуск по температуре, сложнее шаги и выше риск порчи варева.
+                  {isEn 
+                    ? 'ℹ️ Scaled to D&D canon: potent brews demand strict temperature corridors, complex steps, and carry high spoiling risk.'
+                    : 'ℹ️ Сложность определяется каноном D&D: чем могущественнее эффект, тем строже допуск по температуре, сложнее шаги и выше риск порчи варева.'}
                 </p>
               </>
             )}
@@ -589,17 +615,17 @@ export default function TrialsTab({ onOpenSidebar }) {
           {/* Колонка 2: Специальные параметры мини-игры */}
           <div className="curtain-box">
             <h4 className="curtain-box-title">
-              {currentGame === 'lockpick' && '🗝️ Отмычки и Скрытность'}
-              {currentGame === 'trap' && '⚙️ Механизм и Боёк'}
-              {currentGame === 'runes' && '✨ Структура печати'}
-              {currentGame === 'pickpocket' && '👥 Бдительность и Скрытность'}
-              {currentGame === 'alchemy' && '⚗️ Тигель и Реагенты'}
+              {currentGame === 'lockpick' && (isEn ? '🗝️ Lockpicks & Stealth' : '🗝️ Отмычки и Скрытность')}
+              {currentGame === 'trap' && (isEn ? '⚙️ Mechanism & Striker' : '⚙️ Механизм и Боёк')}
+              {currentGame === 'runes' && (isEn ? '✨ Ward Structure' : '✨ Структура печати')}
+              {currentGame === 'pickpocket' && (isEn ? '👥 Awareness & Stealth' : '👥 Бдительность и Скрытность')}
+              {currentGame === 'alchemy' && (isEn ? '⚗️ Crucible & Reagents' : '⚗️ Тигель и Реагенты')}
             </h4>
 
             {currentGame === 'lockpick' && (
               <>
                 <div className="curtain-row">
-                  <label>Запас отмычек у персонажа:</label>
+                  <label>{isEn ? 'Player lockpick stock:' : 'Запас отмычек у персонажа:'}</label>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <input 
                       type="number" 
@@ -616,7 +642,7 @@ export default function TrialsTab({ onOpenSidebar }) {
                       className="curtain-select"
                       style={{ width: '70px', textAlign: 'center', fontWeight: 'bold' }}
                     />
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>шт.</span>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{isEn ? 'pcs.' : 'шт.'}</span>
                     <input 
                       type="range" 
                       min="1" 
@@ -635,7 +661,7 @@ export default function TrialsTab({ onOpenSidebar }) {
                 </div>
 
                 <div className="curtain-toggle-row">
-                  <label>Шкала шума стражи (стелс):</label>
+                  <label>{isEn ? 'Guard noise meter (stealth):' : 'Шкала шума стражи (стелс):'}</label>
                   <input 
                     type="checkbox" 
                     checked={stealthNoise} 
@@ -644,7 +670,9 @@ export default function TrialsTab({ onOpenSidebar }) {
                 </div>
 
                 <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  ℹ️ Отмычки гнутся и ломаются при сильном упоре. При включённом стелсе звон замка заполняет шкалу тревоги стражи.
+                  {isEn 
+                    ? 'ℹ️ Lockpicks bend and break under excessive pressure. When stealth is on, rattling fills the guard alert meter.'
+                    : 'ℹ️ Отмычки гнутся и ломаются при сильном упоре. При включённом стелсе звон замка заполняет шкалу тревоги стражи.'}
                 </p>
               </>
             )}
@@ -652,11 +680,13 @@ export default function TrialsTab({ onOpenSidebar }) {
             {currentGame === 'trap' && (
               <>
                 <div style={{ fontSize: '12px', lineHeight: '1.5', color: 'var(--text-primary)' }}>
-                  <p style={{ margin: '0 0 6px 0' }}><strong>Предохранитель бойка:</strong> 3 щелчка до детонации.</p>
-                  <p style={{ margin: '0 0 6px 0' }}><strong>Урон при взрыве:</strong> {tier === 1 ? '2d10' : tier === 2 ? '4d10' : '8d10'} урона.</p>
+                  <p style={{ margin: '0 0 6px 0' }}><strong>{isEn ? 'Striker fuse:' : 'Предохранитель бойка:'}</strong> {isEn ? '3 clicks until detonation.' : '3 щелчка до детонации.'}</p>
+                  <p style={{ margin: '0 0 6px 0' }}><strong>{isEn ? 'Detonation damage:' : 'Урон при взрыве:'}</strong> {tier === 1 ? '2d10' : tier === 2 ? '4d10' : '8d10'} {isEn ? 'damage.' : 'урона.'}</p>
                 </div>
                 <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  ℹ️ Ловушка требует филигранного удержания пинцета в рабочей зоне триггера. При срыве боёк взводится ближе к детонации.
+                  {isEn 
+                    ? 'ℹ️ Traps require steady hands in the active trigger zone. Fumbles advance the striker closer to detonation.'
+                    : 'ℹ️ Ловушка требует филигранного удержания пинцета в рабочей зоне триггера. При срыве боёк взводится ближе к детонации.'}
                 </p>
               </>
             )}
@@ -664,11 +694,13 @@ export default function TrialsTab({ onOpenSidebar }) {
             {currentGame === 'runes' && (
               <>
                 <div style={{ fontSize: '12px', lineHeight: '1.5', color: 'var(--text-primary)' }}>
-                  <p style={{ margin: '0 0 6px 0' }}><strong>Кольца печати:</strong> 3 концентрических круга (Внутреннее, Среднее, Внешнее).</p>
-                  <p style={{ margin: '0 0 6px 0' }}><strong>Управление:</strong> Клавиши <code>1, 2, 3</code> — выбор кольца; <code>A/D</code> или колёсико — поворот.</p>
+                  <p style={{ margin: '0 0 6px 0' }}><strong>{isEn ? 'Ward rings:' : 'Кольца печати:'}</strong> {isEn ? '3 concentric circles (Inner, Middle, Outer).' : '3 концентрических круга (Внутреннее, Среднее, Внешнее).'}</p>
+                  <p style={{ margin: '0 0 6px 0' }}><strong>{isEn ? 'Controls:' : 'Управление:'}</strong> {isEn ? 'Keys 1, 2, 3 — select ring; A/D or scroll wheel — rotate.' : <>Клавиши <code>1, 2, 3</code> — выбор кольца; <code>A/D</code> или колёсико — поворот.</>}</p>
                 </div>
                 <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  ℹ️ Мана бьёт из центрального ядра по 4 направлениям. Совмещайте золотые желоба, чтобы замкнуть цветные алтари.
+                  {isEn 
+                    ? 'ℹ️ Mana radiates from the central core in 4 directions. Align conduits to connect colored elemental altars.'
+                    : 'ℹ️ Мана бьёт из центрального ядра по 4 направлениям. Совмещайте золотые желоба, чтобы замкнуть цветные алтари.'}
                 </p>
               </>
             )}
@@ -676,7 +708,7 @@ export default function TrialsTab({ onOpenSidebar }) {
             {currentGame === 'pickpocket' && (
               <>
                 <div className="curtain-toggle-row">
-                  <label>Шкала бдительности жертвы (стелс):</label>
+                  <label>{isEn ? 'Target awareness meter (stealth):' : 'Шкала бдительности жертвы (стелс):'}</label>
                   <input 
                     type="checkbox" 
                     checked={stealthNoise} 
@@ -684,7 +716,9 @@ export default function TrialsTab({ onOpenSidebar }) {
                   />
                 </div>
                 <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  ℹ️ Медленно вытягивайте предмет из кармана жертвы. Резкие рывки и касания краёв вызывают подозрение и крик «Держи вора!».
+                  {isEn 
+                    ? 'ℹ️ Slowly slide the item out of the target’s pocket. Sudden jerks or touches raise suspicion and trigger an alert.'
+                    : 'ℹ️ Медленно вытягивайте предмет из кармана жертвы. Резкие рывки и касания краёв вызывают подозрение и крик «Держи вора!».'}
                 </p>
               </>
             )}
@@ -692,12 +726,14 @@ export default function TrialsTab({ onOpenSidebar }) {
             {currentGame === 'alchemy' && (
               <>
                 <div style={{ fontSize: '12px', lineHeight: '1.5', color: 'var(--text-primary)' }}>
-                  <p style={{ margin: '0 0 4px 0' }}>💨 <strong>Меха (ПРОБЕЛ):</strong> накал пламени тигля.</p>
-                  <p style={{ margin: '0 0 4px 0' }}>🥄 <strong>Помешивание (A/D):</strong> по часовой ↻ или против ↺.</p>
-                  <p style={{ margin: '0 0 4px 0' }}>🌿 <strong>Реагенты:</strong> всыпать строго в зелёной зоне.</p>
+                  <p style={{ margin: '0 0 4px 0' }}>💨 <strong>{isEn ? 'Bellows (SPACE):' : 'Меха (ПРОБЕЛ):'}</strong> {isEn ? 'raise crucible flame heat.' : 'накал пламени тигля.'}</p>
+                  <p style={{ margin: '0 0 4px 0' }}>🥄 <strong>{isEn ? 'Stirring (A/D):' : 'Помешивание (A/D):'}</strong> {isEn ? 'clockwise ↻ or counter-clockwise ↺.' : 'по часовой ↻ или против ↺.'}</p>
+                  <p style={{ margin: '0 0 4px 0' }}>🌿 <strong>{isEn ? 'Reagents:' : 'Реагенты:'}</strong> {isEn ? 'add strictly within green temperature zone.' : 'всыпать строго в зелёной зоне.'}</p>
                 </div>
                 <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-                  ℹ️ При нарушении рецепта или температуры варево теряет стабильность. Превышение лимита ошибок портит зелье!
+                  {isEn 
+                    ? 'ℹ️ Violating the recipe or temperature destabilizes the brew. Exceeding mistake limits spoils the potion!'
+                    : 'ℹ️ При нарушении рецепта или температуры варево теряет стабильность. Превышение лимита ошибок портит зелье!'}
                 </p>
               </>
             )}
@@ -708,21 +744,21 @@ export default function TrialsTab({ onOpenSidebar }) {
             <h4 className="curtain-box-title">🎲 Генератор и Кубик d20</h4>
 
             <div className="curtain-row">
-              <label>Уровень партии (Тир):</label>
+              <label>{t('trials.curtain.tierPresets')}</label>
               <select 
                 className="curtain-select"
                 value={tier}
                 onChange={(e) => {
-                  const t = parseInt(e.target.value, 10);
-                  setTier(t);
-                  dnd.setTier(t);
-                  generateNewChallenge(currentGame, t);
+                  const tVal = parseInt(e.target.value, 10);
+                  setTier(tVal);
+                  dnd.setTier(tVal);
+                  generateNewChallenge(currentGame, tVal);
                 }}
               >
-                <option value="1">Тир 1 (1–4 ур. Приключенцы)</option>
-                <option value="2">Тир 2 (5–10 ур. Герои королевства)</option>
-                <option value="3">Тир 3 (11–16 ур. Защитники мира)</option>
-                <option value="4">Тир 4 (17–20 ур. Легенды)</option>
+                <option value="1">{t('trials.curtain.tier1')}</option>
+                <option value="2">{t('trials.curtain.tier2')}</option>
+                <option value="3">{t('trials.curtain.tier3')}</option>
+                <option value="4">{t('trials.curtain.tier4')}</option>
               </select>
             </div>
 
@@ -732,12 +768,12 @@ export default function TrialsTab({ onOpenSidebar }) {
               onClick={() => generateNewChallenge(currentGame, tier)}
               style={{ width: '100%', marginBottom: '10px' }}
             >
-              🎲 Новое случайное испытание
+              {t('trials.curtain.randomize')}
             </button>
 
             <div className="d20-roller-box">
               <div className="d20-display">
-                <span>Бросок d20:</span>
+                <span>{t('trials.curtain.d20Result')}</span>
                 <span className="d20-val">
                   {typeof d20Result === 'object' && d20Result !== null ? (
                     `${d20Result.roll} + ${bonus >= 0 ? '+' : ''}${bonus} = ${d20Result.total} ${d20Result.isCrit ? '🌟' : d20Result.success ? '✓' : '✗'}`
@@ -751,7 +787,7 @@ export default function TrialsTab({ onOpenSidebar }) {
                 disabled={isRollingD20}
                 style={{ width: '100%', padding: '6px' }}
               >
-                <Dices size={16} /> Бросить d20
+                <Dices size={16} /> {isRollingD20 ? t('trials.curtain.rolling') : t('trials.curtain.rollD20')}
               </button>
             </div>
           </div>
@@ -766,7 +802,7 @@ export default function TrialsTab({ onOpenSidebar }) {
               startSession();
             }}
           >
-            📜 Передать экран игроку (Закрыть шторку и Начать)
+            {t('trials.curtain.handOffBtn')}
           </button>
         </div>
       </div>
@@ -774,28 +810,28 @@ export default function TrialsTab({ onOpenSidebar }) {
       {/* ================= СЕССИОННЫЙ HUD ================= */}
       <div className="trials-hud">
         <div className="hud-target-info">
-          <span className="hud-label">Цель:</span>
+          <span className="hud-label">{t('trials.hud.target')}</span>
           <span className="hud-value" title={challengeDesc}>{challengeName}</span>
         </div>
 
         {currentGame !== 'alchemy' ? (
           <div className="hud-dnd-badges">
             <span className="hud-badge dc-badge">DC {dc}</span>
-            <span className="hud-badge bonus-badge">Модификатор: {bonus >= 0 ? `+${bonus}` : bonus}</span>
+            <span className="hud-badge bonus-badge">{t('trials.hud.modifier', { mod: bonus >= 0 ? `+${bonus}` : bonus })}</span>
           </div>
         ) : (
           <div className="hud-dnd-badges">
             <span className="hud-badge dc-badge" style={{ background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', borderColor: 'rgba(168, 85, 247, 0.3)' }}>
-              🧪 Алхимия D&D 5e
+              {t('trials.hud.alchemyBadge')}
             </span>
           </div>
         )}
 
         {currentGame === 'lockpick' && (
           <div className="hud-picks-box">
-            <span className="hud-label">Отмычки:</span>
+            <span className="hud-label">{t('trials.hud.picks')}</span>
             <span className="picks-badge">🗝️ {currentPicks} / {maxPicks}</span>
-            <div className="durability-track" title="Прочность текущей отмычки">
+            <div className="durability-track" title={t('trials.hud.durabilityTitle')}>
               <div 
                 className={`durability-fill ${pickDurability < 30 ? 'critical' : pickDurability < 60 ? 'warning' : ''}`}
                 style={{ width: `${pickDurability}%` }}
@@ -806,8 +842,8 @@ export default function TrialsTab({ onOpenSidebar }) {
 
         {currentGame === 'trap' && (
           <div className="hud-striker-box">
-            <span className="hud-label">Боёк ловушки:</span>
-            <div className="striker-indicators" title="Шкала взвода бойка: 3 щелчка до детонации!">
+            <span className="hud-label">{t('trials.hud.striker')}</span>
+            <div className="striker-indicators" title={t('trials.hud.strikerTitle')}>
               <span className={`striker-pip ${strikerStage >= 1 ? 'active warning' : ''}`}>1</span>
               <span className={`striker-pip ${strikerStage >= 2 ? 'active alert' : ''}`}>2</span>
               <span className={`striker-pip ${strikerStage >= 3 ? 'active danger' : ''}`}>3 💥</span>
@@ -818,9 +854,9 @@ export default function TrialsTab({ onOpenSidebar }) {
         {stealthNoise && (
           <div className="hud-noise-box">
             <div className="noise-header">
-              <span className="hud-label">Уровень шума:</span>
+              <span className="hud-label">{t('trials.hud.noise')}</span>
               <span className={`noise-val ${noiseLevel > 70 ? 'danger' : noiseLevel > 35 ? 'warning' : 'safe'}`}>
-                {noiseLevel < 35 ? 'Тихо' : noiseLevel < 70 ? 'Подозрительно' : 'ТРЕВОГА!'}
+                {noiseLevel < 35 ? t('trials.hud.quiet') : noiseLevel < 70 ? t('trials.hud.suspicious') : t('trials.hud.alert')}
               </span>
             </div>
             <div className="noise-track">
@@ -851,14 +887,9 @@ export default function TrialsTab({ onOpenSidebar }) {
                 </div>
               )}
               <div className="detail-item">
-                <span className="detail-label">Затраченное время:</span>
+                <span className="detail-label">{t('trials.result.timeElapsed')}</span>
                 <span className="detail-val">{outcome.timeFormatted}</span>
               </div>
-              {outcome.narrative && (
-                <div className="detail-item narrative-item">
-                  <p className="detail-narrative">{outcome.narrative}</p>
-                </div>
-              )}
             </div>
 
             <div className="modal-actions-row">
@@ -871,14 +902,14 @@ export default function TrialsTab({ onOpenSidebar }) {
                   startSession();
                 }}
               >
-                <RotateCcw size={16} /> Повторить
+                <RotateCcw size={16} /> {t('trials.result.retry')}
               </button>
               <button 
                 type="button" 
                 className="trials-btn secondary"
                 onClick={() => setOutcome(null)}
               >
-                Закрыть
+                {t('trials.result.close')}
               </button>
             </div>
           </div>
@@ -890,7 +921,7 @@ export default function TrialsTab({ onOpenSidebar }) {
         <div className="trials-modal-backdrop" onClick={() => setIsHelpOpen(false)}>
           <div className="trials-modal-card help-card" onClick={(e) => e.stopPropagation()}>
             <div className="help-header">
-              <h3>📜 Справка испытания: {GAME_MODULES[currentGame]?.name}</h3>
+              <h3>{t('trials.help.title', { game: t(`trials.games.${currentGame}`) || GAME_MODULES[currentGame]?.name })}</h3>
               <button 
                 type="button" 
                 className="help-close-btn"
@@ -901,48 +932,97 @@ export default function TrialsTab({ onOpenSidebar }) {
             </div>
             <div className="help-content">
               {currentGame === 'lockpick' && (
-                <>
-                  <p><strong>Цель:</strong> Повернуть цилиндр замка до упора (90°), найдя скрытый угол отмычки.</p>
-                  <p><strong>Управление:</strong> Двигайте мышь/палец по холсту для наклона отмычки. Нажмите и удерживайте <code>ПРОБЕЛ / ЛКМ</code> для поворота цилиндра.</p>
-                  <p><strong>Подсказка:</strong> Чем выше бонус персонажа, тем шире «зеленая зона» и тем выше прочность отмычек. При сильном сопротивлении отпустите натяжитель, чтобы не сломать отмычку!</p>
-                </>
+                isEn ? (
+                  <>
+                    <p><strong>Goal:</strong> Turn the lock cylinder all the way (90°) by finding the lock's sweet spot angle.</p>
+                    <p><strong>Controls:</strong> Move mouse/finger across the canvas to aim the lockpick. Press and hold <code>SPACE / LMB</code> to turn the cylinder.</p>
+                    <p><strong>Tip:</strong> Higher character bonus widens the sweet spot and increases pick durability. Release tension when pick shivers to avoid breaking it!</p>
+                  </>
+                ) : (
+                  <>
+                    <p><strong>Цель:</strong> Повернуть цилиндр замка до упора (90°), найдя скрытый угол отмычки.</p>
+                    <p><strong>Управление:</strong> Двигайте мышь/палец по холсту для наклона отмычки. Нажмите и удерживайте <code>ПРОБЕЛ / ЛКМ</code> для поворота цилиндра.</p>
+                    <p><strong>Подсказка:</strong> Чем выше бонус персонажа, тем шире «зеленая зона» и тем выше прочность отмычек. При сильном сопротивлении отпустите натяжитель, чтобы не сломать отмычку!</p>
+                  </>
+                )
               )}
               {currentGame === 'trap' && (
-                <>
-                  <p><strong>Цель:</strong> Обезвредить один из 4 аутентичных механизмов D&D (выбирается Мастером) до 3-го щелчка бойка.</p>
-                  <p><strong>4 типа ловушек:</strong></p>
-                  <ul style={{ margin: '4px 0 8px 16px', padding: 0, fontSize: '12px', lineHeight: '1.5' }}>
-                    <li>🏹 <strong>Арбалетная растяжка:</strong> Направьте штифт в паз шептала (при совпадении нажмите <code>ПРОБЕЛ / Клик</code>), затем перекусите нить кусачками строго в зелёной зоне. Долгое ожидание или промах сдвигают боёк!</li>
-                    <li>⚙️ <strong>Зубчатый часовой механизм:</strong> Вбивайте стопорный клин клавишей <code>ПРОБЕЛ</code> или кликом точно в пазы колеса. Осторожно: после первого клина колесо разгоняется на +45%!</li>
-                    <li>⚖️ <strong>Плита-противовес:</strong> Подсыпайте песок короткими порциями (<code>ПРОБЕЛ / ЛКМ</code>), балансируя плиту с учётом инерции стрелки в узком зелёном коридоре.</li>
-                    <li>🧪 <strong>Ядовитый распылитель:</strong> Нажимайте <code>ПРОБЕЛ</code> для стравливания пара (сбивает давление в зелёную зону), а пока манометр в ЗЕЛЁНОМ секторе — зажимайте <code>ЛКМ</code> для нейтрализации.</li>
-                  </ul>
-                  <p><strong>Шкала бойка:</strong> При критических ошибках боёк сдвигается на 1 зуб. После 3-го щелчка ловушка немедленно срабатывает!</p>
-                </>
+                isEn ? (
+                  <>
+                    <p><strong>Goal:</strong> Disarm one of 4 authentic D&D traps (chosen by the DM) before the striker's 3rd click.</p>
+                    <p><strong>4 Trap Mechanisms:</strong></p>
+                    <ul style={{ margin: '4px 0 8px 16px', padding: 0, fontSize: '12px', lineHeight: '1.5' }}>
+                      <li>🏹 <strong>Tripwire Crossbow:</strong> Align the pin into the sear slot (press <code>SPACE / Click</code> when lined up), then cut the wire with pliers strictly inside the green zone. Slips or hesitation advance the striker!</li>
+                      <li>⚙️ <strong>Clockwork Gearwork:</strong> Drive the locking wedge with <code>SPACE</code> or click directly into the gear teeth notches. Caution: after the first wedge, the gear accelerates by +45%!</li>
+                      <li>⚖️ <strong>Counterweight Plate:</strong> Pour sand in short bursts (<code>SPACE / LMB</code>), balancing the plate within the narrow green corridor taking indicator inertia into account.</li>
+                      <li>🧪 <strong>Poison Gas Dispenser:</strong> Press <code>SPACE</code> to vent steam and lower pressure into the green zone; while in the GREEN sector, hold <code>LMB</code> to inject the neutralizing serum.</li>
+                    </ul>
+                    <p><strong>Striker Meter:</strong> Critical slips advance the striker by 1 notch. On the 3rd click the trap detonates instantly!</p>
+                  </>
+                ) : (
+                  <>
+                    <p><strong>Цель:</strong> Обезвредить один из 4 аутентичных механизмов D&D (выбирается Мастером) до 3-го щелчка бойка.</p>
+                    <p><strong>4 типа ловушек:</strong></p>
+                    <ul style={{ margin: '4px 0 8px 16px', padding: 0, fontSize: '12px', lineHeight: '1.5' }}>
+                      <li>🏹 <strong>Арбалетная растяжка:</strong> Направьте штифт в паз шептала (при совпадении нажмите <code>ПРОБЕЛ / Клик</code>), затем перекусите нить кусачками строго в зелёной зоне. Долгое ожидание или промах сдвигают боёк!</li>
+                      <li>⚙️ <strong>Зубчатый часовой механизм:</strong> Вбивайте стопорный клин клавишей <code>ПРОБЕЛ</code> или кликом точно в пазы колеса. Осторожно: после первого клина колесо разгоняется на +45%!</li>
+                      <li>⚖️ <strong>Плита-противовес:</strong> Подсыпайте песок короткими порциями (<code>ПРОБЕЛ / ЛКМ</code>), балансируя плиту с учётом инерции стрелки в узком зелёном коридоре.</li>
+                      <li>🧪 <strong>Ядовитый распылитель:</strong> Нажимайте <code>ПРОБЕЛ</code> для стравливания пара (сбивает давление в зелёную зону), а пока манометр в ЗЕЛЁНОМ секторе — зажимайте <code>ЛКМ</code> для нейтрализации.</li>
+                    </ul>
+                    <p><strong>Шкала бойка:</strong> При критических ошибках боёк сдвигается на 1 зуб. После 3-го щелчка ловушка немедленно срабатывает!</p>
+                  </>
+                )
               )}
               {currentGame === 'runes' && (
-                <>
-                  <p><strong>Цель:</strong> Вращать концентрические кольца арканной печати, чтобы соединить световой поток маны от центрального ядра ко всем стихийным якорям.</p>
-                  <p><strong>Управление:</strong> Выбирайте кольцо клавишами <code>1, 2, 3</code> или кнопками интерфейса. Вращайте клавишами <code>A / D</code>, <code>← / →</code> или кнопками <code>↺</code> / <code>↻</code>, либо перетаскивайте кольцо мышью.</p>
-                </>
+                isEn ? (
+                  <>
+                    <p><strong>Goal:</strong> Rotate concentric rings of the arcane ward to channel mana beams from the core to all elemental altars.</p>
+                    <p><strong>Controls:</strong> Select ring with keys <code>1, 2, 3</code> or UI buttons. Rotate with <code>A / D</code>, <code>← / →</code>, <code>↺</code> / <code>↻</code> buttons, or drag rings directly with mouse.</p>
+                  </>
+                ) : (
+                  <>
+                    <p><strong>Цель:</strong> Вращать концентрические кольца арканной печати, чтобы соединить световой поток маны от центрального ядра ко всем стихийным якорям.</p>
+                    <p><strong>Управление:</strong> Выбирайте кольцо клавишами <code>1, 2, 3</code> или кнопками интерфейса. Вращайте клавишами <code>A / D</code>, <code>← / →</code> или кнопками <code>↺</code> / <code>↻</code>, либо перетаскивайте кольцо мышью.</p>
+                  </>
+                )
               )}
               {currentGame === 'pickpocket' && (
-                <>
-                  <p><strong>Цель:</strong> Вытянуть добычу из кошелька на 100%, пока жертва отвлечена.</p>
-                  <p><strong>Управление:</strong> Зажимайте <code>ПРОБЕЛ</code> или кнопку <code>Тянуть добычу</code>, пока статус зеленый (🍺 <code>Отвлечён</code>). Как только статус меняется на 👂 или 👁️ — СРОЧНО отпустите и замрите!</p>
-                </>
+                isEn ? (
+                  <>
+                    <p><strong>Goal:</strong> Pull loot out of the pocket to 100% while the target is distracted.</p>
+                    <p><strong>Controls:</strong> Hold <code>SPACE</code> or the <code>Pull Loot</code> button while status is green (🍺 <code>Distracted</code>). As soon as status shifts to 👂 or 👁️ — IMMEDIATELY release and freeze!</p>
+                  </>
+                ) : (
+                  <>
+                    <p><strong>Цель:</strong> Вытянуть добычу из кошелька на 100%, пока жертва отвлечена.</p>
+                    <p><strong>Управление:</strong> Зажимайте <code>ПРОБЕЛ</code> или кнопку <code>Тянуть добычу</code>, пока статус зеленый (🍺 <code>Отвлечён</code>). Как только статус меняется на 👂 или 👁️ — СРОЧНО отпустите и замрите!</p>
+                  </>
+                )
               )}
               {currentGame === 'alchemy' && (
-                <>
-                  <p><strong>Цель:</strong> Приготовить каноническое зелье D&D 5e по старинному алхимическому трактату.</p>
-                  <p><strong>3 действия алхимика:</strong></p>
-                  <ul style={{ margin: '4px 0 8px 16px', padding: 0, fontSize: '12px', lineHeight: '1.5' }}>
-                    <li>💨 <strong>Меха (ПРОБЕЛ):</strong> Нагнетайте жар тигля (Томление, Кипение или Жар). Отпустите для естественного остывания.</li>
-                    <li>🌿 <strong>Полка реагентов:</strong> Бросайте нужный ингредиент, пока тигель в целевом температурном диапазоне.</li>
-                    <li>🥄 <strong>Помешивание (A / D или ← / →):</strong> Размешивайте по часовой ↻ или против часовой ↺ стрелки по указанию в свитке.</li>
-                  </ul>
-                  <p><strong>Сложность зелья:</strong> Чем сильнее и выше редкость зелья (от Обычного до Очень редкого), тем больше этапов и тем строже допуски на ошибки!</p>
-                </>
+                isEn ? (
+                  <>
+                    <p><strong>Goal:</strong> Brew a canonical D&D 5e potion following the ancient alchemical treatise.</p>
+                    <p><strong>3 Alchemist Actions:</strong></p>
+                    <ul style={{ margin: '4px 0 8px 16px', padding: 0, fontSize: '12px', lineHeight: '1.5' }}>
+                      <li>💨 <strong>Bellows (SPACE):</strong> Pump heat into the crucible (Simmer, Boil, or Raging Heat). Release to let it naturally cool down.</li>
+                      <li>🌿 <strong>Reagent Shelf:</strong> Drop the required ingredient while the crucible is strictly in the target temperature range.</li>
+                      <li>🥄 <strong>Stirring (A / D or ← / →):</strong> Stir clockwise ↻ or counter-clockwise ↺ as instructed in the scroll.</li>
+                    </ul>
+                    <p><strong>Potion Difficulty:</strong> Stronger and rarer potions (from Common to Very Rare and Legendary) involve more steps and much narrower margin of error!</p>
+                  </>
+                ) : (
+                  <>
+                    <p><strong>Цель:</strong> Приготовить каноническое зелье D&D 5e по старинному алхимическому трактату.</p>
+                    <p><strong>3 действия алхимика:</strong></p>
+                    <ul style={{ margin: '4px 0 8px 16px', padding: 0, fontSize: '12px', lineHeight: '1.5' }}>
+                      <li>💨 <strong>Меха (ПРОБЕЛ):</strong> Нагнетайте жар тигля (Томление, Кипение или Жар). Отпустите для естественного остывания.</li>
+                      <li>🌿 <strong>Полка реагентов:</strong> Бросайте нужный ингредиент, пока тигель в целевом температурном диапазоне.</li>
+                      <li>🥄 <strong>Помешивание (A / D или ← / →):</strong> Размешивайте по часовой ↻ или против часовой ↺ стрелки по указанию в свитке.</li>
+                    </ul>
+                    <p><strong>Сложность зелья:</strong> Чем сильнее и выше редкость зелья (от Обычного до Очень редкого), тем больше этапов и тем строже допуски на ошибки!</p>
+                  </>
+                )
               )}
             </div>
           </div>
