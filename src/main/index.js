@@ -1,8 +1,18 @@
 const { app, BrowserWindow, nativeTheme } = require('electron');
 const path = require('path');
+const fs = require('fs');
 
 function createWindow() {
   nativeTheme.themeSource = 'dark';
+
+  // Иконка приложения для окна и панели задач Windows
+  let iconPath = path.join(__dirname, '../../resources/icon.ico');
+  if (app.isPackaged) {
+    const packagedIcon = path.join(process.resourcesPath, 'resources', 'icon.ico');
+    if (fs.existsSync(packagedIcon)) {
+      iconPath = packagedIcon;
+    }
+  }
 
   const win = new BrowserWindow({
     width: 1280,
@@ -11,6 +21,7 @@ function createWindow() {
     minHeight: 700,
     backgroundColor: '#1e1f22',
     title: 'DnD Dashboard — Master Suite',
+    icon: iconPath,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
       color: '#111214',
