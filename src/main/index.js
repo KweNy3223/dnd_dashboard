@@ -7,6 +7,8 @@ function createWindow() {
     height: 880,
     minWidth: 1024,
     minHeight: 700,
+    backgroundColor: '#1e1f22',
+    title: 'DnD Dashboard — Master Suite',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,

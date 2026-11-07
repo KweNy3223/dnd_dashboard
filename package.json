@@ -1,6 +1,23 @@
 {
   "name": "dnd_dashboard",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "All-in-one desktop assistant for D&D 5e Dungeon Masters featuring interactive trials, procedural generators, audio synthesis, and DM table tools",
+  "author": "KweNy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KweNy3223/dnd_dashboard.git"
+  },
+  "keywords": [
+    "dnd",
+    "dnd5e",
+    "dungeon-master",
+    "electron",
+    "react",
+    "tabletop",
+    "minigames",
+    "procedural-audio"
+  ],
   "main": "src/main/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
