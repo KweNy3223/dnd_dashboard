@@ -1,48 +1,107 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="dndGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
-      <stop offset="100%" stop-color="#949ba4" stop-opacity="0.8" />
+    <!-- Градиент фона (глубокий графит с легким акцентом) -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#32353b" />
+      <stop offset="40%" stop-color="#232529" />
+      <stop offset="100%" stop-color="#121315" />
     </linearGradient>
-    <linearGradient id="facetGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#5865f2" stop-opacity="0.25" />
-      <stop offset="100%" stop-color="#2b2d31" stop-opacity="0.8" />
+
+    <!-- Внешняя окантовка бейджа -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6e727d" />
+      <stop offset="100%" stop-color="#2c2d32" />
+    </linearGradient>
+
+    <!-- Чистый белый/серебристый для ребер d20 -->
+    <linearGradient id="strokeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#dce0e5" />
+    </linearGradient>
+
+    <!-- Заливка верхних граней (отражение света сверху) -->
+    <linearGradient id="topFacet" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.22" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.08" />
+    </linearGradient>
+
+    <!-- Заливка центральной грани -->
+    <linearGradient id="centerFacet" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.04" />
     </linearGradient>
   </defs>
 
-  <!-- Внешний шестиугольник d20 -->
-  <polygon points="50,6 88,28 88,72 50,94 12,72 12,28" 
-           fill="url(#facetGrad)" 
-           stroke="url(#dndGrad)" 
-           stroke-width="3" 
+  <!-- Скругленный фон-бейдж (squircle) для максимального контраста на светлой и темной панели задач -->
+  <rect x="18" y="18" width="476" height="476" rx="116" 
+        fill="url(#bgGrad)" 
+        stroke="url(#borderGrad)" 
+        stroke-width="10" />
+
+  <!-- Внутренний блик по периметру бейджа -->
+  <rect x="28" y="28" width="456" height="456" rx="106" 
+        fill="none" 
+        stroke="rgba(255, 255, 255, 0.12)" 
+        stroke-width="2" />
+
+  <!-- 3D Заливки граней d20 -->
+  <!-- Верхние боковые -->
+  <polygon points="256,51 434,154 256,151" fill="url(#topFacet)" />
+  <polygon points="256,51 78,154 256,151" fill="url(#topFacet)" />
+
+  <!-- Средние грани -->
+  <polygon points="434,154 256,151 360,331" fill="rgba(255, 255, 255, 0.12)" />
+  <polygon points="78,154 256,151 152,331" fill="rgba(255, 255, 255, 0.12)" />
+  <polygon points="434,154 434,358 360,331" fill="rgba(255, 255, 255, 0.05)" />
+  <polygon points="78,154 78,358 152,331" fill="rgba(255, 255, 255, 0.05)" />
+
+  <!-- Нижние грани (затененные) -->
+  <polygon points="360,331 434,358 256,461" fill="rgba(0, 0, 0, 0.40)" />
+  <polygon points="152,331 78,358 256,461" fill="rgba(0, 0, 0, 0.40)" />
+  <polygon points="152,331 360,331 256,461" fill="rgba(0, 0, 0, 0.25)" />
+
+  <!-- Центральная грань с числом 20 -->
+  <polygon points="256,151 360,331 152,331" 
+           fill="url(#centerFacet)" 
+           stroke="url(#strokeGrad)" 
+           stroke-width="16" 
            stroke-linejoin="round" />
 
-  <!-- Центральный треугольник -->
-  <polygon points="50,26 78,66 22,66" 
-           fill="rgba(255, 255, 255, 0.08)" 
-           stroke="url(#dndGrad)" 
-           stroke-width="2.5" 
+  <!-- Внешний силуэт icosahedron -->
+  <polygon points="256,51 434,154 434,358 256,461 78,358 78,154" 
+           fill="none" 
+           stroke="url(#strokeGrad)" 
+           stroke-width="18" 
            stroke-linejoin="round" />
 
-  <!-- Соединяющие ребра к внешним вершинам -->
-  <line x1="50" y1="6" x2="50" y2="26" stroke="url(#dndGrad)" stroke-width="2.5" stroke-linecap="round" />
-  <line x1="88" y1="28" x2="50" y2="26" stroke="url(#dndGrad)" stroke-width="2" stroke-linecap="round" />
-  <line x1="12" y1="28" x2="50" y2="26" stroke="url(#dndGrad)" stroke-width="2" stroke-linecap="round" />
-  
-  <line x1="88" y1="28" x2="78" y2="66" stroke="url(#dndGrad)" stroke-width="2" stroke-linecap="round" />
-  <line x1="88" y1="72" x2="78" y2="66" stroke="url(#dndGrad)" stroke-width="2" stroke-linecap="round" />
-  <line x1="50" y1="94" x2="78" y2="66" stroke="url(#dndGrad)" stroke-width="2.5" stroke-linecap="round" />
+  <!-- Соединяющие ребра -->
+  <line x1="256" y1="51" x2="256" y2="151" stroke="url(#strokeGrad)" stroke-width="14" stroke-linecap="round" />
+  <line x1="434" y1="154" x2="256" y2="151" stroke="url(#strokeGrad)" stroke-width="14" stroke-linecap="round" />
+  <line x1="78" y1="154" x2="256" y2="151" stroke="url(#strokeGrad)" stroke-width="14" stroke-linecap="round" />
 
-  <line x1="12" y1="28" x2="22" y2="66" stroke="url(#dndGrad)" stroke-width="2" stroke-linecap="round" />
-  <line x1="12" y1="72" x2="22" y2="66" stroke="url(#dndGrad)" stroke-width="2" stroke-linecap="round" />
-  <line x1="50" y1="94" x2="22" y2="66" stroke="url(#dndGrad)" stroke-width="2.5" stroke-linecap="round" />
+  <line x1="434" y1="154" x2="360" y2="331" stroke="url(#strokeGrad)" stroke-width="14" stroke-linecap="round" />
+  <line x1="434" y1="358" x2="360" y2="331" stroke="url(#strokeGrad)" stroke-width="14" stroke-linecap="round" />
+  <line x1="256" y1="461" x2="360" y2="331" stroke="url(#strokeGrad)" stroke-width="14" stroke-linecap="round" />
+
+  <line x1="78" y1="154" x2="152" y2="331" stroke="url(#strokeGrad)" stroke-width="14" stroke-linecap="round" />
+  <line x1="78" y1="358" x2="152" y2="331" stroke="url(#strokeGrad)" stroke-width="14" stroke-linecap="round" />
+  <line x1="256" y1="461" x2="152" y2="331" stroke="url(#strokeGrad)" stroke-width="14" stroke-linecap="round" />
+
+  <!-- Тень под цифрой 20 для объема -->
+  <text x="256" y="294" 
+        font-family="Segoe UI, -apple-system, Arial, sans-serif" 
+        font-size="78" 
+        font-weight="900" 
+        fill="rgba(0, 0, 0, 0.45)" 
+        text-anchor="middle" 
+        letter-spacing="1">20</text>
 
   <!-- Число 20 в центре -->
-  <text x="50" y="55" 
-        font-family="Segoe UI, system-ui, sans-serif" 
-        font-size="16" 
-        font-weight="800" 
+  <text x="256" y="291" 
+        font-family="Segoe UI, -apple-system, Arial, sans-serif" 
+        font-size="78" 
+        font-weight="900" 
         fill="#ffffff" 
         text-anchor="middle" 
-        letter-spacing="0.5">20</text>
+        letter-spacing="1">20</text>
 </svg>

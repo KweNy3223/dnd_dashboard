@@ -2,15 +2,27 @@ const { app, BrowserWindow, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
+// Регистрация AppUserModelId для правильной группировки и отображения иконки в панели задач Windows
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.dnd.dashboard');
+}
+
 function createWindow() {
   nativeTheme.themeSource = 'dark';
 
   // Иконка приложения для окна и панели задач Windows
   let iconPath = path.join(__dirname, '../../resources/icon.ico');
   if (app.isPackaged) {
-    const packagedIcon = path.join(process.resourcesPath, 'resources', 'icon.ico');
-    if (fs.existsSync(packagedIcon)) {
-      iconPath = packagedIcon;
+    const candidates = [
+      path.join(process.resourcesPath, 'resources', 'icon.ico'),
+      path.join(process.resourcesPath, 'icon.ico'),
+      path.join(__dirname, '../../resources/icon.ico')
+    ];
+    for (const c of candidates) {
+      if (fs.existsSync(c)) {
+        iconPath = c;
+        break;
+      }
     }
   }
 
@@ -35,6 +47,10 @@ function createWindow() {
       autoHideMenuBar: true
     }
   });
+
+  if (fs.existsSync(iconPath)) {
+    win.setIcon(iconPath);
+  }
 
   win.removeMenu();
 
